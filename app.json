@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "englishcarehub",
+    "slug": "englishcarehub",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "statusBarHidden": false,
+      "statusBarStyle": "light"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "statusBar": {
+        "hidden": false,
+        "barStyle": "light-content",
+        "translucent": true,
+        "backgroundColor": "transparent"
+      }
+    },
+    "web": {
+      "favicon": ""
+    }
+  }
+}

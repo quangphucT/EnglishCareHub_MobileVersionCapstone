@@ -1,0 +1,53 @@
+src/
+├── api/
+│   ├── httpClient.ts
+│   ├── auth.service.ts
+│   └── user.service.ts
+│
+├── assets/
+│   ├── fonts/
+│   └── images/
+│
+├── components/
+│   ├── common/
+│   └── forms/
+│
+├── hooks/
+│   ├── useAuth.ts
+│   └── useNetwork.ts
+│
+├── middleware/
+│   ├── authMiddleware.ts
+│   └── loggerMiddleware.ts
+│
+├── navigation/
+│   ├── AppNavigator.tsx
+│   └── RootStack.tsx
+│
+├── screens/
+│   ├── Auth/
+│   │   ├── LoginScreen.tsx
+│   │   └── RegisterScreen.tsx
+│   ├── Home/
+│   │   └── HomeScreen.tsx
+│   └── Profile/
+│       └── ProfileScreen.tsx
+│
+├── store/
+│   ├── index.ts
+│   ├── auth.slice.ts
+│   └── user.slice.ts
+│
+├── styles/
+│   ├── colors.ts
+│   ├── spacing.ts
+│   └── typography.ts
+│
+├── utils/
+│   ├── validators.ts
+│   └── formatter.ts
+│
+└── types/
+    ├── auth.d.ts
+    ├── user.d.ts
+    └── api.d.ts
