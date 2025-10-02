@@ -48,7 +48,7 @@ export default function RegisterScreen() {
                 top: 0,
                 left: 0,
                 right: 0,
-                height: 200,
+                height: 120,
               }}
             >
               <Svg
