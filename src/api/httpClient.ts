@@ -1,16 +1,16 @@
 import axios from "axios";
-import { store } from "../store";
 
 const httpClient = axios.create({
-  baseURL: "https://api.example.com",
+  baseURL: process.env.EXPO_PUBLIC_API_URL,
   timeout: 10000,
 });
 
 httpClient.interceptors.request.use((config) => {
-  const token = store.getState().auth.token;
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+  // Add token from storage if available
+  // const token = store.getState().auth.token;
+  // if (token) {
+  //   config.headers.Authorization = `Bearer ${token}`;
+  // }
   return config;
 });
 

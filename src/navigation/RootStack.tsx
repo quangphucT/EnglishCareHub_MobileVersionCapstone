@@ -1,10 +1,11 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import LoginScreen from "../screens/Auth/LoginScreen";
+import RegisterScreen from "../screens/Auth/RegisterScreen";
+import VerifyOTPScreen from "../screens/Auth/VerifyOTPScreen";
 import HomeScreen from "../screens/Home/HomeScreen";
 
 import '../global.css'
-import RegisterScreen from "../screens/Auth/RegisterScreen";
 const Stack = createNativeStackNavigator();
 
 export default function RootStack() {
@@ -25,6 +26,13 @@ export default function RootStack() {
        <Stack.Screen 
         name="Register" 
         component={RegisterScreen}
+        options={{ 
+          contentStyle: { backgroundColor: 'transparent' }
+        }}
+      />
+      <Stack.Screen 
+        name="VerifyOTPScreen" 
+        component={VerifyOTPScreen}
         options={{ 
           contentStyle: { backgroundColor: 'transparent' }
         }}

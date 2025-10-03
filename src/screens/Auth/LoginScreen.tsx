@@ -13,26 +13,28 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import Svg, { Path } from "react-native-svg";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
 export default function LoginScreen() {
-  const [username, setUsername] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const navigation = useNavigation();
 
   const handleLogin = () => {
+    
     // Handle login logic here
-    console.log("Login with:", username, password);
+    console.log("Login with:",  phoneNumber, password);
   };
 
   return (
-    <View className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white">
       {/* Top Gradient Header with Wave */}
       <View className="absolute top-0 left-0 right-0" style={{ height: 180 }}>
         <LinearGradient
-          colors={["#FF9A62", "#FF6B9D", "#C471ED"]}
+          colors={["#F57C3A", "#F24B84", "#A450DA"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={{
@@ -40,7 +42,7 @@ export default function LoginScreen() {
             top: 0,
             left: 0,
             right: 0,
-            height: 240,
+            height: 150,
           }}
         >
           <Svg
@@ -57,8 +59,6 @@ export default function LoginScreen() {
         </LinearGradient>
       </View>
 
-
-
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
@@ -68,11 +68,11 @@ export default function LoginScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View className="flex-1 justify-center px-8 pt-52">
+          <View className="flex-1 justify-center px-8 pt-40">
             {/* Title */}
             <View className="items-center mb-12">
-              <Text className="text-6xl font-bold text-gray-800 mb-3">
-                Hello !
+              <Text className="text-5xl font-bold text-gray-800 mb-3">
+                Welcome back!
               </Text>
               <Text className="text-[17px] text-gray-700">
                 Sign in to your account
@@ -85,11 +85,11 @@ export default function LoginScreen() {
               <View className="bg-gray-50 rounded-3xl px-6 py-4 flex-row items-center shadow-sm">
                 <Ionicons name="person-outline" size={20} color="#9CA3AF" />
                 <TextInput
-                  className="flex-1 ml-3 text-gray-700 text-base"
+                  className="flex-1 ml-3 text-gray-700 text-[17px] h-10"
                   placeholder="Username"
                   placeholderTextColor="#D1D5DB"
-                  value={username}
-                  onChangeText={setUsername}
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
                   autoCapitalize="none"
                 />
               </View>
@@ -102,7 +102,7 @@ export default function LoginScreen() {
                   color="#9CA3AF"
                 />
                 <TextInput
-                  className="flex-1 ml-3 text-gray-700 text-base"
+                  className="flex-1 ml-3 text-gray-700 text-[17px] h-10"
                   placeholder="Password"
                   placeholderTextColor="#D1D5DB"
                   value={password}
@@ -170,6 +170,6 @@ export default function LoginScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </SafeAreaView>
   );
 }

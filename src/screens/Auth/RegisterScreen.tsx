@@ -9,11 +9,14 @@ import {
   ScrollView,
   Dimensions,
   Image,
+  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import Svg, { Path } from "react-native-svg";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useRegister } from "../../hooks/useAuth";
 
 const { width } = Dimensions.get("window");
 
@@ -22,12 +25,47 @@ export default function RegisterScreen() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<'LEARNER' | 'REVIEWER'>('LEARNER');
   const [showPassword, setShowPassword] = useState(false);
   const navigation = useNavigation();
+  
+  // React Query
+  const registerMutation = useRegister();
 
-  const handleRegister = () => {
-    // Handle register logic here
-    console.log("Register with:", { fullName, phoneNumber, email, password });
+  const handleRegister = async () => {
+    // Validation
+    if (!fullName.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập họ tên');
+      return;
+    }
+    if (!phoneNumber.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập số điện thoại');
+      return;
+    }
+    if (!email.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập email');
+      return;
+    }
+    if (!password.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập mật khẩu');
+      return;
+    }
+
+    // Call register mutation
+    registerMutation.mutate({
+      fullName: fullName.trim(),
+      phoneNumber: phoneNumber.trim(),
+      email: email.trim(),
+      password,
+      role
+    }, {
+      onSuccess: (data) => {
+        // Show success alert
+        Alert.alert('Thành công', 'Đăng ký thành công! Vui lòng xác thực số điện thoại.', [{ text: 'OK' }]);
+        const userEmail = data.email;
+        (navigation as any).navigate('VerifyOTPScreen', { email: userEmail });
+      }
+    });
   };
 
   const handleGoogleSignIn = () => {
@@ -36,11 +74,12 @@ export default function RegisterScreen() {
   };
 
   return (
-    <View className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white">
       {/* Top Gradient Header with Wave */}
      <View className="absolute top-0 left-0 right-0" style={{ height: 180 }}>
             <LinearGradient
-              colors={["#FF9A62", "#FF6B9D", "#C471ED"]}
+             colors={["#F57C3A", "#F24B84", "#A450DA"]}
+
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={{
@@ -48,7 +87,7 @@ export default function RegisterScreen() {
                 top: 0,
                 left: 0,
                 right: 0,
-                height: 120,
+                height: 140,
               }}
             >
               <Svg
@@ -58,7 +97,7 @@ export default function RegisterScreen() {
                 viewBox={`0 0 ${width} 100`}
               >
                 <Path
-                  d={`M0,0 C${width * 0.15},99 ${width * 0.35},50 ${width * 0.5},90 C${width * 0.65},-10 ${width * 0.85},30 ${width},10 L${width},100 L0,100 Z`}
+                  d={`M0,0 C${width * 0.05},99 ${width * 0.35},50 ${width * 0.5},99 C${width * 0.65},-10 ${width * 0.85},30 ${width},10 L${width},100 L0,100 Z`}
                   fill="white"
                 />
               </Svg>
@@ -92,7 +131,7 @@ export default function RegisterScreen() {
               <View className="bg-gray-50 rounded-3xl px-6 py-4 flex-row items-center shadow-sm">
                 <Ionicons name="person-outline" size={20} color="#9CA3AF" />
                 <TextInput
-                  className="flex-1 ml-3 text-gray-700 text-base"
+                  className="flex-1 ml-3 text-gray-700 text-[17px] h-10"
                   placeholder="Full Name"
                   placeholderTextColor="#D1D5DB"
                   value={fullName}
@@ -105,7 +144,7 @@ export default function RegisterScreen() {
               <View className="bg-gray-50 rounded-3xl px-6 py-4 flex-row items-center shadow-sm mt-6">
                 <Ionicons name="call-outline" size={20} color="#9CA3AF" />
                 <TextInput
-                  className="flex-1 ml-3 text-gray-700 text-base"
+                  className="flex-1 ml-3 text-gray-700 text-[17px] h-10"
                   placeholder="Phone Number"
                   placeholderTextColor="#D1D5DB"
                   value={phoneNumber}
@@ -119,7 +158,7 @@ export default function RegisterScreen() {
               <View className="bg-gray-50 rounded-3xl px-6 py-4 flex-row items-center shadow-sm mt-6">
                 <Ionicons name="mail-outline" size={20} color="#9CA3AF" />
                 <TextInput
-                  className="flex-1 ml-3 text-gray-700 text-base"
+                  className="flex-1 ml-3 text-gray-700 text-[17px] h-10"
                   placeholder="Email"
                   placeholderTextColor="#D1D5DB"
                   value={email}
@@ -133,7 +172,7 @@ export default function RegisterScreen() {
               <View className="bg-gray-50 rounded-3xl px-6 py-4 flex-row items-center shadow-sm mt-6">
                 <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" />
                 <TextInput
-                  className="flex-1 ml-3 text-gray-700 text-base"
+                  className="flex-1 ml-3 text-gray-700 text-[17px] h-10"
                   placeholder="Password"
                   placeholderTextColor="#D1D5DB"
                   value={password}
@@ -150,14 +189,98 @@ export default function RegisterScreen() {
                 </TouchableOpacity>
               </View>
 
+              {/* Role Selection */}
+              <View className="mt-6">
+                <Text className="text-gray-700 font-semibold text-[17px] mb-3 ml-2">
+                  Choose your role
+                </Text>
+                <View className="flex-row space-x-4 gap-2">
+                  {/* Learner Role */}
+                  <TouchableOpacity
+                    onPress={() => setRole('LEARNER')}
+                    activeOpacity={0.8}
+                    className={`flex-1 rounded-2xl p-4 border-2 ${
+                      role === 'LEARNER' 
+                        ? 'border-purple-500 bg-purple-50' 
+                        : 'border-gray-200 bg-gray-50'
+                    }`}
+                  >
+                    <View className="items-center">
+                      <View className={`rounded-full p-3 mb-2 ${
+                        role === 'LEARNER' ? 'bg-purple-100' : 'bg-gray-100'
+                      }`}>
+                        <Ionicons 
+                          name="school-outline" 
+                          size={24} 
+                          color={role === 'LEARNER' ? '#8B5CF6' : '#9CA3AF'} 
+                        />
+                      </View>
+                      <Text className={`font-semibold text-center ${
+                        role === 'LEARNER' ? 'text-purple-600' : 'text-gray-600'
+                      }`}>
+                        Learner
+                      </Text>
+                      <Text className={`text-xs text-center mt-1 ${
+                        role === 'LEARNER' ? 'text-purple-500' : 'text-gray-500'
+                      }`}>
+                        I want to learn English
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Reviewer Role */}
+                  <TouchableOpacity
+                    onPress={() => setRole('REVIEWER')}
+                    activeOpacity={0.8}
+                    className={`flex-1 rounded-2xl p-4 border-2 ${
+                      role === 'REVIEWER' 
+                        ? 'border-blue-500 bg-blue-50' 
+                        : 'border-gray-200 bg-gray-50'
+                    }`}
+                  >
+                    <View className="items-center">
+                      <View className={`rounded-full p-3 mb-2 ${
+                        role === 'REVIEWER' ? 'bg-blue-100' : 'bg-gray-100'
+                      }`}>
+                        <Ionicons 
+                          name="checkmark-circle-outline" 
+                          size={24} 
+                          color={role === 'REVIEWER' ? '#3B82F6' : '#9CA3AF'} 
+                        />
+                      </View>
+                      <Text className={`font-semibold text-center ${
+                        role === 'REVIEWER' ? 'text-blue-600' : 'text-gray-600'
+                      }`}>
+                        Reviewer
+                      </Text>
+                      <Text className={`text-xs text-center mt-1 ${
+                        role === 'REVIEWER' ? 'text-blue-500' : 'text-gray-500'
+                      }`}>
+                        I want to help others
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Error Message */}
+              {registerMutation.error && (
+                <View className="bg-red-50 border border-red-200 rounded-2xl p-4 mt-4">
+                  <Text className="text-red-600 text-center">{registerMutation.error.message}</Text>
+                </View>
+              )}
+
               {/* Sign Up Button */}
               <TouchableOpacity
                 onPress={handleRegister}
                 activeOpacity={0.8}
-                className="mt-8 flex-row items-center justify-center"
+                disabled={registerMutation.isPending}
+                className={`mt-8 flex-row items-center justify-center ${
+                  registerMutation.isPending ? 'opacity-50' : ''
+                }`}
               >
                 <Text className="text-gray-800 text-xl font-bold mr-4">
-                  Sign up
+                  {registerMutation.isPending ? 'Đang đăng ký...' : 'Sign up'}
                 </Text>
                 <LinearGradient
                   colors={["#C471ED", "#F64F59"]}
@@ -171,7 +294,11 @@ export default function RegisterScreen() {
                     alignItems: "center",
                   }}
                 >
-                  <Ionicons name="arrow-forward" size={24} color="white" />
+                  {registerMutation.isPending ? (
+                    <Ionicons name="hourglass" size={24} color="white" />
+                  ) : (
+                    <Ionicons name="arrow-forward" size={24} color="white" />
+                  )}
                 </LinearGradient>
               </TouchableOpacity>
 
@@ -213,6 +340,6 @@ export default function RegisterScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </SafeAreaView>
   );
 }
