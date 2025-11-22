@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "800234238649",
+    "project_id": "aesp-788ee",
+    "storage_bucket": "aesp-788ee.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:800234238649:android:db2ca4b6dc8b3ec3c12168",
+        "android_client_info": {
+          "package_name": "com.itdevqphuc.englishcarehub"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "800234238649-o3m4ij1r048028avn74scg6v5p2t6gb0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.itdevqphuc.englishcarehub",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "800234238649-hemaqti3oamhg41h3o58j2drmsu6bjgb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyACRvjPeuRhXd3AkXGEZg1fZ1bKi_PPaCE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "800234238649-hemaqti3oamhg41h3o58j2drmsu6bjgb.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

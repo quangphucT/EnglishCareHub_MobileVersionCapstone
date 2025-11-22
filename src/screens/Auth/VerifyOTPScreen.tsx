@@ -6,10 +6,9 @@ import {
   TouchableOpacity,
   Alert,
   Dimensions,
-  KeyboardAvoidingView,
-  Platform,
   Keyboard,
   TouchableWithoutFeedback,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -40,6 +39,7 @@ const VerifyOTPScreen = () => {
 
   // Refs for input focus
   const inputRefs = useRef<(TextInput | null)[]>([]);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   // Timer effect
   useEffect(() => {
@@ -77,6 +77,15 @@ const VerifyOTPScreen = () => {
     }
   };
 
+  // Handle input focus - auto scroll to keep inputs visible
+  const handleInputFocus = () => {
+    setTimeout(() => {
+      if (scrollViewRef.current) {
+        scrollViewRef.current.scrollTo({ y: 200, animated: true });
+      }
+    }, 150);
+  };
+
   // Handle backspace
   const handleKeyPress = (key: string, index: number) => {
     if (key === 'Backspace' && !otp[index] && index > 0) {
@@ -96,10 +105,10 @@ const VerifyOTPScreen = () => {
     verifyOTPMutation.mutate(
       { email, otp: otpCode },
       {
-        onSuccess: () => {
+        onSuccess: (data) => {
           Alert.alert(
             'Success',
-            'Verification successful!',
+            data.message ||   'Verification successful!',
             [
               {
                 text: 'OK',
@@ -108,6 +117,7 @@ const VerifyOTPScreen = () => {
             ]
           );
         },
+
         onError: (error: any) => {
           Alert.alert('Error', error.message || 'Invalid OTP code');
           setOtp(['', '', '', '', '', '']);
@@ -135,47 +145,18 @@ const VerifyOTPScreen = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      {/* Top Gradient Header with Wave */}
-      <View className="absolute top-0 left-0 right-0" style={{ height: 180 }}>
-        <LinearGradient
-          colors={["#667eea", "#764ba2"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 140,
-          }}
-        >
-          <Svg
-            height="80"
-            width={width}
-            style={{ position: "absolute", bottom: -2 }}
-            viewBox={`0 0 ${width} 80`}
-          >
-            <Path
-              d={`M0,0 C${width * 0.25},60 ${width * 0.75},20 ${width},40 L${width},80 L0,80 Z`}
-              fill="white"
-            />
-          </Svg>
-        </LinearGradient>
-      </View>
+    
 
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          className="flex-1"
+        <ScrollView
+          ref={scrollViewRef}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets={true}
         >
           <View className="flex-1 justify-center px-8 pt-32">
-            {/* Back Button */}
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              className="absolute top-16 left-8 bg-white/20 rounded-full p-3"
-            >
-              <Ionicons name="arrow-back" size={24} color="#667eea" />
-            </TouchableOpacity>
+          
 
           {/* Title */}
           <View className="items-center mb-12">
@@ -194,7 +175,7 @@ const VerifyOTPScreen = () => {
           </View>
 
           {/* OTP Input */}
-          <View className="flex-row justify-center mb-8" style={{ gap: 16 }}>
+          <View className="flex-row justify-center mb-8" style={{ gap: 10 }}>
             {otp.map((digit, index) => (
               <TextInput
                 key={index}
@@ -207,6 +188,7 @@ const VerifyOTPScreen = () => {
                 value={digit}
                 onChangeText={(value) => handleOtpChange(value, index)}
                 onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, index)}
+                onFocus={handleInputFocus}
                 keyboardType="numeric"
                 maxLength={1}
                 selectTextOnFocus
@@ -261,7 +243,7 @@ const VerifyOTPScreen = () => {
             </TouchableOpacity>
           </View>
         </View>
-      </KeyboardAvoidingView>
+        </ScrollView>
       </TouchableWithoutFeedback>
     </SafeAreaView>
   );

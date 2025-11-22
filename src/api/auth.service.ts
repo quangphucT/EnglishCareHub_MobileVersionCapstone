@@ -1,35 +1,71 @@
-import { RegisterRequest, ResendOTPResponse, VerifyOTPResponse } from '../types/auth';
-import httpClient from './httpClient';
-
-
+import {
+  ForgotPasswordRequest,
+  ForgotPasswordResponse,
+  GoogleLoginRequest,
+  GoogleLoginResponse,
+  LoginRequest,
+  LoginResponse,
+  RefreshTokenRequest,
+  RefreshTokenResponse,
+  RegisterRequest,
+  ResendOTPRequest,
+  ResendOTPResponse,
+  VerifyOTPRequest,
+  VerifyOTPResponse,
+} from "../types/auth";
+import httpClient from "./httpClient";
 
 export const authService = {
- 
-   // Register new account
-  
+  // Register new account
+
   register: async (userData: RegisterRequest): Promise<any> => {
     try {
-      const response = await httpClient.post('Auth/register', userData);
+      const response = await httpClient.post("Auth/register", userData);
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Đăng ký thất bại');
+      // Handle different error response formats
+      throw new Error(error.response?.data?.message || 'Registration failed. Please try again.');
     }
   },
 
   /**
    * Login with phone number and password
    */
-  // login: async (credentials: LoginRequest): Promise<LoginResponse> => {
-  //   try {
-  //     const response = await httpClient.post<LoginResponse>('/auth/login', {
-  //       phoneNumber: credentials.phoneNumber,
-  //       password: credentials.password,
-  //     });
-  //     return response.data;
-  //   } catch (error: any) {
-  //     throw new Error(error.response?.data?.message || 'Đăng nhập thất bại');
-  //   }
-  // },
+  login: async (credentials: LoginRequest): Promise<LoginResponse> => {
+    try {
+      const response = await httpClient.post<LoginResponse>('Auth/login', {
+        email: credentials.email,
+        password: credentials.password,
+      });
+      return response.data;
+    } catch (error: any) {
+       throw new Error(error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
+    }
+  },
+
+  /**
+   * Refresh access token
+   */
+  refreshToken: async (refreshToken: RefreshTokenRequest): Promise<RefreshTokenResponse> => {
+    try {
+      const response = await httpClient.post<RefreshTokenResponse>('Auth/refresh-token', {
+        refreshToken,
+      });
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to refresh token. Please try again.');
+    }
+  },
+
+
+  forgotPassword:  async (data: ForgotPasswordRequest): Promise<ForgotPasswordResponse> => {
+    try {
+      const response = await httpClient.post("Auth/forgot-password", data);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to send password reset email. Please try again.');
+    }
+  },
 
   /**
    * Logout user
@@ -43,8 +79,6 @@ export const authService = {
   //   }
   // },
 
-  
- 
   // getProfile: async (): Promise<LoginResponse['user']> => {
   //   try {
   //     const response = await httpClient.get<LoginResponse['user']>('/auth/profile');
@@ -55,26 +89,41 @@ export const authService = {
   // },
 
   /**
-   * Verify OTP
+   * Google Login - Send idToken to backend
    */
-  verifyOTP: async (data: { email: string; otp: string }): Promise<VerifyOTPResponse> => {
+  googleLogin: async (googleData: GoogleLoginRequest): Promise<GoogleLoginResponse> => {
     try {
-      const response = await httpClient.post('Auth/verify-otp', data);
+      const response = await httpClient.post<GoogleLoginResponse>('Auth/google-login', {
+        idToken: googleData.idToken,
+      });
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Xác thực OTP thất bại');
+      throw new Error(error.response?.data?.message || 'Google login failed. Please try again.');
+    }
+  },
+
+  /**
+   * Verify OTP
+   */
+  verifyOTP: async (data: VerifyOTPRequest): Promise<VerifyOTPResponse> => {
+    try {
+      const response = await httpClient.post("Auth/verify-otp", data);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Verification failed. Please try again.');
+
     }
   },
 
   /**
    * Resend OTP
    */
-  resendOTP: async (data: { email: string }): Promise<ResendOTPResponse> => {
+  resendOTP: async (data: ResendOTPRequest): Promise<ResendOTPResponse> => {
     try {
-      const response = await httpClient.post('Auth/resend-otp', data);
+      const response = await httpClient.post("Auth/resend-otp", data);
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Gửi lại OTP thất bại');
+      throw new Error(error.response?.data?.message || 'Resend OTP failed. Please try again.');
     }
   },
 };

@@ -1,175 +1,115 @@
-import React, { useState } from "react";
+import React, { useRef } from "react";
 import {
   Text,
   View,
-  TextInput,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
-  Dimensions,
+  Image,
+  ActivityIndicator,
+  TouchableOpacity,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
-import Svg, { Path } from "react-native-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-const { width } = Dimensions.get("window");
+import { ImageSourcePropType } from "react-native";
+const googleIcon: ImageSourcePropType = require("../../assets/images/googleIcon.png");
+import useGoogleAuth from "../../hooks/useGoogleAuth";
 
 export default function LoginScreen() {
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const navigation = useNavigation();
-
-  const handleLogin = () => {
-    
-    // Handle login logic here
-    console.log("Login with:",  phoneNumber, password);
-  };
+  const scrollViewRef = useRef<ScrollView>(null);
+  const { signInWithGoogle, isLoading } = useGoogleAuth();
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      {/* Top Gradient Header with Wave */}
-      <View className="absolute top-0 left-0 right-0" style={{ height: 180 }}>
-        <LinearGradient
-          colors={["#F57C3A", "#F24B84", "#A450DA"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 150,
-          }}
-        >
-          <Svg
-            height="100"
-            width={width}
-            style={{ position: "absolute", bottom: -2 }}
-            viewBox={`0 0 ${width} 100`}
-          >
-            <Path
-              d={`M0,0 C${width * 0.15},99 ${width * 0.35},50 ${width * 0.5},90 C${width * 0.65},-10 ${width * 0.85},30 ${width},10 L${width},100 L0,100 Z`}
-              fill="white"
-            />
-          </Svg>
-        </LinearGradient>
-      </View>
-
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
-      >
+    <SafeAreaView className="flex-1  bg-[#fff]">
+      <View className="flex-1" style={{ backgroundColor: "#fff" }}>
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
-          showsVerticalScrollIndicator={false}
+          ref={scrollViewRef}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 200 }}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          automaticallyAdjustKeyboardInsets={true}
         >
-          <View className="flex-1 justify-center px-8 pt-40">
-            {/* Title */}
-            <View className="items-center mb-12">
-              <Text className="text-5xl font-bold text-gray-800 mb-3">
-                Welcome back!
-              </Text>
-              <Text className="text-[17px] text-gray-700">
-                Sign in to your account
-              </Text>
+          {/* Top illustration area */}
+          <View
+            className="h-[350px] justify-center items-center px-6"
+            style={{ backgroundColor: "#fff", paddingTop: 50 }}
+          >
+            {/* Logo/Title */}
+            <View className="items-center mb-8">
+              <Text className="text-4xl font-bold text-purple-600 mb-2">EnglishCareHub</Text>
+              <Text className="text-gray-600 text-base">Learn English with AI</Text>
+            </View>
+          </View>
+
+          {/* Login Form - chiếm toàn màn hình phần dưới */}
+          <View className="flex-1 rounded-t-[40px] bg-[#fff]">
+            <View className="px-6 pt-8">
+             
+
+              {/* Header */}
+              <View className="mb-6">
+                <Text className="text-gray-900 text-[17px] mb-1">
+                  Chào mừng bạn!
+                </Text>
+                <Text className="text-4xl font-extrabold text-gray-800 mb-2">
+                  Đăng nhập học viên
+                </Text>
+                <Text className="text-gray-600 text-base">
+                  Sử dụng tài khoản Google để tiếp tục
+                </Text>
+              </View>
             </View>
 
             {/* Form Container */}
-            <View className="space-y-4">
-              {/* Username Input */}
-              <View className="bg-gray-50 rounded-3xl px-6 py-4 flex-row items-center shadow-sm">
-                <Ionicons name="person-outline" size={20} color="#9CA3AF" />
-                <TextInput
-                  className="flex-1 ml-3 text-gray-700 text-[17px] h-10"
-                  placeholder="Username"
-                  placeholderTextColor="#D1D5DB"
-                  value={phoneNumber}
-                  onChangeText={setPhoneNumber}
-                  autoCapitalize="none"
-                />
+            <View className="space-y-4 pl-5 pr-5 pt-8">
+              <View className="mb-8">
+                <Text className="text-gray-600 text-center text-base mb-4 leading-6">
+                  Đăng nhập bằng tài khoản Google của bạn để bắt đầu học tiếng Anh
+                </Text>
               </View>
 
-              {/* Password Input */}
-              <View className="bg-gray-50 rounded-3xl px-6 py-4 flex-row items-center shadow-sm mt-4">
-                <Ionicons
-                  name="lock-closed-outline"
-                  size={20}
-                  color="#9CA3AF"
-                />
-                <TextInput
-                  className="flex-1 ml-3 text-gray-700 text-[17px] h-10"
-                  placeholder="Password"
-                  placeholderTextColor="#D1D5DB"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                  autoCapitalize="none"
-                />
+              <View className="items-center">
                 <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                >
-                  <Ionicons
-                    name={showPassword ? "eye-outline" : "eye-off-outline"}
-                    size={20}
-                    color="#9CA3AF"
-                  />
-                </TouchableOpacity>
-              </View>
-
-              {/* Forgot Password */}
-              <TouchableOpacity className="items-end mt-3">
-                <Text className="text-gray-400 text-sm">
-                  Forgot your password?
-                </Text>
-              </TouchableOpacity>
-
-              {/* Sign In Button */}
-              <TouchableOpacity
-                onPress={handleLogin}
-                activeOpacity={0.8}
-                className="mt-8 flex-row items-center justify-center"
-              >
-                <Text className="text-gray-800 text-xl font-bold mr-4">
-                  Sign in
-                </Text>
-                <LinearGradient
-                  colors={["#C471ED", "#F64F59"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
+                  onPress={signInWithGoogle}
+                  disabled={isLoading}
+                  activeOpacity={0.8}
+                  className="w-full flex-row items-center justify-center bg-white py-5 rounded-2xl border-2 border-gray-300 shadow-lg"
                   style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: 28,
-                    justifyContent: "center",
-                    alignItems: "center",
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 4,
+                    elevation: 3,
+                    opacity: isLoading ? 0.7 : 1,
                   }}
                 >
-                  <Ionicons name="arrow-forward" size={24} color="white" />
-                </LinearGradient>
-              </TouchableOpacity>
-
-              {/* Create Account Link */}
-              <View className="flex-row justify-center mt-8">
-                <Text className="text-gray-600 text-sm">
-                  Don't have an account?{" "}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => navigation.navigate("Register" as never)}
-                >
-                  <Text className="text-gray-800 text-sm font-semibold underline">
-                    Create
-                  </Text>
+                  {isLoading ? (
+                    <View className="flex-row items-center">
+                      <ActivityIndicator color="#4285F4" size="small" />
+                      <Text className="text-gray-700 font-semibold text-[16px] ml-3">
+                        Đang đăng nhập...
+                      </Text>
+                    </View>
+                  ) : (
+                    <>
+                      <Image source={googleIcon} className="w-12 h-12 mr-4" />
+                      <Text className="text-gray-800 font-bold text-[18px]">
+                        Đăng nhập với Google
+                      </Text>
+                    </>
+                  )}
                 </TouchableOpacity>
+              </View>
+
+              <View className="mt-12">
+                <Text className="text-gray-500 text-center text-sm leading-5">
+                  Bằng việc đăng nhập, bạn đồng ý với{"\n"}
+                  <Text className="text-blue-600 font-semibold">Điều khoản dịch vụ</Text>
+                  {" và "}
+                  <Text className="text-blue-600 font-semibold">Chính sách bảo mật</Text>
+                </Text>
               </View>
             </View>
           </View>
         </ScrollView>
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }

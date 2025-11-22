@@ -4,44 +4,89 @@ import LoginScreen from "../screens/Auth/LoginScreen";
 import RegisterScreen from "../screens/Auth/RegisterScreen";
 import VerifyOTPScreen from "../screens/Auth/VerifyOTPScreen";
 import HomeScreen from "../screens/Home/HomeScreen";
+import PlacementTestScreen from "../screens/Entrance_Test/PlacementTestScreen";
+import ReviewerMainScreen from "../screens/Reviewer/ReviewerMainScreen";
 
-import '../global.css'
+import "../global.css";
+import ForgotPasswordScreen from "../screens/Auth/ForgotPasswordScreen";
+import ResetPasswordScreen from "../screens/Auth/ResetPasswordScreen";
+
 const Stack = createNativeStackNavigator();
 
-export default function RootStack() {
+interface RootStackProps {
+  initialRouteName: string;
+}
+
+export default function RootStack({ initialRouteName }: RootStackProps) {
   return (
-    <Stack.Navigator 
+    <Stack.Navigator
       screenOptions={{
-        contentStyle: { backgroundColor: 'transparent' },
-        headerShown: false // Tắt header để tránh SafeAreaView internal
+        contentStyle: { backgroundColor: "transparent" },
+        headerShown: false,
       }}
+      initialRouteName={initialRouteName}
     >
-      <Stack.Screen 
-        name="Login" 
+      <Stack.Screen
+        name="Login"
         component={LoginScreen}
-        options={{ 
-          contentStyle: { backgroundColor: 'transparent' }
+        options={{
+          contentStyle: { backgroundColor: "transparent" },
         }}
       />
-       <Stack.Screen 
-        name="Register" 
+      <Stack.Screen
+        name="Register"
         component={RegisterScreen}
-        options={{ 
-          contentStyle: { backgroundColor: 'transparent' }
+        options={{
+          contentStyle: { backgroundColor: "transparent" },
         }}
       />
-      <Stack.Screen 
-        name="VerifyOTPScreen" 
+       <Stack.Screen
+        name="ForgotPassword"
+        component={ForgotPasswordScreen}
+        options={{
+          contentStyle: { backgroundColor: "transparent" },
+        }}
+      />
+      <Stack.Screen
+        name="ResetPassword"
+        component={ResetPasswordScreen}
+        options={{
+          contentStyle: { backgroundColor: "transparent" },
+        }}
+      />
+      <Stack.Screen
+        name="VerifyOTPScreen"
         component={VerifyOTPScreen}
-        options={{ 
-          contentStyle: { backgroundColor: 'transparent' }
+        options={{
+          contentStyle: { backgroundColor: "transparent" },
         }}
       />
-      <Stack.Screen 
-        name="Home" 
+      <Stack.Screen
+        name="Home"
         component={HomeScreen}
-        options={{ 
-          contentStyle: { backgroundColor: 'transparent' }
+        options={{
+          contentStyle: { backgroundColor: "transparent" },
+        }}
+      />
+      <Stack.Screen
+        name="PlacementTest"
+        component={PlacementTestScreen}
+        options={{
+          contentStyle: { backgroundColor: "transparent" },
+        }}
+      />
+      <Stack.Screen
+        name="MainApp"
+        component={HomeScreen}
+        options={{
+          contentStyle: { backgroundColor: "transparent" },
+        }}
+      />
+      <Stack.Screen
+        name="ReviewerMainApp"
+        component={ReviewerMainScreen}
+        options={{
+          contentStyle: { backgroundColor: "transparent" },
         }}
       />
     </Stack.Navigator>

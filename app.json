@@ -1,8 +1,10 @@
 {
   "expo": {
     "name": "englishcarehub",
+    "owner": "itdevqphuc",
+    "scheme": "englishcarehub",
     "slug": "englishcarehub",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "",
     "userInterfaceStyle": "light",
@@ -18,6 +20,8 @@
       "statusBarStyle": "light"
     },
     "android": {
+      "versionCode": 2,
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "",
         "backgroundColor": "#ffffff"
@@ -29,10 +33,23 @@
         "barStyle": "light-content",
         "translucent": true,
         "backgroundColor": "transparent"
-      }
+      },
+      "package": "com.itdevqphuc.englishcarehub"
     },
     "web": {
       "favicon": ""
+    },
+    "plugins": [
+      "@react-native-google-signin/google-signin",
+      "expo-font",
+      "expo-web-browser",
+      "expo-audio",
+      "@react-native-firebase/app"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "35608cd7-9e31-44ad-8f3d-5c8d81715a0b"
+      }
     }
   }
 }
