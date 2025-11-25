@@ -82,8 +82,6 @@ interface RefreshTokenResponse {
 
 interface User {
   accessToken: string;
-  refreshToken: string;
-  message: string;
   role: string;
   isPlacementTestDone: boolean;
   isGoalSet: boolean;

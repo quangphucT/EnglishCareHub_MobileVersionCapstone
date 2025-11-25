@@ -1,7 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
-import { useAuthStore } from "../store/authStore";
 import { LoginRequest, LoginResponse, User } from "../types/auth";
+import { decodeJWT } from "../utils/jwtDecoder";
+import { authService } from "../api/auth.service";
 
 export interface AuthState {
   isAuthenticated: boolean;
@@ -19,44 +20,63 @@ export class AuthMiddleware {
     }
     return AuthMiddleware.instance;
   }
-
-  /**
-   * Initialize authentication state from storage
-   */
+  
   async initializeAuth(): Promise<AuthState> {
     try {
-      const [refreshToken, userData] = await Promise.all([
-        SecureStore.getItemAsync("refresh_token"),
-        AsyncStorage.getItem("user_data"),
-      ]);
-
-      if (refreshToken) {
-        
-        const user = userData ? JSON.parse(userData) : null;
-
-        const { setUser } = useAuthStore.getState();
-        if (user) setUser(user);
-
-        const hasValidSession = !!refreshToken;
-
-        const authState = {
-          isAuthenticated: !!hasValidSession,
-          userRole: user?.role || null,
+      const refreshToken = await SecureStore.getItemAsync("refresh_token");
+      if (!refreshToken) {
+        return {
+          isAuthenticated: false,
+          userRole: null,
           isLoading: false,
-          user,
+          user: null,
+        };
+      }
+      try {
+        const tokenResponse = await authService.refreshToken({ refreshToken });
+
+        // Lưu accessToken mới
+        await SecureStore.setItemAsync("access_token", tokenResponse.accessToken);
+        // Decode JWT để lấy thông tin user
+        const decodedToken = decodeJWT(tokenResponse.accessToken);
+        
+        if (!decodedToken) {
+          await this.handleLogout();
+          return {
+            isAuthenticated: false,
+            userRole: null,
+            isLoading: false,
+            user: null,
+          };
+        }
+
+        // Tạo user object từ decoded token
+        const user: User = {
+          role: decodedToken.role || '',
+          isPlacementTestDone: decodedToken.isPlacementTestDone || false,
+          isGoalSet: decodedToken.isGoalSet || false,
+          accessToken: tokenResponse.accessToken,      
+        };
+
+        const authState: AuthState = {
+          isAuthenticated: true,
+          userRole: decodedToken.role as "LEARNER" | "REVIEWER" | null,
+          isLoading: false,
+          user: user,
         };
         return authState;
+      } catch (refreshError) {
+       
+        await this.handleLogout();
+        return {
+          isAuthenticated: false,
+          userRole: null,
+          isLoading: false,
+          user: null,
+        };
       }
-
-      const authState = {
-        isAuthenticated: false,
-        userRole: null,
-        isLoading: false,
-        user: null,
-      };
-
-      return authState;
     } catch (error) {
+
       return {
         isAuthenticated: false,
         userRole: null,
@@ -83,104 +103,69 @@ export class AuthMiddleware {
     }
   }
 
-  /**
-   * Determine learner's initial route based on progress
-   */
+
   private getLearnerInitialRoute(user: User | null): string {
    
-
-    // Skip SetGoal, go directly to PlacementTest if not done
     if (!user?.isPlacementTestDone) {
       return "PlacementTest";
     }
     return "MainApp";
   }
 
+
   /**
-   * Handle Google login success - save tokens and user data from Google OAuth
+   * Handle Google login success - only save tokens to SecureStore
    */
   async handleGoogleLoginSuccess(
     googleLoginResponse: LoginResponse
   ): Promise<void> {
     try {
-      const userData = {
-        accessToken: googleLoginResponse.accessToken,
-        refreshToken: googleLoginResponse.refreshToken,
-        email: '', 
-        message: googleLoginResponse.message,
-        role: googleLoginResponse.role as "LEARNER" | "REVIEWER",
-        isGoalSet: googleLoginResponse.isGoalSet || false,
-        isPlacementTestDone: googleLoginResponse.isPlacementTestDone || false,
-      };
-      const { setAccessToken, setRefreshToken, setUser } =
-        useAuthStore.getState();
-      setAccessToken(googleLoginResponse.accessToken);
-      setRefreshToken(googleLoginResponse.refreshToken);
-      setUser(userData);
-      
-      // Store tokens and user data persistently
       await Promise.all([
         SecureStore.setItemAsync("access_token", googleLoginResponse.accessToken),
         SecureStore.setItemAsync("refresh_token", googleLoginResponse.refreshToken),
-        AsyncStorage.setItem("user_data", JSON.stringify(userData)),
       ]);
     } catch (error) {
+      console.error('Google login save error:', error);
       throw error;
     }
   }
+
+
+
+
+
+  /**
+   * Handle login success - only save tokens to SecureStore
+   * User info will be decoded from JWT when needed
+   */
   async handleLoginSuccess(
     loginResponse: LoginResponse,
     credentials: LoginRequest
   ): Promise<void> {
-
-
     try {
-      const userData = {
-        accessToken: loginResponse.accessToken,
-        refreshToken: loginResponse.refreshToken,
-        email: credentials.email,
-        message: loginResponse.message,
-        role: loginResponse.role as "LEARNER" | "REVIEWER",
-        isGoalSet: loginResponse.isGoalSet || false,
-        isPlacementTestDone: loginResponse.isPlacementTestDone || false,
-      };
-
-      const { setAccessToken, setRefreshToken, setUser } =
-        useAuthStore.getState();
-      setAccessToken(loginResponse.accessToken);
-      setRefreshToken(loginResponse.refreshToken);
-      setUser(userData);
+      // Chỉ lưu tokens vào SecureStore
       await Promise.all([
         SecureStore.setItemAsync("access_token", loginResponse.accessToken),
         SecureStore.setItemAsync("refresh_token", loginResponse.refreshToken),
-        AsyncStorage.setItem("user_data", JSON.stringify(userData)),
       ]);
     } catch (error) {
+      console.error('Login save error:', error);
       throw error;
     }
   }
 
   /**
-   * Handle logout - clear all data
+   * Handle logout - clear tokens from SecureStore only
    */
   async handleLogout(): Promise<void> {
     try {
-      // Clear ALL stored data
       await Promise.all([
-        // SecureStore
-        SecureStore.deleteItemAsync("refresh_token"),
         SecureStore.deleteItemAsync("access_token"),
-        // AsyncStorage
-        AsyncStorage.removeItem("user_data"),
-        AsyncStorage.removeItem("token_timestamp"),
-        AsyncStorage.removeItem("auth_token"), // Legacy, if exists
+        SecureStore.deleteItemAsync("refresh_token"),
       ]);
-
-      const { logout } = useAuthStore.getState();
-      logout();
     } catch (error) {
-      const { logout } = useAuthStore.getState();
-      logout();
+      console.error('Logout error:', error);
+      // Still continue logout even if delete fails
     }
   }
   decodeAccessToken(token: string): any {

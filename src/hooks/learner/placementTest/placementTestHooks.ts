@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import placementTestService from "../../../api/placementTest.service";
+import  { placementTestService, submitTestAssessmentService } from "../../../api/placementTest.service";
+import { Alert } from "react-native";
 
 export interface GetPlacementTestResponse {
   isSucess: boolean;
@@ -30,26 +31,45 @@ export const useGetPlacementTest = () => {
       const response = await placementTestService.getPlacementTest();
       return response;
     },
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    staleTime: 1000 * 60 * 5, 
     retry: 2,
   });
 };
 
-export const useSubmitPlacementTest = () => {
-  return useMutation({
-    mutationFn: async (data: { 
-      assessmentId: string; 
-      numberOfQuestion: number;
-      tests: {
-        type: string;
-        assessmentDetails: {
-          questionAssessmentId: string;
-          score: number;
-          aI_Feedback: string;
-        }[];
-      }[];
-    }) => {
-      return await placementTestService.submitPlacementTest(data);
-    },
+
+export interface SubmitTestAssessmentRequest {
+  learnerProfileId: string;
+  numberOfQuestion: number;
+  tests: TestItem[];
+}
+
+export interface TestItem {
+  type: string;
+  assessmentDetails: AssessmentDetail[];
+}
+
+export interface AssessmentDetail {
+  questionAssessmentId: string;
+  score: number;
+  aI_Feedback: string;
+}
+export interface SubmitTestAssessmentResponse {
+  isSucess: boolean;
+  data: {
+    assessmentId: string;
+    learnerProfileId: string;
+    averageScore: number;
+    assignedLevel: string;
+  };
+  businessCode: string;
+  message: string;
+}
+
+export const useSubmitTestAssessment = () => {
+  return useMutation<SubmitTestAssessmentResponse, Error, SubmitTestAssessmentRequest>({
+    mutationFn: submitTestAssessmentService,
+    onError: (error) => {
+      Alert.alert("Error", error.message || "Submit test assessment failed");
+    }
   });
 };

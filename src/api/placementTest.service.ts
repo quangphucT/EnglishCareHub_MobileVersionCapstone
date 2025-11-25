@@ -1,25 +1,9 @@
 import httpClient from "./httpClient";
-import { GetPlacementTestResponse } from "../hooks/learner/placementTest/placementTestHooks";
+import { GetPlacementTestResponse, SubmitTestAssessmentRequest, SubmitTestAssessmentResponse } from "../hooks/learner/placementTest/placementTestHooks";
 
-export interface SubmitPlacementTestRequest {
-  assessmentId: string;
-  numberOfQuestion: number;
-  tests: {
-    type: string;
-    assessmentDetails: {
-      questionAssessmentId: string;
-      score: number;
-      aI_Feedback: string;
-    }[];
-  }[];
-}
 
-export interface SubmitPlacementTestResponse {
-  isSuccess: boolean;
-  message: string;
-  data?: any;
-}
 
+// get placement test
 export const placementTestService = {
   getPlacementTest: async (): Promise<GetPlacementTestResponse> => {
     try {
@@ -31,25 +15,23 @@ export const placementTestService = {
       );
     }
   },
-
-  /**
-   * Submit placement test answers
-   */
-  submitPlacementTest: async (
-    data: SubmitPlacementTestRequest
-  ): Promise<SubmitPlacementTestResponse> => {
-    try {
-      const response = await httpClient.post<SubmitPlacementTestResponse>(
-        "Learner/placement-test/submit",
-        data
-      );
-      return response.data;
-    } catch (error: any) {
-      throw new Error(
-        error.response?.data?.message || "Failed to submit placement test. Please try again."
-      );
-    }
-  },
 };
 
-export default placementTestService;
+
+  // submit placement test
+ export const submitTestAssessmentService = async (
+  body: SubmitTestAssessmentRequest
+): Promise<SubmitTestAssessmentResponse> => {
+  try {
+    const response = await httpClient.post<SubmitTestAssessmentResponse>(
+      "AssessmentLearner/placement-test/submit",
+      body
+    );
+    return response.data;
+  } catch (error: any) {
+    const message = error?.response?.data?.message || error.message || "Gửi đánh giá thất bại";
+    throw new Error(message);
+  }
+};
+
+

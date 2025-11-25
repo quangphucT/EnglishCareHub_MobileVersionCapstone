@@ -48,9 +48,7 @@ export const authService = {
    */
   refreshToken: async (refreshToken: RefreshTokenRequest): Promise<RefreshTokenResponse> => {
     try {
-      const response = await httpClient.post<RefreshTokenResponse>('Auth/refresh-token', {
-        refreshToken,
-      });
+      const response = await httpClient.post<RefreshTokenResponse>('Auth/refresh-token', refreshToken);
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to refresh token. Please try again.');

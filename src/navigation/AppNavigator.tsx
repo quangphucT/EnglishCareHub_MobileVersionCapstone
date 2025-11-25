@@ -35,7 +35,6 @@ export default function AppNavigator() {
     try {
       const initialAuthState = await authMiddleware.initializeAuth();
       setAuthState(initialAuthState);
-      
       if (isFirstLoad) {
         setIsFirstLoad(false);
       }
@@ -59,21 +58,32 @@ export default function AppNavigator() {
     
     try {
       const newAuthState = await authMiddleware.initializeAuth();
+      console.log('✅ [RefreshAuth] Got new auth state:', {
+        isAuthenticated: newAuthState.isAuthenticated,
+        userRole: newAuthState.userRole,
+        isPlacementTestDone: newAuthState.user?.isPlacementTestDone
+      });
+      
+      // Set state trước
       setAuthState(newAuthState);
       
-      // After auth state updates, reset navigation to new route
-      setTimeout(() => {
-        if (navigationRef.current) {
-          const newRoute = authMiddleware.getInitialRoute(newAuthState);
-  
-          navigationRef.current.reset({
-            index: 0,
-            routes: [{ name: newRoute }]
-          });
-        }
-      }, 100);
+      // Đợi lâu hơn để đảm bảo state đã update (300ms thay vì 100ms)
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Sau đó mới navigate dựa trên newAuthState (không phải state cũ)
+      if (navigationRef.current) {
+        const newRoute = authMiddleware.getInitialRoute(newAuthState);
+        console.log('➡️ [RefreshAuth] Navigating to:', newRoute);
+
+        navigationRef.current.reset({
+          index: 0,
+          routes: [{ name: newRoute }]
+        });
+        
+        console.log('✅ [RefreshAuth] Navigation completed');
+      }
     } catch (error) {
-  
+      console.error('❌ [RefreshAuth] Error:', error);
       setAuthState({
         isAuthenticated: false,
         userRole: null,
