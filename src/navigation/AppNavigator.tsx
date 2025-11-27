@@ -2,6 +2,7 @@ import React, { useEffect, useState, createContext, useContext, useRef } from "r
 import { NavigationContainer, LinkingOptions, ParamListBase } from "@react-navigation/native";
 import { View, Text, ActivityIndicator } from "react-native";
 import authMiddleware, { AuthState } from "../middleware/authMiddleware";
+import { useLearnerStore } from "../store/learnerStore";
 import RootStack from "./RootStack";
 
 // Create context for auth refresh
@@ -19,6 +20,8 @@ export const useAuthRefresh = () => {
 
 export default function AppNavigator() {
   const navigationRef = useRef<any>(null);
+  const loadLearnerDataFromStorage = useLearnerStore((state) => state.loadLearnerDataFromStorage);
+  
   const [authState, setAuthState] = useState<AuthState>({
     isAuthenticated: false,
     userRole: null,
@@ -33,6 +36,9 @@ export default function AppNavigator() {
 
   const initializeApp = async () => {
     try {
+      // Load learner data từ storage
+      await loadLearnerDataFromStorage();
+      
       const initialAuthState = await authMiddleware.initializeAuth();
       setAuthState(initialAuthState);
       if (isFirstLoad) {
@@ -51,8 +57,7 @@ export default function AppNavigator() {
       }
     }
   };
-
-  // Function to refresh auth state (for login/logout)
+  
   const refreshAuth = async () => {
     setAuthState(prev => ({ ...prev, isLoading: true }));
     

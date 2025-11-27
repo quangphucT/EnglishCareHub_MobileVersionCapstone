@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { Alert } from "react-native";
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
 
 import {
   getAuth,
@@ -30,7 +30,15 @@ export const useGoogleAuth = () => {
           showPlayServicesUpdateDialog: true,
         });
 
-        await GoogleSignin.signIn();
+        const signInResult = await GoogleSignin.signIn();
+        
+        // Nếu user không chọn tài khoản (bấm ra ngoài popup)
+        if (!signInResult || !signInResult.data) {
+          // Dừng lại, không làm gì cả
+          return null;
+        }
+
+        // Chỉ tiếp tục nếu user đã chọn tài khoản
         // Lấy token
         const { idToken } = await GoogleSignin.getTokens();
         if (!idToken)
@@ -54,6 +62,11 @@ export const useGoogleAuth = () => {
 
         return loginResponse;
       } catch (error: any) {
+        // Nếu user cancel (bấm ra ngoài popup), dừng lại không làm gì
+        if (error?.code === '-5' || error?.code === '12501' || error?.code === statusCodes.SIGN_IN_CANCELLED) {
+          return null;
+        }
+        
         const message =
           error?.response?.data?.message ??
           error?.message ??
@@ -61,8 +74,11 @@ export const useGoogleAuth = () => {
         throw new Error(message);
       }
     },
-    onSuccess: async () => {
-      await refreshAuth();
+    onSuccess: async (data) => {
+      // Chỉ refresh auth nếu thực sự đăng nhập thành công
+      if (data) {
+        await refreshAuth();
+      }
     },
     onError: (error: any) => {
       const message =

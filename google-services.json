@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "800234238649-nvr9rqrv0o6ek4mah9kfs5jeijf360k0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.itdevqphuc.englishcarehub",
+            "certificate_hash": "39ac7644bb6bab398bc66bc7a6648503675ca88e"
+          }
+        },
+        {
           "client_id": "800234238649-o3m4ij1r048028avn74scg6v5p2t6gb0.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

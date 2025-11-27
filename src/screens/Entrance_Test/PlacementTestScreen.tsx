@@ -31,25 +31,22 @@ interface ResultsAfterTest {
   assignedLevel: string;
 }
 
+
 export default function PlacementTestScreen() {
   const { refreshAuth } = useAuthRefresh();
   const logoutMutation = useLogout();
-
   // API Hooks
   const { data: testData, isLoading } = useGetPlacementTest();
-  const { data: getMe, refetch: refetchMe } = useGetMeQuery();
+  const { data: getMe } = useGetMeQuery();
   const { mutate: submitPlacementTest } = useSubmitTestAssessment();
-
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [done, setDone] = useState(false);
-  const [recordingStatus, setRecordingStatus] =
-    useState<RecordingStatus>("idle");
+  const [recordingStatus, setRecordingStatus] = useState<RecordingStatus>("idle");
   const [recorded, setRecorded] = useState<boolean[]>([]);
   const [recordingAttempts, setRecordingAttempts] = useState<number[]>([]);
   const [isProcessingAudio, setIsProcessingAudio] = useState(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  const [resultsAfterTest, setResultsAfterTest] =
-    useState<ResultsAfterTest | null>(null);
+  const [resultsAfterTest, setResultsAfterTest] =useState<ResultsAfterTest | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Recording refs
@@ -160,13 +157,13 @@ export default function PlacementTestScreen() {
       console.error(error);
     }
   };
-  // const handleLogout = async () => {
-  //   logoutMutation.mutate(undefined, {
-  //     onSuccess: async () => {
-  //       await refreshAuth();
-  //     },
-  //   });
-  // };
+  const handleLogout = async () => {
+    logoutMutation.mutate(undefined, {
+      onSuccess: async () => {
+        await refreshAuth();
+      },
+    });
+  };
   const handleStopRecording = async () => {
     if (!recording.current) return;
 
@@ -473,14 +470,16 @@ export default function PlacementTestScreen() {
     <SafeAreaView className="flex-1 bg-white">
       <View className="flex-1 bg-gray-50">
         {/* Header */}
-        {/* <View>
+       {/* <View>
         <TouchableOpacity
           onPress={handleLogout}
           className="mt-6 bg-purple-600 px-6 py-3 rounded-xl"
         >
           <Text className="text-black font-semibold">Quay lại</Text>
         </TouchableOpacity>
-      </View> */}
+      </View>  */}
+
+    
         <View
           className="px-6 pt-12 pb-6"
           style={{
@@ -535,7 +534,7 @@ export default function PlacementTestScreen() {
             )}
 
             {/* Question Content */}
-            <View className="mt-6 bg-white rounded-3xl p-6 border-2 border-gray-200 shadow-lg">
+            <View className="mt-6 bg-white rounded-3xl p-3 border-2 border-gray-200 shadow-lg">
               <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 text-center">
                 Nội dung cần đọc
               </Text>
@@ -664,7 +663,7 @@ export default function PlacementTestScreen() {
                 {ipaTranscripts[currentQuestionIndex] && (
                   <View className="bg-white/70 rounded-xl p-3 mb-2">
                     <Text className="text-xs font-semibold text-gray-600 mb-1">
-                      🎤 Phát âm của bạn
+                       Phát âm của bạn
                     </Text>
                     <Text className="text-sm font-mono text-gray-800">
                       {ipaTranscripts[currentQuestionIndex]}
@@ -675,7 +674,7 @@ export default function PlacementTestScreen() {
                 {realIpaTranscripts[currentQuestionIndex] && (
                   <View className="bg-blue-50 rounded-xl p-3 border border-blue-200">
                     <Text className="text-xs font-semibold text-blue-700 mb-1">
-                      🎯 Phát âm chuẩn
+                       Phát âm chuẩn
                     </Text>
                     <Text className="text-sm font-mono text-blue-900">
                       {realIpaTranscripts[currentQuestionIndex]}
@@ -690,10 +689,10 @@ export default function PlacementTestScreen() {
               <TouchableOpacity
                 onPress={playRecording}
                 disabled={isPlayingAudio}
-                className="mt-4 bg-indigo-600 p-3  rounded-full items-center mb-32"
+                className="mt-4  rounded-full items-center mb-32"
                 style={{ opacity: isPlayingAudio ? 0.5 : 1 }}
               >
-                <Text className="text-white font-bold text-base">
+                <Text className="text-gray-900 font-bold text-base">
                   {isPlayingAudio
                     ? "▶ Đang phát..."
                     : "▶ Nghe lại bản ghi âm"}
@@ -755,12 +754,12 @@ export default function PlacementTestScreen() {
                   )}
 
                   <Text className="text-gray-700 text-center mb-6">
-                    Kết quả đã được ghi nhận. Hãy tiếp tục luyện tập! 💪
+                    Kết quả đã được ghi nhận. Hãy tiếp tục luyện tập!
                   </Text>
 
                   <TouchableOpacity
                     onPress={handleNavigateDashboard}
-                    className="bg-blue-600 py-4 rounded-xl"
+                    className="bg-blue-600 py-4 rounded-[50px]"
                   >
                     <Text className="text-white font-bold text-lg text-center">
                       Bắt đầu học ngay
@@ -777,7 +776,7 @@ export default function PlacementTestScreen() {
           <View className="px-6 py-5">
             <TouchableOpacity
               className={`py-4 rounded-full ${
-                recorded[currentQuestionIndex] ? "bg-blue-500" : "bg-gray-200"
+                recorded[currentQuestionIndex] ? "bg-gray-200" : "bg-gray-200"
               }`}
               onPress={handleNext}
               disabled={!recorded[currentQuestionIndex]}
@@ -785,7 +784,7 @@ export default function PlacementTestScreen() {
               <Text
                 className={`text-center text-base font-bold ${
                   recorded[currentQuestionIndex]
-                    ? "text-white"
+                    ? "text-black"
                     : "text-gray-400"
                 }`}
               >

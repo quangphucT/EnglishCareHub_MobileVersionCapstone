@@ -25,15 +25,24 @@ export class AuthMiddleware {
     try {
       const refreshToken = await SecureStore.getItemAsync("refresh_token");
       if (!refreshToken) {
+        console.log('🔒 No refresh token found');
         return {
           isAuthenticated: false,
           userRole: null,
           isLoading: false,
           user: null,
         };
-      }
+      }  
       try {
-        const tokenResponse = await authService.refreshToken({ refreshToken });
+        // Add timeout to refresh token call (10 seconds)
+        const timeoutPromise = new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('Token refresh timeout')), 10000)
+        );
+        
+        const tokenResponse = await Promise.race([
+          authService.refreshToken({ refreshToken }),
+          timeoutPromise
+        ]);
 
         // Lưu accessToken mới
         await SecureStore.setItemAsync("access_token", tokenResponse.accessToken);
@@ -41,6 +50,7 @@ export class AuthMiddleware {
         const decodedToken = decodeJWT(tokenResponse.accessToken);
         
         if (!decodedToken) {
+          console.log('❌ Failed to decode token');
           await this.handleLogout();
           return {
             isAuthenticated: false,
@@ -57,7 +67,6 @@ export class AuthMiddleware {
           isGoalSet: decodedToken.isGoalSet || false,
           accessToken: tokenResponse.accessToken,      
         };
-
         const authState: AuthState = {
           isAuthenticated: true,
           userRole: decodedToken.role as "LEARNER" | "REVIEWER" | null,
@@ -66,7 +75,6 @@ export class AuthMiddleware {
         };
         return authState;
       } catch (refreshError) {
-       
         await this.handleLogout();
         return {
           isAuthenticated: false,
@@ -76,7 +84,6 @@ export class AuthMiddleware {
         };
       }
     } catch (error) {
-
       return {
         isAuthenticated: false,
         userRole: null,

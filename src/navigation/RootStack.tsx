@@ -3,9 +3,10 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import LoginScreen from "../screens/Auth/LoginScreen";
 import RegisterScreen from "../screens/Auth/RegisterScreen";
 import VerifyOTPScreen from "../screens/Auth/VerifyOTPScreen";
-import HomeScreen from "../screens/Home/HomeScreen";
 import PlacementTestScreen from "../screens/Entrance_Test/PlacementTestScreen";
 import ReviewerMainScreen from "../screens/Reviewer/ReviewerMainScreen";
+import MainTabs from "./MainTabs";
+import LearningPathScreen from "../screens/LearningPath/LearningPathScreen";
 
 import "../global.css";
 import ForgotPasswordScreen from "../screens/Auth/ForgotPasswordScreen";
@@ -63,7 +64,7 @@ export default function RootStack({ initialRouteName }: RootStackProps) {
       />
       <Stack.Screen
         name="Home"
-        component={HomeScreen}
+        component={MainTabs}
         options={{
           contentStyle: { backgroundColor: "transparent" },
         }}
@@ -77,7 +78,14 @@ export default function RootStack({ initialRouteName }: RootStackProps) {
       />
       <Stack.Screen
         name="MainApp"
-        component={HomeScreen}
+        component={MainTabs}
+        options={{
+          contentStyle: { backgroundColor: "transparent" },
+        }}
+      />
+      <Stack.Screen
+        name="LearningPath"
+        component={LearningPathScreen}
         options={{
           contentStyle: { backgroundColor: "transparent" },
         }}
