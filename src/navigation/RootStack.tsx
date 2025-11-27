@@ -7,6 +7,7 @@ import PlacementTestScreen from "../screens/Entrance_Test/PlacementTestScreen";
 import ReviewerMainScreen from "../screens/Reviewer/ReviewerMainScreen";
 import MainTabs from "./MainTabs";
 import LearningPathScreen from "../screens/LearningPath/LearningPathScreen";
+import ExerciseScreen from "../screens/Exercise/ExerciseScreen";
 
 import "../global.css";
 import ForgotPasswordScreen from "../screens/Auth/ForgotPasswordScreen";
@@ -86,6 +87,13 @@ export default function RootStack({ initialRouteName }: RootStackProps) {
       <Stack.Screen
         name="LearningPath"
         component={LearningPathScreen}
+        options={{
+          contentStyle: { backgroundColor: "transparent" },
+        }}
+      />
+      <Stack.Screen
+        name="Exercise"
+        component={ExerciseScreen}
         options={{
           contentStyle: { backgroundColor: "transparent" },
         }}
