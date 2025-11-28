@@ -12,7 +12,7 @@ export const startExerciseService = async (
 ): Promise<StartExerciseResponse> => {
   try {
     
-    const response = await httpClient.post<StartExerciseResponse>(
+    const response = await httpClient.put<StartExerciseResponse>(
       `LearningPathExercise/${data.learningPathExerciseId}/status?status=${data.status}`
     );
     return response.data;

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useLearnerStore } from '../../store/learnerStore';
 import { useGetMeQuery } from '../../hooks/useGetMe';
 
@@ -24,6 +24,15 @@ const LearningPathScreen = () => {
       courseId: learnerData?.courseId || ""
     },
     Boolean(learnerData)
+  );
+
+  // Refetch khi màn hình được focus (bao gồm cả khi back về)
+  useFocusEffect(
+    useCallback(() => {
+      if (learnerData) {
+        refetch();
+      }
+    }, [learnerData])
   );
 
   const { mutate: startExercise } = useStartExercise();
@@ -91,7 +100,7 @@ const LearningPathScreen = () => {
         {
           onSuccess: () => {
             setLoadingExerciseId(null);
-            (navigation as any).navigate('Exercise', { exerciseId, chapterId });
+            (navigation as any).navigate('Exercise', { exerciseId, chapterId, refetchLearningPath: refetch });
           },
           onError: (error: any) => {
             setLoadingExerciseId(null);
@@ -100,7 +109,7 @@ const LearningPathScreen = () => {
         }
       );
     } else {
-      (navigation as any).navigate('Exercise', { exerciseId, chapterId });
+      (navigation as any).navigate('Exercise', { exerciseId, chapterId, refetchLearningPath: refetch });
     }
   };
 
@@ -169,9 +178,18 @@ const LearningPathScreen = () => {
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top', 'left', 'right']}>
       <View className="flex-1 px-4 pt-6 pb-4">
-        <Text className="text-2xl font-bold text-gray-900 mb-4">
-          Lộ trình học tập
-        </Text>
+        {/* Header với nút quay về */}
+        <View className="flex-row items-center mb-4">
+          <TouchableOpacity 
+            onPress={() => navigation.goBack()}
+            className="mr-3"
+          >
+            <Ionicons name="arrow-back" size={24} color="#374151" />
+          </TouchableOpacity>
+          <Text className="text-2xl font-bold text-gray-900">
+            Lộ trình học tập
+          </Text>
+        </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
           {/* Course Header */}
