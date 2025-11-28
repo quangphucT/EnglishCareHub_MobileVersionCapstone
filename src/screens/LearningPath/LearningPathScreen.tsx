@@ -365,12 +365,12 @@ const LearningPathScreen = () => {
                                       )
                                     }
                                     disabled={loadingExerciseId === exercise.learningPathExerciseId}
-                                    className={`rounded-lg py-2 items-center ${
+                                    className={`rounded-[40px] py-2 items-center ${
                                       exercise.status === "NotStarted"
                                         ? "bg-blue-600"
                                         : exercise.status === "InProgress"
                                         ? "bg-yellow-500"
-                                        : "bg-gray-700"
+                                        : "bg-gray-600"
                                     }`}
                                   >
                                     {loadingExerciseId === exercise.learningPathExerciseId ? (
