@@ -392,6 +392,7 @@ export default function PlacementTestScreen() {
               questionAssessmentId: q.id,
               score: pronunciationScores[questionIndex] || 0,
               aI_Feedback: pronunciationAccuracy[questionIndex] || "",
+              answerAudio: "abc", 
             };
           }),
         })

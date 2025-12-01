@@ -101,6 +101,20 @@ export const authService = {
   },
 
   /**
+   * Google Login for Reviewer - Send idToken to backend
+   */
+  googleLoginReviewer: async (googleData: GoogleLoginRequest): Promise<GoogleLoginResponse> => {
+    try {
+      const response = await httpClient.post<GoogleLoginResponse>('Auth/google-login-reviewer', {
+        idToken: googleData.idToken,
+      });
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Google login failed. Please try again.');
+    }
+  },
+
+  /**
    * Verify OTP
    */
   verifyOTP: async (data: VerifyOTPRequest): Promise<VerifyOTPResponse> => {

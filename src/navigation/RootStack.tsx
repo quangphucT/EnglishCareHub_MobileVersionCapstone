@@ -13,6 +13,7 @@ import FeedbackScreen from "../screens/Chat/FeedbackScreen";
 import "../global.css";
 import ForgotPasswordScreen from "../screens/Auth/ForgotPasswordScreen";
 import ResetPasswordScreen from "../screens/Auth/ResetPasswordScreen";
+import UploadingCertificate from "../screens/Reviewer/UploadingCertificate";
 
 const Stack = createNativeStackNavigator();
 
@@ -74,6 +75,13 @@ export default function RootStack({ initialRouteName }: RootStackProps) {
       <Stack.Screen
         name="PlacementTest"
         component={PlacementTestScreen}
+        options={{
+          contentStyle: { backgroundColor: "transparent" },
+        }}
+      />
+      <Stack.Screen
+        name="UploadingCertificate"
+        component={UploadingCertificate}
         options={{
           contentStyle: { backgroundColor: "transparent" },
         }}

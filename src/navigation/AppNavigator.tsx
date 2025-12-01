@@ -2,10 +2,9 @@ import React, { useEffect, useState, createContext, useContext, useRef } from "r
 import { NavigationContainer, LinkingOptions, ParamListBase } from "@react-navigation/native";
 import { View, Text, ActivityIndicator } from "react-native";
 import authMiddleware, { AuthState } from "../middleware/authMiddleware";
-import { useLearnerStore } from "../store/learnerStore";
+// import { useLearnerStore } from "../store/learnerStore";
 import RootStack from "./RootStack";
 
-// Create context for auth refresh
 const AuthContext = createContext<{
   refreshAuth: () => Promise<void>;
 } | null>(null);
@@ -13,15 +12,18 @@ const AuthContext = createContext<{
 export const useAuthRefresh = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuthRefresh must be used within AppNavigator');
+    return {
+      refreshAuth: async () => {
+        console.warn('Auth context not yet available, will refresh on next mount');
+      }
+    };
   }
   return context;
 };
 
 export default function AppNavigator() {
   const navigationRef = useRef<any>(null);
-  const loadLearnerDataFromStorage = useLearnerStore((state) => state.loadLearnerDataFromStorage);
-  
+  // const loadLearnerDataFromStorage = useLearnerStore((state) => state.loadLearnerDataFromStorage);
   const [authState, setAuthState] = useState<AuthState>({
     isAuthenticated: false,
     userRole: null,
@@ -36,8 +38,8 @@ export default function AppNavigator() {
 
   const initializeApp = async () => {
     try {
-      // Load learner data từ storage
-      await loadLearnerDataFromStorage();
+      // // Load data từ Async storage
+      // await loadLearnerDataFromStorage();
       
       const initialAuthState = await authMiddleware.initializeAuth();
       setAuthState(initialAuthState);
@@ -63,12 +65,6 @@ export default function AppNavigator() {
     
     try {
       const newAuthState = await authMiddleware.initializeAuth();
-      console.log('✅ [RefreshAuth] Got new auth state:', {
-        isAuthenticated: newAuthState.isAuthenticated,
-        userRole: newAuthState.userRole,
-        isPlacementTestDone: newAuthState.user?.isPlacementTestDone
-      });
-      
       // Set state trước
       setAuthState(newAuthState);
       

@@ -20,37 +20,38 @@ export class AuthMiddleware {
     }
     return AuthMiddleware.instance;
   }
-  
+
   async initializeAuth(): Promise<AuthState> {
     try {
       const refreshToken = await SecureStore.getItemAsync("refresh_token");
       if (!refreshToken) {
-        console.log('🔒 No refresh token found');
         return {
           isAuthenticated: false,
           userRole: null,
           isLoading: false,
           user: null,
         };
-      }  
+      }
+
       try {
         // Add timeout to refresh token call (10 seconds)
-        const timeoutPromise = new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('Token refresh timeout')), 10000)
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Token refresh timeout")), 10000)
         );
-        
+
         const tokenResponse = await Promise.race([
           authService.refreshToken({ refreshToken }),
-          timeoutPromise
+          timeoutPromise,
         ]);
 
         // Lưu accessToken mới
-        await SecureStore.setItemAsync("access_token", tokenResponse.accessToken);
+        await SecureStore.setItemAsync(
+          "access_token",
+          tokenResponse.accessToken
+        );
         // Decode JWT để lấy thông tin user
         const decodedToken = decodeJWT(tokenResponse.accessToken);
-        
         if (!decodedToken) {
-          console.log('❌ Failed to decode token');
           await this.handleLogout();
           return {
             isAuthenticated: false,
@@ -59,13 +60,12 @@ export class AuthMiddleware {
             user: null,
           };
         }
-
-        // Tạo user object từ decoded token
         const user: User = {
-          role: decodedToken.role || '',
+          role: decodedToken.role || "",
           isPlacementTestDone: decodedToken.isPlacementTestDone || false,
+          IsReviewerActive: decodedToken.IsReviewerActive || false,
           isGoalSet: decodedToken.isGoalSet || false,
-          accessToken: tokenResponse.accessToken,      
+          accessToken: tokenResponse.accessToken,
         };
         const authState: AuthState = {
           isAuthenticated: true,
@@ -101,7 +101,8 @@ export class AuthMiddleware {
 
     switch (authState.userRole) {
       case "REVIEWER":
-        return "ReviewerMainApp";
+        const reviewerRoute = this.getReviewerInitialRoute(authState.user);
+        return reviewerRoute;   
       case "LEARNER":
         const learnerRoute = this.getLearnerInitialRoute(authState.user);
         return learnerRoute;
@@ -110,36 +111,38 @@ export class AuthMiddleware {
     }
   }
 
-
+  private getReviewerInitialRoute(user: User | null): string {
+    if (!user?.IsReviewerActive) {
+      return "UploadingCertificate";
+    }
+    return "ReviewerMainApp";
+  }
   private getLearnerInitialRoute(user: User | null): string {
-   
     if (!user?.isPlacementTestDone) {
       return "PlacementTest";
     }
     return "MainApp";
   }
 
-
-  /**
-   * Handle Google login success - only save tokens to SecureStore
-   */
   async handleGoogleLoginSuccess(
     googleLoginResponse: LoginResponse
   ): Promise<void> {
     try {
       await Promise.all([
-        SecureStore.setItemAsync("access_token", googleLoginResponse.accessToken),
-        SecureStore.setItemAsync("refresh_token", googleLoginResponse.refreshToken),
+        SecureStore.setItemAsync(
+          "access_token",
+          googleLoginResponse.accessToken
+        ),
+        SecureStore.setItemAsync(
+          "refresh_token",
+          googleLoginResponse.refreshToken
+        ),
       ]);
     } catch (error) {
-      console.error('Google login save error:', error);
+      console.error("Google login save error:", error);
       throw error;
     }
   }
-
-
-
-
 
   /**
    * Handle login success - only save tokens to SecureStore
@@ -156,7 +159,7 @@ export class AuthMiddleware {
         SecureStore.setItemAsync("refresh_token", loginResponse.refreshToken),
       ]);
     } catch (error) {
-      console.error('Login save error:', error);
+      console.error("Login save error:", error);
       throw error;
     }
   }
@@ -171,23 +174,23 @@ export class AuthMiddleware {
         SecureStore.deleteItemAsync("refresh_token"),
       ]);
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
       // Still continue logout even if delete fails
     }
   }
   decodeAccessToken(token: string): any {
     try {
-      const base64Url = token.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const base64Url = token.split(".")[1];
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
       const jsonPayload = decodeURIComponent(
         atob(base64)
-          .split('')
-          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-          .join('')
+          .split("")
+          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+          .join("")
       );
       return JSON.parse(jsonPayload);
     } catch (error) {
-      console.error('❌ Failed to decode access token:', error);
+      console.error("❌ Failed to decode access token:", error);
       return null;
     }
   }

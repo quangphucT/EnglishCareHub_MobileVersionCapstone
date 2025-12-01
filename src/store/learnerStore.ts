@@ -22,12 +22,10 @@ interface LearnerState {
 }
 
 const LEARNER_COURSE_KEY = '@learner_course_data';
-
 export const useLearnerStore = create<LearnerState>((set, get) => ({
   currentCourse: null,
 
   setAllLearnerData: (data: LearnerCourseData) => {
-    console.log('📝 Setting learner data:', data);
     set({ currentCourse: data });
     // Tự động lưu vào AsyncStorage
     get().saveLearnerDataToStorage(data);
@@ -54,10 +52,8 @@ export const useLearnerStore = create<LearnerState>((set, get) => ({
       if (data) {
         const parsed = JSON.parse(data);
         set({ currentCourse: parsed });
-        console.log('✅ Learner data loaded from storage:', parsed);
       }
     } catch (error) {
-      console.error('❌ Failed to load learner data:', error);
     }
   },
 }));
