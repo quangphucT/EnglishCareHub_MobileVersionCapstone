@@ -7,10 +7,13 @@ import PlacementTestScreen from "../screens/Entrance_Test/PlacementTestScreen";
 import ReviewerMainScreen from "../screens/Reviewer/ReviewerMainScreen";
 import MainTabs from "./MainTabs";
 import LearningPathScreen from "../screens/LearningPath/LearningPathScreen";
+import ExerciseScreen from "../screens/Exercise/ExerciseScreen";
+import FeedbackScreen from "../screens/Chat/FeedbackScreen";
 
 import "../global.css";
 import ForgotPasswordScreen from "../screens/Auth/ForgotPasswordScreen";
 import ResetPasswordScreen from "../screens/Auth/ResetPasswordScreen";
+import UploadingCertificate from "../screens/Reviewer/UploadingCertificate";
 
 const Stack = createNativeStackNavigator();
 
@@ -77,6 +80,13 @@ export default function RootStack({ initialRouteName }: RootStackProps) {
         }}
       />
       <Stack.Screen
+        name="UploadingCertificate"
+        component={UploadingCertificate}
+        options={{
+          contentStyle: { backgroundColor: "transparent" },
+        }}
+      />
+      <Stack.Screen
         name="MainApp"
         component={MainTabs}
         options={{
@@ -91,8 +101,22 @@ export default function RootStack({ initialRouteName }: RootStackProps) {
         }}
       />
       <Stack.Screen
+        name="Exercise"
+        component={ExerciseScreen}
+        options={{
+          contentStyle: { backgroundColor: "transparent" },
+        }}
+      />
+      <Stack.Screen
         name="ReviewerMainApp"
         component={ReviewerMainScreen}
+        options={{
+          contentStyle: { backgroundColor: "transparent" },
+        }}
+      />
+      <Stack.Screen
+        name="Feedback"
+        component={FeedbackScreen}
         options={{
           contentStyle: { backgroundColor: "transparent" },
         }}

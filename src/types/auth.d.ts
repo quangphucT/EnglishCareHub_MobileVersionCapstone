@@ -84,6 +84,7 @@ interface User {
   accessToken: string;
   role: string;
   isPlacementTestDone: boolean;
+  IsReviewerActive?: boolean;
   isGoalSet: boolean;
 }
 

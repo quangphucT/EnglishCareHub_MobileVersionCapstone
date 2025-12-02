@@ -179,9 +179,6 @@ export const useEnrollCourseNotFree = () => {
     mutationKey: ["enrollCourseNotFree"],
     mutationFn: (data) => enrollCourseNotFreeService(data),
     onSuccess: (data, variables) => {
-      console.log("✅ Enroll paid course success:", data);
-      
-      // Lưu learner course data vào store
       setAllLearnerData({
         learnerCourseId: variables.learnerCourseId,
         courseId: data.data.courseId,
@@ -202,7 +199,6 @@ export const useEnrollCourseNotFree = () => {
       );
     },
     onError: (error) => {
-      console.error("❌ Enroll paid course error:", error);
       Alert.alert(
         "Lỗi",
         error.message || "Tham gia khóa học thất bại. Vui lòng kiểm tra số dư Coin.",
