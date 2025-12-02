@@ -56,6 +56,7 @@ export default function LoginScreen() {
 
             {/* Tab Selector */}
             <View className="flex-row bg-gray-100 rounded-2xl p-1 mb-6">
+              
               <TouchableOpacity
                 onPress={() => setActiveTab('learner')}
                 style={{
@@ -109,6 +110,7 @@ export default function LoginScreen() {
                   Người đánh giá
                 </Text>
               </TouchableOpacity>
+
             </View>
 
             {/* Role Description */}

@@ -5,6 +5,7 @@ import React, {
   useMemo,
   useCallback,
 } from "react";
+
 import {
   View,
   Text,
@@ -16,26 +17,18 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Audio } from "expo-av";
-import {
-  useGetPlacementTest,
-  useSubmitTestAssessment,
-} from "../../hooks/learner/placementTest/placementTestHooks";
+import {useGetPlacementTest,useSubmitTestAssessment} from "../../hooks/learner/placementTest/placementTestHooks";
 import { useAuthRefresh } from "../../navigation/AppNavigator";
 import { useLogout } from "../../hooks/useAuth";
 import { useGetMeQuery } from "../../hooks/useGetMe";
-
 type RecordingStatus = "idle" | "recording" | "completed";
-
 interface ResultsAfterTest {
   averageScore: number;
   assignedLevel: string;
 }
-
-
 export default function PlacementTestScreen() {
   const { refreshAuth } = useAuthRefresh();
   const logoutMutation = useLogout();
-  // API Hooks
   const { data: testData, isLoading } = useGetPlacementTest();
   const { data: getMe } = useGetMeQuery();
   const { mutate: submitPlacementTest } = useSubmitTestAssessment();
@@ -49,8 +42,7 @@ export default function PlacementTestScreen() {
   const [resultsAfterTest, setResultsAfterTest] =useState<ResultsAfterTest | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Recording refs
-  const recording = useRef<Audio.Recording | null>(null);
+  const recording = useRef<Audio.Recording | null>(null);   
   const audioRecordedRef = useRef<Audio.Sound | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
@@ -83,7 +75,7 @@ export default function PlacementTestScreen() {
     const sortedSections = [...testData.data.sections].sort((a, b) => {
       return typeOrder.indexOf(a.type) - typeOrder.indexOf(b.type);
     });
-
+    
     sortedSections.forEach((section) => {
       section.questions.forEach((question) => {
         questions.push({
@@ -97,7 +89,7 @@ export default function PlacementTestScreen() {
 
     return questions;
   }, [testData]);
-
+  console.log("All question:", allQuestions)
   const totalQuestions = allQuestions.length;
   const currentQuestion = allQuestions[currentQuestionIndex];
 
@@ -184,12 +176,10 @@ export default function PlacementTestScreen() {
         setIsProcessingAudio(false);
         return;
       }
-
-      // Load sound for playback
       const { sound } = await Audio.Sound.createAsync({ uri });
       audioRecordedRef.current = sound;
 
-      // Convert to blob for API
+ 
       const response = await fetch(uri);
       const blob = await response.blob();
       const base64 = await convertBlobToBase64(blob);
@@ -208,7 +198,6 @@ export default function PlacementTestScreen() {
       };
 
       if (!apiMainPathSTS) {
-        console.warn("AI API URL not configured");
         // Mark as recorded without AI analysis
         const newRecorded = [...recorded];
         newRecorded[currentQuestionIndex] = true;
