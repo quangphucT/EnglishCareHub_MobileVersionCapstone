@@ -4,8 +4,8 @@ import LoginScreen from "../screens/Auth/LoginScreen";
 import RegisterScreen from "../screens/Auth/RegisterScreen";
 import VerifyOTPScreen from "../screens/Auth/VerifyOTPScreen";
 import PlacementTestScreen from "../screens/Entrance_Test/PlacementTestScreen";
-import ReviewerMainScreen from "../screens/Reviewer/ReviewerMainScreen";
 import MainTabs from "./MainTabs";
+import ReviewerTabs from "./ReviewerTabs";
 import LearningPathScreen from "../screens/LearningPath/LearningPathScreen";
 import ExerciseScreen from "../screens/Exercise/ExerciseScreen";
 import FeedbackScreen from "../screens/Chat/FeedbackScreen";
@@ -109,7 +109,7 @@ export default function RootStack({ initialRouteName }: RootStackProps) {
       />
       <Stack.Screen
         name="ReviewerMainApp"
-        component={ReviewerMainScreen}
+        component={ReviewerTabs}
         options={{
           contentStyle: { backgroundColor: "transparent" },
         }}
