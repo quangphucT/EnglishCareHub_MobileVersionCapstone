@@ -60,12 +60,14 @@ export class AuthMiddleware {
             user: null,
           };
         }
+        console.log("Decoded token:", decodedToken)
         const user: User = {
           role: decodedToken.role || "",
           isPlacementTestDone: decodedToken.isPlacementTestDone || false,
           IsReviewerActive: decodedToken.IsReviewerActive || false,
           isGoalSet: decodedToken.isGoalSet || false,
           accessToken: tokenResponse.accessToken,
+          reviewerStatus: decodedToken.ReviewerStatus || "",
         };
         const authState: AuthState = {
           isAuthenticated: true,

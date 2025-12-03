@@ -86,6 +86,7 @@ interface User {
   isPlacementTestDone: boolean;
   IsReviewerActive?: boolean;
   isGoalSet: boolean;
+  reviewerStatus?: string;
 }
 
 interface AuthState {
