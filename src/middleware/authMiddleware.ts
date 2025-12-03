@@ -68,7 +68,7 @@ export class AuthMiddleware {
           IsReviewerActive: decodedToken.IsReviewerActive || false,
           isGoalSet: decodedToken.isGoalSet || false,
           accessToken: tokenResponse.accessToken,
-          ReviewerStatus: decodedToken.ReviewerStatus || "",
+          reviewerStatus: decodedToken.ReviewerStatus || "",
         };
         const authState: AuthState = {
           isAuthenticated: true,
@@ -115,18 +115,23 @@ export class AuthMiddleware {
   }
 
   private getReviewerInitialRoute(user: User | null): string {
-    console.log("user", user);
-    if (!user?.IsReviewerActive ) {
-      if (user?.ReviewerStatus === "Pending") {
-        return "ReviewerWaiting";
-      }
-      else {
-        return "UploadingCertificate";
-      }
+    // Nếu IsReviewerActive = false -> Upload Certificate
+    if (!user?.IsReviewerActive) {
+      return "UploadingCertificate";
     }
-   
-      return "ReviewerMainApp";
     
+    // Nếu IsReviewerActive = true -> Check reviewerStatus
+    if (user.reviewerStatus === "Pending") {
+      return "ReviewerWaiting";
+    }
+    
+    // Nếu reviewerStatus = "Active" -> Main App
+    if (user.reviewerStatus === "Active") {
+      return "ReviewerMainApp";
+    }
+    
+    // Default fallback
+    return "UploadingCertificate";
   }
   private getLearnerInitialRoute(user: User | null): string {
     if (!user?.isPlacementTestDone) {

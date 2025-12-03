@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Audio } from "expo-av";
 import { Video, ResizeMode } from "expo-av";
+import { File, Paths } from "expo-file-system";
 import * as Speech from "expo-speech";
 import { useLearnerStore } from "../../store/learnerStore";
 import { useLearningPathCourseFull } from "../../hooks/learner/learningPath/learningPathHooks";
@@ -358,7 +359,7 @@ const ExerciseScreen = () => {
     }
   };
 
-  // Text-to-Speech cho câu hỏi - gọi API backend (giống web)
+  // Text-to-Speech cho câu hỏi - gọi API backend để lấy audio
   const handleSpeakQuestion = useCallback(async () => {
     if (!currentQuestion?.text) return;
 
@@ -372,7 +373,7 @@ const ExerciseScreen = () => {
         soundRef.current = null;
       }
 
-      // Gọi API backend để lấy audio TTS (giống web)
+      // Gọi API backend để lấy audio TTS
       const response = await fetch(`${apiMainPathSTS}/getAudioFromText`, {
         method: 'POST',
         body: JSON.stringify({
@@ -385,9 +386,9 @@ const ExerciseScreen = () => {
       });
 
       const responseData = await response.json();
-      console.log('TTS response:', responseData);
+      console.log('TTS API response received');
 
-      // Parse response (Lambda handler trả về {statusCode, body, headers})
+      // Parse response
       let data;
       if (responseData.body) {
         if (typeof responseData.body === 'string') {
@@ -402,12 +403,22 @@ const ExerciseScreen = () => {
       }
 
       if (data && data.wavBase64) {
-        const mimeType = data.mimeType || 'audio/mpeg';
-        const audioUri = `data:${mimeType};base64,${data.wavBase64}`;
+        // Tạo file trong cache directory
+        const audioFile = new File(Paths.cache, `tts_audio_${Date.now()}.mp3`);
+        
+        // Decode base64 và ghi vào file
+        const binaryString = atob(data.wavBase64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        audioFile.write(bytes);
 
-        // Phát audio bằng expo-av
+        console.log('Audio saved to:', audioFile.uri);
+
+        // Phát audio từ file
         const { sound } = await Audio.Sound.createAsync(
-          { uri: audioUri },
+          { uri: audioFile.uri },
           { shouldPlay: true }
         );
         soundRef.current = sound;
@@ -418,15 +429,19 @@ const ExerciseScreen = () => {
             setIsSpeaking(false);
             sound.unloadAsync();
             soundRef.current = null;
+            // Xóa file tạm
+            try { audioFile.delete(); } catch (e) {}
           }
         });
       } else {
         console.error('No wavBase64 field in TTS response:', data);
         setIsSpeaking(false);
+        Alert.alert('Lỗi', 'Không thể lấy audio từ server');
       }
     } catch (error) {
       console.error('Error playing TTS audio:', error);
       setIsSpeaking(false);
+      Alert.alert('Lỗi', 'Không thể phát audio');
     }
   }, [currentQuestion, apiMainPathSTS, STScoreAPIKey]);
 
