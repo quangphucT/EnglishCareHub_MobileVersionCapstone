@@ -5,6 +5,7 @@ import { Platform, View, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ReviewerMainScreen from '../screens/Reviewer/ReviewerMainScreen';
 import ProfileScreen from '../screens/Profile/ProfileScreen';
+import ReviewerReviewScreen from '../screens/Reviewer/ReviewerReview';
 
 // Placeholder screens - bạn có thể tạo riêng cho reviewer
 const PendingReviewsScreen = () => (
@@ -58,7 +59,7 @@ const ReviewerTabs = () => {
 
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
+      screenOptions={({ route }: { route: { name: keyof ReviewerTabsParamList } }) => ({
         headerShown: false,
         tabBarActiveTintColor: '#059669', // Emerald color for reviewer
         tabBarInactiveTintColor: '#9CA3AF',
@@ -80,7 +81,7 @@ const ReviewerTabs = () => {
           fontWeight: '600',
           marginBottom: Platform.OS === 'android' ? 4 : 0,
         },
-        tabBarIcon: ({ focused, color, size }) => {
+        tabBarIcon: ({ focused, color, size }: { focused: boolean; color: string; size: number }) => {
           let iconName: keyof typeof Ionicons.glyphMap = 'home';
 
           if (route.name === 'Dashboard') {
@@ -108,7 +109,7 @@ const ReviewerTabs = () => {
       />
       <Tab.Screen 
         name="PendingReviews" 
-        component={PendingReviewsScreen}
+        component={ReviewerReviewScreen}
         options={{
           tabBarLabel: 'Chờ đánh giá',
         }}

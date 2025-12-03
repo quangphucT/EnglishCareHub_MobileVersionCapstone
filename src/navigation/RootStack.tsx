@@ -15,6 +15,7 @@ import ForgotPasswordScreen from "../screens/Auth/ForgotPasswordScreen";
 import ResetPasswordScreen from "../screens/Auth/ResetPasswordScreen";
 import UploadingCertificate from "../screens/Reviewer/UploadingCertificate";
 import ReviewerWaiting from "../screens/Reviewer/ReviewerWaiting";
+import ReviewerReviewScreen from "../screens/Reviewer/ReviewerReview";
 
 const Stack = createNativeStackNavigator();
 
@@ -125,6 +126,13 @@ export default function RootStack({ initialRouteName }: RootStackProps) {
       <Stack.Screen
         name="Feedback"
         component={FeedbackScreen}
+        options={{
+          contentStyle: { backgroundColor: "transparent" },
+        }}
+      />
+      <Stack.Screen
+        name="ReviewerReview"
+        component={ReviewerReviewScreen}
         options={{
           contentStyle: { backgroundColor: "transparent" },
         }}
