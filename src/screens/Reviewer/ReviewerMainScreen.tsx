@@ -9,9 +9,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
+
+type ReviewerMainScreenProps = {
+  navigation?: {
+    navigate: (route: string, params?: Record<string, unknown>) => void;
+  };
+};
 
 const reviewerFeatures = [
   {
@@ -48,9 +53,9 @@ const reviewerFeatures = [
   },
 ];
 
-export default function ReviewerMainScreen() {
-  const navigation = useNavigation();
-
+export default function ReviewerMainScreen({
+  navigation,
+}: ReviewerMainScreenProps) {
   const handleFeaturePress = (featureId: string) => {
     // Navigate to specific reviewer feature
     console.log(`Navigate to ${featureId}`);
@@ -58,7 +63,7 @@ export default function ReviewerMainScreen() {
 
   const handleLogout = () => {
     // Implement logout logic
-    (navigation as any).navigate('Login');
+    navigation?.navigate?.('Login');
   };
 
   return (

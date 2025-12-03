@@ -17,12 +17,75 @@ const robotLogoIcon: ImageSourcePropType = require("../../assets/images/robotIco
 
 type RoleTab = 'learner' | 'reviewer';
 
-export default function LoginScreen() {
+type ReviewerLoginMeta = {
+  reviewerStatus?: string;
+  reviewStatus?: string;
+  isReviewerActive?: boolean;
+};
+
+type LoginScreenProps = {
+  navigation?: {
+    navigate?: (route: string) => void;
+  };
+};
+
+export default function LoginScreen({ navigation }: LoginScreenProps) {
   const { signInWithGoogle, isLoading } = useGoogleAuth();
   const [activeTab, setActiveTab] = useState<RoleTab>('learner');
+  const handleReviewerNavigation = (
+    isReviewerActive?: boolean,
+    rawStatus?: string
+  ) => {
+    const normalizedStatus = rawStatus?.trim().toLowerCase();
 
+    if (normalizedStatus === "pending") {
+      if (isReviewerActive === false) {
+        navigation?.navigate?.("EntranceInformation");
+        return;
+      }
+      navigation?.navigate?.("ReviewerWaiting");
+      return;
+    }
+
+    if (
+      normalizedStatus === "active" ||
+      normalizedStatus === "approved" ||
+      normalizedStatus === "actived"
+    ) {
+      navigation?.navigate?.("ReviewerMainApp");
+      return;
+    }
+
+    if (isReviewerActive === false) {
+      navigation?.navigate?.("UploadingCertificate");
+      return;
+    }
+
+    navigation?.navigate?.("ReviewerWaiting");
+  };
+  const extractReviewerMeta = (data: unknown): ReviewerLoginMeta => {
+    return (data as ReviewerLoginMeta) || {};
+  };
   const handleLogin = async () => {
-    await signInWithGoogle(activeTab);
+    const loginResponse = await signInWithGoogle(activeTab);
+    if (!loginResponse) {
+      return;
+    }
+
+    if (activeTab === "reviewer") {
+      try {
+        const reviewerMeta = extractReviewerMeta(loginResponse);
+        handleReviewerNavigation(
+          reviewerMeta.isReviewerActive,
+          reviewerMeta.reviewerStatus ?? reviewerMeta.reviewStatus
+        );
+      } catch (error) {
+        navigation?.navigate?.("ReviewerWaiting");
+      }
+      return;
+    }
+
+    navigation?.navigate?.("MainApp");
   };
 
   return (

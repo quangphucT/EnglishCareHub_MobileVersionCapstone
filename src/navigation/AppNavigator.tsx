@@ -1,5 +1,10 @@
 import React, { useEffect, useState, createContext, useContext, useRef } from "react";
-import { NavigationContainer, LinkingOptions, ParamListBase } from "@react-navigation/native";
+import {
+  NavigationContainer,
+  LinkingOptions,
+  ParamListBase,
+  useNavigationContainerRef,
+} from "@react-navigation/native";
 import { View, Text, ActivityIndicator } from "react-native";
 import authMiddleware, { AuthState } from "../middleware/authMiddleware";
 // import { useLearnerStore } from "../store/learnerStore";
@@ -22,7 +27,8 @@ export const useAuthRefresh = () => {
 };
 
 export default function AppNavigator() {
-  const navigationRef = useRef<any>(null);
+  const navigationRef = useNavigationContainerRef<ParamListBase>();
+  const pendingRouteRef = useRef<string | null>(null);
   // const loadLearnerDataFromStorage = useLearnerStore((state) => state.loadLearnerDataFromStorage);
   const [authState, setAuthState] = useState<AuthState>({
     isAuthenticated: false,
@@ -60,6 +66,22 @@ export default function AppNavigator() {
     }
   };
   
+  const navigateToRoute = (routeName: string) => {
+    if (navigationRef.isReady()) {
+      navigationRef.reset({
+        index: 0,
+        routes: [{ name: routeName }],
+      });
+      console.log("✅ [RefreshAuth] Navigation completed");
+    } else {
+      console.log(
+        "⏳ [RefreshAuth] Navigation not ready, queueing route:",
+        routeName
+      );
+      pendingRouteRef.current = routeName;
+    }
+  };
+
   const refreshAuth = async () => {
     setAuthState(prev => ({ ...prev, isLoading: true }));
     
@@ -72,17 +94,9 @@ export default function AppNavigator() {
       await new Promise(resolve => setTimeout(resolve, 300));
       
       // Sau đó mới navigate dựa trên newAuthState (không phải state cũ)
-      if (navigationRef.current) {
-        const newRoute = authMiddleware.getInitialRoute(newAuthState);
-        console.log('➡️ [RefreshAuth] Navigating to:', newRoute);
-
-        navigationRef.current.reset({
-          index: 0,
-          routes: [{ name: newRoute }]
-        });
-        
-        console.log('✅ [RefreshAuth] Navigation completed');
-      }
+      const newRoute = authMiddleware.getInitialRoute(newAuthState);
+      console.log('➡️ [RefreshAuth] Navigating to:', newRoute);
+      navigateToRoute(newRoute);
     } catch (error) {
       console.error('❌ [RefreshAuth] Error:', error);
       setAuthState({
@@ -116,9 +130,21 @@ export default function AppNavigator() {
     },
   };
 
+  const handleNavigationReady = () => {
+    if (pendingRouteRef.current) {
+      const queuedRoute = pendingRouteRef.current;
+      pendingRouteRef.current = null;
+      navigateToRoute(queuedRoute);
+    }
+  };
+
   return (
     <AuthContext.Provider value={{ refreshAuth }}>
-      <NavigationContainer ref={navigationRef} linking={linking}>
+      <NavigationContainer
+        ref={navigationRef}
+        linking={linking}
+        onReady={handleNavigationReady}
+      >
         <RootStack 
           initialRouteName={initialRouteName}
         />
