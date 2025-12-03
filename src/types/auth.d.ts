@@ -48,6 +48,8 @@ interface GoogleLoginResponse {
   role: string;
   isPlacementTestDone: boolean;
   isGoalSet: boolean;
+  ReviewerStatus?: string;
+  isReviewerActive?: boolean;
 }
 
 interface LoginResponse {
@@ -76,8 +78,6 @@ interface RefreshTokenResponse {
   message: string;
   role: "LEARNER" | "REVIEWER";
 }
-
-
 
 
 interface User {

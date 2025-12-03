@@ -14,6 +14,7 @@ import "../global.css";
 import ForgotPasswordScreen from "../screens/Auth/ForgotPasswordScreen";
 import ResetPasswordScreen from "../screens/Auth/ResetPasswordScreen";
 import UploadingCertificate from "../screens/Reviewer/UploadingCertificate";
+import ReviewerWaiting from "../screens/Reviewer/ReviewerWaiting";
 
 const Stack = createNativeStackNavigator();
 
@@ -110,6 +111,13 @@ export default function RootStack({ initialRouteName }: RootStackProps) {
       <Stack.Screen
         name="ReviewerMainApp"
         component={ReviewerTabs}
+        options={{
+          contentStyle: { backgroundColor: "transparent" },
+        }}
+      />
+      <Stack.Screen
+        name="ReviewerWaiting"
+        component={ReviewerWaiting}
         options={{
           contentStyle: { backgroundColor: "transparent" },
         }}
