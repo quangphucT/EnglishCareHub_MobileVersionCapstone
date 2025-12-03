@@ -50,6 +50,7 @@
       "expo-font",
       "expo-web-browser",
       "expo-audio",
+      "expo-system-ui",
       "@react-native-firebase/app"
     ],
     "extra": {
