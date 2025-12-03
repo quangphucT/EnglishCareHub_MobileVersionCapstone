@@ -43,7 +43,8 @@ export class AuthMiddleware {
           authService.refreshToken({ refreshToken }),
           timeoutPromise,
         ]);
-
+        console.log("tokenResponse", tokenResponse);
+        console.log("CheckaccessToken", tokenResponse.accessToken);
         // Lưu accessToken mới
         await SecureStore.setItemAsync(
           "access_token",
@@ -51,6 +52,7 @@ export class AuthMiddleware {
         );
         // Decode JWT để lấy thông tin user
         const decodedToken = decodeJWT(tokenResponse.accessToken);
+   
         if (!decodedToken) {
           await this.handleLogout();
           return {
@@ -66,6 +68,7 @@ export class AuthMiddleware {
           IsReviewerActive: decodedToken.IsReviewerActive || false,
           isGoalSet: decodedToken.isGoalSet || false,
           accessToken: tokenResponse.accessToken,
+          ReviewerStatus: decodedToken.ReviewerStatus || "",
         };
         const authState: AuthState = {
           isAuthenticated: true,
@@ -112,10 +115,18 @@ export class AuthMiddleware {
   }
 
   private getReviewerInitialRoute(user: User | null): string {
-    if (!user?.IsReviewerActive) {
-      return "UploadingCertificate";
+    console.log("user", user);
+    if (!user?.IsReviewerActive ) {
+      if (user?.ReviewerStatus === "Pending") {
+        return "ReviewerWaiting";
+      }
+      else {
+        return "UploadingCertificate";
+      }
     }
-    return "ReviewerMainApp";
+   
+      return "ReviewerMainApp";
+    
   }
   private getLearnerInitialRoute(user: User | null): string {
     if (!user?.isPlacementTestDone) {

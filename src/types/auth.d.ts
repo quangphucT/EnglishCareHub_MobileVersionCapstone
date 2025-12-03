@@ -48,8 +48,7 @@ interface GoogleLoginResponse {
   role: string;
   isPlacementTestDone: boolean;
   isGoalSet: boolean;
-  reviewerStatus?: string;
-  reviewStatus?: string;
+  ReviewerStatus?: string;
   isReviewerActive?: boolean;
 }
 
@@ -87,6 +86,8 @@ interface User {
   isPlacementTestDone: boolean;
   IsReviewerActive?: boolean;
   isGoalSet: boolean;
+  ReviewerStatus?: string;
+  isReviewerActive?: boolean;
 }
 
 interface AuthState {
