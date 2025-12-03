@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useGetMeQuery } from '../../hooks/useGetMe';
 import { 
   useEnrollCourseNotFree, 
@@ -12,6 +13,8 @@ import {
 } from '../../hooks/learner/course/courseHooks';
 import { upLevelForLearner } from '../../hooks/learner/level/levelHooks';
 import { useLearnerStore } from '../../store/learnerStore';
+
+const { width } = Dimensions.get('window');
 
 const CoursesScreen = () => {
   const navigation = useNavigation();
@@ -162,104 +165,166 @@ const CoursesScreen = () => {
 
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-white" edges={['top', 'left', 'right']}>
+      <SafeAreaView className="flex-1 bg-gray-50" edges={['top', 'left', 'right']}>
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#7C3AED" />
-          <Text className="mt-4 text-gray-600">Đang tải khóa học...</Text>
+          <View className="bg-white p-8 rounded-3xl shadow-lg items-center">
+            <ActivityIndicator size="large" color="#7C3AED" />
+            <Text className="mt-4 text-gray-600 font-medium">Đang tải khóa học...</Text>
+          </View>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top', 'left', 'right']}>
-      <View className="flex-1 px-4 pt-6 pb-4">
-        <Text className="text-2xl font-bold text-gray-900 mb-4">
-          Khóa học
-        </Text>
-        
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
-          {/* Level Progress Map */}
-          <View className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-4 mb-6 border-2 border-blue-200">
-            <View className="flex-row items-center justify-center mb-3">
-              <Ionicons name="trending-up" size={20} color="#2563EB" />
-              <Text className="text-base font-bold text-gray-900 ml-2">
-                Cấp độ hiện tại
-              </Text>
+    <SafeAreaView className="flex-1 bg-gray-50" edges={['top', 'left', 'right']}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={{ paddingBottom: 100 }}
+        className="flex-1"
+      >
+        {/* Header Section */}
+        <LinearGradient
+          colors={['#EEF2FF', '#E0E7FF']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ paddingHorizontal: 16, paddingTop: 20, paddingBottom: 24, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 }}
+        >
+          <View className="flex-row items-center justify-between mb-4">
+            <View>
+             
+              <Text className="text-gray-800 text-xl font-bold">{userData?.fullName || 'Học viên'}</Text>
             </View>
+            <View className="bg-blue-500 px-4 py-2 rounded-full flex-row items-center">
+              <Ionicons name="star" size={16} color="#FFFFFF" />
+              <Text className="text-white font-bold ml-1">Level {userLevel}</Text>
+            </View>
+          </View>
 
+          {/* Level Progress Card - New Design */}
+          <View className="bg-white rounded-2xl p-4 mt-2" style={{ marginHorizontal: -4 }}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View className="flex-row items-center gap-2">
+              <View className="flex-row items-center py-2">
                 {levels.map((level, index) => {
                   const levelData = levelsData.find((l) => l.Level === level);
                   const isViewingLevel = level === viewingLevel;
                   const isUserCurrentLevel = level === userLevel;
-                  const hasCoursesInLevel = levelData && levelData.Courses && levelData.Courses.length > 0;
                   const isUnlocked = canAccessLevel(level);
                   const isLocked = !isUnlocked;
+                  const isCompleted = levelData && levelData.TotalCourses > 0 && 
+                                     levelData.TotalCourses === levelData.CompletedCourses;
 
                   return (
-                    <View key={level} className="flex-row items-center p-2">
+                    <View key={level} className="flex-row items-center">
                       <TouchableOpacity
                         onPress={() => handleLevelClick(level)}
                         disabled={isLocked}
                         className="items-center"
+                        style={{ marginHorizontal: 6 }}
                       >
+                        {/* Outer circle with gradient border effect */}
                         <View
-                          className={`w-16 h-16 rounded-full items-center justify-center ${
-                            isLocked
-                              ? "bg-gray-300"
-                              : isViewingLevel
-                              ? "bg-blue-600"
-                              : isUserCurrentLevel
-                              ? "bg-green-600"
-                              : hasCoursesInLevel
-                              ? "bg-blue-500"
-                              : "bg-white border-2 border-gray-300"
-                          }`}
+                          style={{
+                            width: 72,
+                            height: 72,
+                            borderRadius: 36,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: isLocked ? '#F3F4F6' : '#FFFFFF',
+                            borderWidth: 4,
+                            borderColor: isLocked ? '#E5E7EB' 
+                              : isUserCurrentLevel ? '#3B82F6'
+                              : isCompleted ? '#3B82F6'
+                              : '#E5E7EB',
+                            shadowColor: isUserCurrentLevel ? '#3B82F6' : '#000',
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: isUserCurrentLevel ? 0.3 : 0.1,
+                            shadowRadius: 4,
+                            elevation: isUserCurrentLevel ? 6 : 2,
+                          }}
                         >
-                          <Text
-                            className={`text-lg font-bold ${
-                              isLocked || (!isViewingLevel && !isUserCurrentLevel && !hasCoursesInLevel)
-                                ? "text-gray-500"
-                                : "text-white"
-                            }`}
-                          >
-                            {level}
-                          </Text>
-                          {isUserCurrentLevel && !isLocked && (
-                            <View className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full items-center justify-center">
-                              <Ionicons name="checkmark" size={12} color="white" />
-                            </View>
+                          {/* Inner gradient circle for current/active levels */}
+                          {(isUserCurrentLevel || isCompleted) && !isLocked ? (
+                            <LinearGradient
+                              colors={['#60A5FA', '#3B82F6']}
+                              style={{
+                                width: 56,
+                                height: 56,
+                                borderRadius: 28,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  fontSize: 20,
+                                  fontWeight: 'bold',
+                                  color: '#FFFFFF',
+                                }}
+                              >
+                                {level}
+                              </Text>
+                            </LinearGradient>
+                          ) : (
+                            <Text
+                              style={{
+                                fontSize: 20,
+                                fontWeight: 'bold',
+                                color: isLocked ? '#9CA3AF' : '#6B7280',
+                              }}
+                            >
+                              {level}
+                            </Text>
                           )}
-                          {isLocked && (
-                            <View className="absolute -top-1 -right-1 w-5 h-5 bg-gray-500 rounded-full items-center justify-center">
-                              <Ionicons name="lock-closed" size={10} color="white" />
+
+                          {/* Checkmark badge for completed levels */}
+                          {isCompleted && (
+                            <View
+                              style={{
+                                position: 'absolute',
+                                top: -2,
+                                right: -2,
+                                width: 24,
+                                height: 24,
+                                borderRadius: 12,
+                                backgroundColor: '#10B981',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                borderWidth: 2,
+                                borderColor: '#FFFFFF',
+                              }}
+                            >
+                              <Ionicons name="checkmark" size={14} color="#FFFFFF" />
                             </View>
                           )}
                         </View>
+
+                        {/* Level label */}
                         <Text
-                          className={`text-xs font-semibold mt-1 ${
-                            isLocked
-                              ? "text-gray-400"
-                              : isViewingLevel
-                              ? "text-blue-600"
-                              : isUserCurrentLevel
-                              ? "text-green-600"
-                              : "text-gray-600"
-                          }`}
+                          style={{
+                            fontSize: 12,
+                            fontWeight: '600',
+                            marginTop: 8,
+                            color: isUserCurrentLevel ? '#3B82F6' : '#6B7280',
+                          }}
                         >
-                          {isUserCurrentLevel ? "Hiện tại" : level}
+                          {isUserCurrentLevel ? 'Level của bạn' : `Level ${level}`}
                         </Text>
                       </TouchableOpacity>
 
+                      {/* Arrow connector */}
                       {index < levels.length - 1 && (
-                        <Ionicons
-                          name="arrow-forward"
-                          size={20}
-                          color={isUnlocked ? "#60A5FA" : "#D1D5DB"}
-                          style={{ marginHorizontal: 8 }}
-                        />
+                        <Text
+                          style={{
+                            fontSize: 24,
+                            color: isUnlocked && canAccessLevel(levels[index + 1]) 
+                              ? '#3B82F6' 
+                              : '#D1D5DB',
+                            marginHorizontal: 4,
+                          }}
+                        >
+                          →
+                        </Text>
                       )}
                     </View>
                   );
@@ -267,97 +332,126 @@ const CoursesScreen = () => {
               </View>
             </ScrollView>
           </View>
+        </LinearGradient>
 
-          {/* Header */}
-          <View className="mb-4">
-            <Text className="text-xl font-bold text-gray-900 text-center">
-              Khám phá khóa học Level {viewingLevel}
-            </Text>
-            <Text className="text-gray-500 text-center mt-1">
-              {courses.length} khóa học chuyên sâu - Khóa đầu miễn phí
-            </Text>
+        {/* Content Section */}
+        <View className="px-4 -mt-4">
+          {/* Section Header */}
+          <View className="bg-white rounded-2xl p-4 shadow-sm mb-4">
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center">
+                <View className="w-10 h-10 bg-purple-100 rounded-full items-center justify-center">
+                  <Ionicons name="school" size={20} color="#7C3AED" />
+                </View>
+                <View className="ml-3">
+                  <Text className="text-lg font-bold text-gray-900">Level {viewingLevel}</Text>
+                  <Text className="text-gray-500 text-sm">{courses.length} khóa học</Text>
+                </View>
+              </View>
+              <View className="bg-green-100 px-3 py-1 rounded-full">
+                <Text className="text-green-700 text-xs font-semibold">Khóa đầu miễn phí</Text>
+              </View>
+            </View>
           </View>
 
           {/* Courses List */}
-          <View className="gap-4">
-            {courses.map((course, index) => {
-              const isFirstCourse = index === 0;
-              const totalExercises = course.chapters?.reduce((sum, ch) => sum + ch.numberOfExercise, 0) || 0;
-              
-              const enrolledCourse = enrolledCoursesInLevel.find((item) => item.courseId === course.courseId);
-              const isEnrolled = !!enrolledCourse;
-              const status = enrolledCourse?.status || "";
-              const isCompleted = status === "Completed";
-              const isInProgress = status === "InProgress";
+          {courses.map((course, index) => {
+            const isFirstCourse = index === 0;
+            const totalExercises = course.chapters?.reduce((sum, ch) => sum + ch.numberOfExercise, 0) || 0;
+            
+            const enrolledCourse = enrolledCoursesInLevel.find((item) => item.courseId === course.courseId);
+            const isEnrolled = !!enrolledCourse;
+            const status = enrolledCourse?.status || "";
+            const isCompleted = status === "Completed";
+            const isInProgress = status === "InProgress";
 
-              return (
-                <View
-                  key={course.courseId}
-                  className="bg-white rounded-2xl p-4 border-2 border-gray-200"
-                >
-                  <View className="flex-row items-start justify-between mb-3">
-                    <View className="flex-1">
-                      <View className="flex-row items-center gap-2 mb-2">
-                        <Text className="text-base font-bold text-gray-900 flex-1">
-                          {course.title}
-                        </Text>
+            return (
+              <View
+                key={course.courseId}
+                className="bg-white rounded-2xl mb-4 overflow-hidden shadow-sm"
+                style={{
+                  borderLeftWidth: 4,
+                  borderLeftColor: isCompleted ? '#10B981' : isInProgress ? '#3B82F6' : isFirstCourse ? '#10B981' : '#F59E0B',
+                }}
+              >
+                {/* Course Header */}
+                <View className="p-4">
+                  <View className="flex-row items-start justify-between mb-2">
+                    <View className="flex-1 mr-3">
+                      <View className="flex-row items-center mb-1">
                         {isEnrolled && (
                           <View
-                            className={`px-2 py-1 rounded-full ${
-                              isCompleted
-                                ? "bg-green-100"
-                                : isInProgress
-                                ? "bg-blue-100"
-                                : "bg-gray-100"
-                            }`}
+                            style={{
+                              width: 20,
+                              height: 20,
+                              borderRadius: 10,
+                              backgroundColor: isCompleted ? '#10B981' : '#3B82F6',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              marginRight: 8,
+                            }}
                           >
-                            <Text
-                              className={`text-xs font-bold ${
-                                isCompleted
-                                  ? "text-green-700"
-                                  : isInProgress
-                                  ? "text-blue-700"
-                                  : "text-gray-700"
-                              }`}
-                            >
-                              {isCompleted ? "✓ Hoàn thành" : isInProgress ? "Đang học" : "Chưa bắt đầu"}
-                            </Text>
+                            <Ionicons 
+                              name={isCompleted ? "checkmark" : "play"} 
+                              size={12} 
+                              color="#FFFFFF" 
+                            />
                           </View>
                         )}
+                        <Text className="text-base font-bold text-gray-900 flex-1" numberOfLines={2}>
+                          {course.title}
+                        </Text>
                       </View>
+                      <Text className="text-gray-500 text-sm" numberOfLines={2}>
+                        {course.description}
+                      </Text>
                     </View>
 
+                    {/* Price Badge */}
                     {course.isFree || isFirstCourse ? (
-                      <View className="bg-blue-500 rounded-full px-3 py-1">
-                        <Text className="text-white text-xs font-bold " numberOfLines={1}>Miễn phí</Text>
+                      <View className="bg-green-500 rounded-xl px-3 py-1.5">
+                        <Text className="text-white text-xs font-bold">FREE</Text>
                       </View>
                     ) : (
-                      <View className="bg-orange-500 rounded-full px-3 py-1 flex-row items-center">
-                        <Ionicons name="wallet" size={12} color="white" />
+                      <View className="bg-amber-500 rounded-xl px-3 py-1.5 flex-row items-center">
+                        <Ionicons name="logo-bitcoin" size={14} color="white" />
                         <Text className="text-white text-xs font-bold ml-1">{course.price}</Text>
                       </View>
                     )}
                   </View>
 
-                  <Text className="text-gray-600 text-sm mb-3" numberOfLines={2}>
-                    {course.description}
-                  </Text>
-
-                  <View className="flex-row items-center gap-4 mb-3">
-                    <View className="flex-row items-center">
-                      <Ionicons name="book-outline" size={16} color="#6B7280" />
-                      <Text className="text-xs text-gray-500 ml-1">
+                  {/* Course Stats */}
+                  <View className="flex-row items-center mt-3 mb-4">
+                    <View className="flex-row items-center bg-gray-100 rounded-full px-3 py-1.5 mr-2">
+                      <Ionicons name="layers-outline" size={14} color="#6B7280" />
+                      <Text className="text-xs text-gray-600 ml-1 font-medium">
                         {course.numberOfChapter} Chương
                       </Text>
                     </View>
-                    <View className="flex-row items-center">
-                      <Ionicons name="document-text-outline" size={16} color="#6B7280" />
-                      <Text className="text-xs text-gray-500 ml-1">
+                    <View className="flex-row items-center bg-gray-100 rounded-full px-3 py-1.5 mr-2">
+                      <Ionicons name="document-text-outline" size={14} color="#6B7280" />
+                      <Text className="text-xs text-gray-600 ml-1 font-medium">
                         {totalExercises} Bài tập
                       </Text>
                     </View>
+                    {isEnrolled && (
+                      <View 
+                        className={`rounded-full px-3 py-1.5 ${
+                          isCompleted ? 'bg-green-100' : 'bg-blue-100'
+                        }`}
+                      >
+                        <Text 
+                          className={`text-xs font-semibold ${
+                            isCompleted ? 'text-green-700' : 'text-blue-700'
+                          }`}
+                        >
+                          {isCompleted ? '✓ Hoàn thành' : '● Đang học'}
+                        </Text>
+                      </View>
+                    )}
                   </View>
 
+                  {/* Action Button */}
                   {isEnrolled ? (
                     <TouchableOpacity
                       onPress={() =>
@@ -368,16 +462,20 @@ const CoursesScreen = () => {
                           enrolledCourse.status
                         )
                       }
-                      className={`rounded-full py-3 items-center ${
-                        isCompleted ? "bg-green-600" : "bg-blue-600"
-                      }`}
+                      style={{
+                        backgroundColor: isCompleted ? '#10B981' : '#3B82F6',
+                        borderRadius: 12,
+                        paddingVertical: 14,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
                     >
-                      <View className="flex-row items-center">
-                        <Ionicons name="book-outline" size={16} color="white" />
-                        <Text className="text-white font-bold ml-2">
-                          {isCompleted ? "Xem lại khóa học" : "Tiếp tục học"}
-                        </Text>
-                      </View>
+                      <Ionicons name={isCompleted ? "refresh" : "play-circle"} size={20} color="white" />
+                      <Text className="text-white font-bold ml-2">
+                        {isCompleted ? "Ôn tập lại" : "Tiếp tục học"}
+                      </Text>
+                      <Ionicons name="arrow-forward" size={18} color="white" style={{ marginLeft: 8 }} />
                     </TouchableOpacity>
                   ) : (
                     <TouchableOpacity
@@ -389,34 +487,49 @@ const CoursesScreen = () => {
                         }
                       }}
                       disabled={enrollingCourseId === course.courseId}
-                      className={`rounded-full py-3 items-center ${
-                        isFirstCourse ? "bg-green-600" : "bg-orange-600"
-                      }`}
+                      style={{
+                        backgroundColor: isFirstCourse ? '#10B981' : '#F59E0B',
+                        borderRadius: 12,
+                        paddingVertical: 14,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
                     >
                       {enrollingCourseId === course.courseId ? (
                         <ActivityIndicator size="small" color="white" />
                       ) : (
-                        <View className="flex-row items-center">
+                        <>
                           <Ionicons
-                            name={isFirstCourse ? "book-outline" : "wallet"}
-                            size={16}
+                            name={isFirstCourse ? "rocket" : "lock-open"}
+                            size={18}
                             color="white"
                           />
                           <Text className="text-white font-bold ml-2">
                             {isFirstCourse
-                              ? "Tham gia miễn phí"
-                              : `Mở khóa - ${course.price} Coin`}
+                              ? "Bắt đầu học miễn phí"
+                              : `Mở khóa • ${course.price} Coin`}
                           </Text>
-                        </View>
+                        </>
                       )}
                     </TouchableOpacity>
                   )}
                 </View>
-              );
-            })}
-          </View>
-        </ScrollView>
-      </View>
+              </View>
+            );
+          })}
+
+          {/* Empty State */}
+          {courses.length === 0 && (
+            <View className="bg-white rounded-2xl p-8 items-center">
+              <Ionicons name="school-outline" size={64} color="#D1D5DB" />
+              <Text className="text-gray-500 text-center mt-4">
+                Chưa có khóa học nào ở level này
+              </Text>
+            </View>
+          )}
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };

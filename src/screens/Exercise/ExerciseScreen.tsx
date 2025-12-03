@@ -358,29 +358,77 @@ const ExerciseScreen = () => {
     }
   };
 
-  // Text-to-Speech cho câu hỏi (giống web nhưng dùng expo-speech)
+  // Text-to-Speech cho câu hỏi - gọi API backend (giống web)
   const handleSpeakQuestion = useCallback(async () => {
     if (!currentQuestion?.text) return;
 
     try {
       setIsSpeaking(true);
 
-      // Stop any ongoing speech
-      await Speech.stop();
+      // Stop any ongoing audio
+      if (soundRef.current) {
+        await soundRef.current.stopAsync();
+        await soundRef.current.unloadAsync();
+        soundRef.current = null;
+      }
 
-      // Speak with English voice
-      Speech.speak(currentQuestion.text, {
-        language: "en-US",
-        pitch: 1.0,
-        rate: 0.7, // Giống web (rate: 0.7)
-        onDone: () => setIsSpeaking(false),
-        onError: () => setIsSpeaking(false),
+      // Gọi API backend để lấy audio TTS (giống web)
+      const response = await fetch(`${apiMainPathSTS}/getAudioFromText`, {
+        method: 'POST',
+        body: JSON.stringify({
+          value: currentQuestion.text.trim(),
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Api-Key': STScoreAPIKey,
+        },
       });
+
+      const responseData = await response.json();
+      console.log('TTS response:', responseData);
+
+      // Parse response (Lambda handler trả về {statusCode, body, headers})
+      let data;
+      if (responseData.body) {
+        if (typeof responseData.body === 'string') {
+          data = JSON.parse(responseData.body);
+        } else {
+          data = responseData.body;
+        }
+      } else if (responseData.wavBase64) {
+        data = responseData;
+      } else {
+        data = responseData;
+      }
+
+      if (data && data.wavBase64) {
+        const mimeType = data.mimeType || 'audio/mpeg';
+        const audioUri = `data:${mimeType};base64,${data.wavBase64}`;
+
+        // Phát audio bằng expo-av
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: audioUri },
+          { shouldPlay: true }
+        );
+        soundRef.current = sound;
+
+        // Lắng nghe khi audio kết thúc
+        sound.setOnPlaybackStatusUpdate((status) => {
+          if (status.isLoaded && status.didJustFinish) {
+            setIsSpeaking(false);
+            sound.unloadAsync();
+            soundRef.current = null;
+          }
+        });
+      } else {
+        console.error('No wavBase64 field in TTS response:', data);
+        setIsSpeaking(false);
+      }
     } catch (error) {
-      console.error("Failed to speak:", error);
+      console.error('Error playing TTS audio:', error);
       setIsSpeaking(false);
     }
-  }, [currentQuestion]);
+  }, [currentQuestion, apiMainPathSTS, STScoreAPIKey]);
 
   const handleNextQuestion = () => {
     if (currentQuestionIndex < totalQuestions - 1) {
@@ -394,14 +442,14 @@ const ExerciseScreen = () => {
     }
   };
 
-  const handleSubmit = () => {
-    Alert.alert("Hoàn thành bài tập", "Bạn đã hoàn thành bài tập!", [
-      {
-        text: "OK",
-        onPress: () => (navigation as any).goBack(),
-      },
-    ]);
-  };
+  // const handleSubmit = () => {
+  //   Alert.alert("Hoàn thành bài tập", "Bạn đã hoàn thành bài tập!", [
+  //     {
+  //       text: "OK",
+  //       onPress: () => (navigation as any).goBack(),
+  //     },
+  //   ]);
+  // };
 
   if (isLoading) {
     return (
@@ -437,18 +485,12 @@ const ExerciseScreen = () => {
                 <Text className="text-lg font-bold text-gray-900">
                   {currentExerciseData?.exerciseTitle || "Exercise"}
                 </Text>
-                <Text className="text-xs text-gray-500">
+                <Text className="text-xs text-gray-500" numberOfLines={2}>
                   {currentExerciseData?.exerciseDescription || ""}
                 </Text>
-              </View>
+              </View>  
             </View>
-            <View className="items-end">
-              <Text className="text-xs text-gray-500">Câu hỏi</Text>
-              <Text className="text-lg font-bold text-gray-900">
-                {currentQuestionIndex + 1}{" "}
-                <Text className="text-gray-400">/</Text> {totalQuestions}
-              </Text>
-            </View>
+            
           </View>
         </View>
       </View>
