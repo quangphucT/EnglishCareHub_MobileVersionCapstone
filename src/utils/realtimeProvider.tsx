@@ -1,11 +1,4 @@
-import React, {
-  useCallback,
-  useRef,
-  useState,
-  useEffect,
-  createContext,
-  useContext,
-} from "react";
+import React, { useCallback, useRef, useState, useEffect, createContext, useContext } from "react";
 import { signalRService } from "./realtime";
 
 interface RealtimeContextType {
@@ -22,7 +15,7 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const [isConnecting, setIsConnecting] = useState(false);
     const [connectionError, setConnectionError] = useState<string | null>(null);
     const isInitialized = useRef(false);
-    //const { user: currentUser } = useUser();
+  
   // ===== CONNECTION METHODS =====
   const connect = useCallback(async () => {
     if (isConnected || isConnecting) return;
@@ -57,12 +50,9 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Auto-connect when provider mounts (only if env var is available)
   useEffect(() => {
     // Check if environment variable is available before attempting connection
-    const apiUrl =
-      process.env.EXPO_PUBLIC_API_URL ||
-      process.env.NEXT_PUBLIC_API_URL_BACKEND ||
-      process.env.NEXT_PUBLIC_BE_API_URL;
+    const apiUrl = process.env.EXPO_PUBLIC_API_URL1;
     if (!apiUrl) {
-      console.warn('⚠️ [REALTIME] Skipping SignalR connection: NEXT_PUBLIC_API_URL_BACKEND or NEXT_PUBLIC_BE_API_URL is not defined. Please add it to your .env.local file.');
+      console.warn('⚠️ [REALTIME] Skipping SignalR connection: EXPO_PUBLIC_API_URL1 is not defined.');
       return;
     }
 
@@ -89,6 +79,15 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       clearInterval(interval);
     };
   }, [isConnected]);
+
+  // Cleanup: disconnect when provider unmounts
+  useEffect(() => {
+    return () => {
+      disconnect().catch((error) => {
+        console.warn('⚠️ [REALTIME] Error during cleanup disconnect:', error);
+      });
+    };
+  }, [disconnect]);
 
   const value: RealtimeContextType = {
     isConnected,

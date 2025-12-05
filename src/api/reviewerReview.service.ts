@@ -110,7 +110,7 @@ export const submitReviewerReviewService = async (body: SubmitReviewerReviewRequ
   try {
     
     const response = await httpClient.post<ReviewerReviewSubmitResponse>(
-      "/api/ReviewerReview/submit",
+      "ReviewerReview/submit",
       body
     );
         
@@ -130,7 +130,7 @@ export const reviewerReviewHistoryService = async (
   ): Promise<ReviewerReviewHistoryResponse> => {
     try {
         const response = await httpClient.get<ReviewerReviewHistoryResponse>(
-            "/api/ReviewerReview/history",
+            "ReviewerReview/history",
             {
                 params: {
                     pageNumber: pageNumber,
@@ -190,7 +190,7 @@ export const reviewerReviewStatisticsService = async (): Promise<ReviewerReviewS
 
 export const reviewerReviewWalletService = async (pageNumber: number, pageSize: number): Promise<ReviewerReviewWalletResponse> => {
     try {
-        const response = await httpClient.get<ReviewerReviewWalletResponse>("reviewer/wallet", {
+        const response = await httpClient.get<ReviewerReviewWalletResponse>("ReviewerReview/wallet", {
             params: {
                 pageNumber: pageNumber,
                 pageSize: pageSize

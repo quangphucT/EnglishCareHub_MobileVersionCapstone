@@ -22,7 +22,7 @@ const MainTabs = () => {
 
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
+      screenOptions={({ route }: { route: { name: keyof MainTabsParamList } }) => ({
         headerShown: false,
         tabBarActiveTintColor: '#7C3AED',
         tabBarInactiveTintColor: '#9CA3AF',
@@ -44,7 +44,7 @@ const MainTabs = () => {
           fontWeight: '600',
           marginBottom: Platform.OS === 'android' ? 4 : 0,
         },
-        tabBarIcon: ({ focused, color, size }) => {
+        tabBarIcon: ({ focused, color, size }: { focused: boolean; color: string; size: number }) => {
           let iconName: keyof typeof Ionicons.glyphMap = 'home';
 
           if (route.name === 'Courses') {

@@ -2,11 +2,13 @@ import React from 'react';
 import { Text, View, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { useLogout } from '../../hooks/useAuth';
 import { useAuthRefresh } from '../../navigation/AppNavigator';
 import { useGetMeQuery } from '../../hooks/useGetMe';
 
 const ProfileScreen = () => {
+  const navigation = useNavigation<any>();
   const logoutMutation = useLogout();
   const { refreshAuth } = useAuthRefresh();
   const { data: getMe, isLoading } = useGetMeQuery();

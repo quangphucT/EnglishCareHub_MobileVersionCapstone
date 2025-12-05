@@ -21,7 +21,7 @@ export interface ReviewerProfileResponse {
   }
   export const reviewerProfileGetService = async (userId: string): Promise<ReviewerProfileResponse> => {
     try {
-    const response = await httpClient.get<ReviewerProfileResponse>(`/api/reviewer/profile/${userId}`);
+    const response = await httpClient.get<ReviewerProfileResponse>(`reviewer/profile/${userId}`);
     return response.data;
     } catch (error: any) {  
       const message =
@@ -33,7 +33,7 @@ export interface ReviewerProfileResponse {
   };
   export const reviewerProfilePutService = async (userId: string, data: { experience: string; fullname: string; phoneNumber: string }): Promise<ReviewerProfileResponse> => {
     try {
-    const response = await httpClient.put<ReviewerProfileResponse>(`/api/reviewer/profile/${userId}`, data);
+    const response = await httpClient.put<ReviewerProfileResponse>(`reviewer/profile/${userId}`, data);
     return response.data;
     } catch (error: any) {
       const message =

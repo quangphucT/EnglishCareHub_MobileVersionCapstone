@@ -8,7 +8,6 @@ import React, {
 import {
   ActivityIndicator,
   FlatList,
-  Linking,
   Modal,
   ScrollView,
   Text,
@@ -19,6 +18,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import Sound from "react-native-sound";
 import dayjs from "dayjs";
 import {
   useReviewReviewPending,
@@ -58,6 +58,7 @@ export default function ReviewerReviewScreen() {
     Record<string, number>
   >({});
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [isAudioLoading, setIsAudioLoading] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackPageNumber, setFeedbackPageNumber] = useState(1);
 
@@ -75,6 +76,61 @@ export default function ReviewerReviewScreen() {
   const submitReviewMutation = useReviewReviewSubmit();
   const { isConnected } = useRealtime();
   const modalScrollRef = useRef<ScrollView>(null);
+  const audioPlayerRef = useRef<Sound | null>(null);
+
+  useEffect(() => {
+    Sound.setCategory("Playback", true);
+    return () => {
+      audioPlayerRef.current?.release();
+      audioPlayerRef.current = null;
+    };
+  }, []);
+  const handlePlayAudio = useCallback(
+    async (audioUrl?: string) => {
+      if (!audioUrl) {
+        Alert.alert("Không có audio", "Bài này không có file audio đính kèm.");
+        return;
+      }
+
+      setIsAudioLoading(true);
+      try {
+        if (audioPlayerRef.current) {
+          audioPlayerRef.current.stop(() => {
+            audioPlayerRef.current?.release();
+            audioPlayerRef.current = null;
+          });
+        }
+
+        const sound = new Sound(audioUrl, undefined, (error?: Error) => {
+          if (error) {
+            console.error("❌ [AUDIO] Failed to load audio:", error);
+            Alert.alert("Không thể phát audio", "Vui lòng thử lại sau.");
+            setIsAudioLoading(false);
+            return;
+          }
+
+          audioPlayerRef.current = sound;
+          sound.setVolume(1);
+          sound.play((success: boolean) => {
+            if (!success) {
+              console.warn("⚠️ [AUDIO] Playback was interrupted");
+              Alert.alert("Không thể phát audio", "Luồng phát bị gián đoạn.");
+            }
+            sound.release();
+            if (audioPlayerRef.current === sound) {
+              audioPlayerRef.current = null;
+            }
+            setIsAudioLoading(false);
+          });
+        });
+      } catch (error) {
+        console.error("❌ [AUDIO] Failed to play audio:", error);
+        Alert.alert("Không thể phát audio", "Vui lòng thử lại sau.");
+        setIsAudioLoading(false);
+      }
+    },
+    []
+  );
 
   const pendingReviews: PendingReview[] = useMemo(() => {
     const items = pendingReviewsData?.data?.items ?? [];
@@ -484,18 +540,23 @@ export default function ReviewerReviewScreen() {
               </View>
 
               {selectedReview?.audioUrl ? (
-                <TouchableOpacity
-                  className="mt-5 flex-row items-center bg-blue-50 rounded-2xl px-4 py-3"
-                  activeOpacity={0.8}
-                  onPress={() => Linking.openURL(selectedReview.audioUrl)}
-                >
-                  <Ionicons name="play-circle" size={28} color="#1D4ED8" />
+              <TouchableOpacity
+                className="mt-5 flex-row items-center bg-blue-50 rounded-2xl px-4 py-3"
+                activeOpacity={0.8}
+                onPress={() => handlePlayAudio(selectedReview.audioUrl)}
+                disabled={isAudioLoading}
+              >
+                <Ionicons
+                  name="play-circle"
+                  size={28}
+                  color={isAudioLoading ? "#94A3B8" : "#1D4ED8"}
+                />
                   <View className="ml-3">
                     <Text className="text-sm font-semibold text-blue-900">
-                      Phát audio của học viên
+                    {isAudioLoading ? "Đang tải audio..." : "Phát audio của học viên"}
                     </Text>
                     <Text className="text-xs text-blue-700 mt-0.5">
-                      Nhấn để mở trình phát âm thanh
+                    Nhấn để nghe trực tiếp trong ứng dụng
                     </Text>
                   </View>
                 </TouchableOpacity>
