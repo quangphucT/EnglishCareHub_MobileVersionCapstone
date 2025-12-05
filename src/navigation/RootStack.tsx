@@ -161,13 +161,6 @@ export default function RootStack({ initialRouteName }: RootStackProps) {
           contentStyle: { backgroundColor: "transparent" },
         }}
       />
-      <Stack.Screen
-        name="ReviewerProfile"
-        component={ReviewerProfileScreen}
-        options={{
-          contentStyle: { backgroundColor: "transparent" },
-        }}
-      />
     </Stack.Navigator>
   );
 }
