@@ -34,8 +34,10 @@ import {
 import { Track, RoomEvent } from 'livekit-client';
 
 // Register LiveKit globals - wrapped in try-catch to prevent crashes
+let livekitInitialized = false;
 try {
   registerGlobals();
+  livekitInitialized = true;
 } catch (error) {
   console.warn('Failed to register LiveKit globals:', error);
 }
@@ -379,29 +381,39 @@ const ChatScreen = () => {
   // Initialize audio session for LiveKit
   useEffect(() => {
     const setupAudio = async () => {
-      await AudioSession.configureAudio({
-        android: {
-          preferredOutputList: ['speaker'],
-          audioTypeOptions: {
-            manageAudioFocus: true,
-            audioMode: 'normal',
-            audioFocusMode: 'gain',
-            audioStreamType: 'music',
-            audioAttributesUsageType: 'media',
-            audioAttributesContentType: 'speech',
+      try {
+        await AudioSession.configureAudio({
+          android: {
+            preferredOutputList: ['speaker'],
+            audioTypeOptions: {
+              manageAudioFocus: true,
+              audioMode: 'normal',
+              audioFocusMode: 'gain',
+              audioStreamType: 'music',
+              audioAttributesUsageType: 'media',
+              audioAttributesContentType: 'speech',
+            },
           },
-        },
-        ios: {
-          defaultOutput: 'speaker',
-        },
-      });
-      await AudioSession.startAudioSession();
+          ios: {
+            defaultOutput: 'speaker',
+          },
+        });
+        await AudioSession.startAudioSession();
+      } catch (error) {
+        console.warn('Failed to setup audio session:', error);
+      }
     };
 
-    setupAudio();
+    if (livekitInitialized) {
+      setupAudio();
+    }
 
     return () => {
-      AudioSession.stopAudioSession();
+      try {
+        AudioSession.stopAudioSession();
+      } catch (error) {
+        console.warn('Failed to stop audio session:', error);
+      }
     };
   }, []);
 
@@ -463,6 +475,16 @@ const ChatScreen = () => {
 
     if (coinBalance < selectedPackage.amountCoin) {
       Alert.alert('Lỗi', 'Số dư không đủ! Vui lòng nạp thêm coin');
+      return;
+    }
+
+    // Check if LiveKit is initialized
+    if (!livekitInitialized) {
+      Alert.alert(
+        'Lỗi khởi tạo',
+        'Không thể khởi tạo tính năng trò chuyện. Vui lòng khởi động lại ứng dụng.',
+        [{ text: 'OK' }]
+      );
       return;
     }
 

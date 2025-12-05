@@ -7,6 +7,7 @@ import { store } from "./src/store";
 import AppNavigator from "./src/navigation/AppNavigator";
 import queryClient from "./src/config/queryClient";
 import "./src/global.css";
+import { RealtimeProvider } from "./src/utils/realtimeProvider";
 
 export default function App() {
   
@@ -14,7 +15,9 @@ export default function App() {
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <Provider store={store}>
-          <AppNavigator />
+          <RealtimeProvider>
+            <AppNavigator />
+          </RealtimeProvider>
         </Provider>
       </QueryClientProvider>
     </SafeAreaProvider>

@@ -20,7 +20,7 @@ const MainTabs = () => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['bottom']}>
       <Tab.Navigator
-        screenOptions={({ route }) => ({
+        screenOptions={({ route }: { route: { name: keyof MainTabsParamList } }) => ({
           headerShown: false,
           tabBarActiveTintColor: '#7C3AED',
           tabBarInactiveTintColor: '#9CA3AF',
@@ -41,7 +41,7 @@ const MainTabs = () => {
             fontSize: 12,
             fontWeight: '600',
           },
-          tabBarIcon: ({ focused, color, size }) => {
+          tabBarIcon: ({ focused, color, size }: { focused: boolean; color: string; size: number }) => {
             let iconName: keyof typeof Ionicons.glyphMap = 'home';
 
             if (route.name === 'Courses') {

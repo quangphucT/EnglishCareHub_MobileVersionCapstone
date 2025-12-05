@@ -5,6 +5,9 @@ import { Platform, View, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ReviewerMainScreen from '../screens/Reviewer/ReviewerMainScreen';
 import ProfileScreen from '../screens/Profile/ProfileScreen';
+import ReviewerReviewScreen from '../screens/Reviewer/ReviewerReview';
+import ReviewerWalletScreen from '../screens/Reviewer/ReviewerWallet';
+import CompletedReviewsScreen from '../screens/Reviewer/CompletedReviewsScreen';
 
 // Placeholder screens - bạn có thể tạo riêng cho reviewer
 const PendingReviewsScreen = () => (
@@ -19,17 +22,17 @@ const PendingReviewsScreen = () => (
   </View>
 );
 
-const CompletedReviewsScreen = () => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB' }}>
-    <Ionicons name="checkmark-circle-outline" size={64} color="#10B981" />
-    <Text style={{ fontSize: 20, fontWeight: 'bold', marginTop: 16, color: '#1F2937' }}>
-      Đã đánh giá
-    </Text>
-    <Text style={{ fontSize: 14, color: '#6B7280', marginTop: 8 }}>
-      Lịch sử các bài đã đánh giá
-    </Text>
-  </View>
-);
+// const CompletedReviewsScreen = () => (
+//   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB' }}>
+//     <Ionicons name="checkmark-circle-outline" size={64} color="#10B981" />
+//     <Text style={{ fontSize: 20, fontWeight: 'bold', marginTop: 16, color: '#1F2937' }}>
+//       Đã đánh giá
+//     </Text>
+//     <Text style={{ fontSize: 14, color: '#6B7280', marginTop: 8 }}>
+//       Lịch sử các bài đã đánh giá
+//     </Text>
+//   </View>
+// );
 
 const StatisticsScreen = () => (
   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB' }}>
@@ -46,8 +49,8 @@ const StatisticsScreen = () => (
 export type ReviewerTabsParamList = {
   Dashboard: undefined;
   PendingReviews: undefined;
-  CompletedReviews: undefined;
-  Statistics: undefined;
+  CompletedReviewsScreen: undefined;
+  ReviewerWallet: undefined;
   ReviewerProfile: undefined;
 };
 
@@ -58,7 +61,7 @@ const ReviewerTabs = () => {
 
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
+      screenOptions={({ route }: { route: { name: keyof ReviewerTabsParamList } }) => ({
         headerShown: false,
         tabBarActiveTintColor: '#059669', // Emerald color for reviewer
         tabBarInactiveTintColor: '#9CA3AF',
@@ -80,17 +83,17 @@ const ReviewerTabs = () => {
           fontWeight: '600',
           marginBottom: Platform.OS === 'android' ? 4 : 0,
         },
-        tabBarIcon: ({ focused, color, size }) => {
+        tabBarIcon: ({ focused, color, size }: { focused: boolean; color: string; size: number }) => {
           let iconName: keyof typeof Ionicons.glyphMap = 'home';
 
           if (route.name === 'Dashboard') {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'PendingReviews') {
             iconName = focused ? 'document-text' : 'document-text-outline';
-          } else if (route.name === 'CompletedReviews') {
+          } else if (route.name === 'CompletedReviewsScreen') {
             iconName = focused ? 'checkmark-circle' : 'checkmark-circle-outline';
-          } else if (route.name === 'Statistics') {
-            iconName = focused ? 'bar-chart' : 'bar-chart-outline';
+          } else if (route.name === 'ReviewerWallet') {
+            iconName = focused ? 'wallet' : 'wallet-outline';
           } else if (route.name === 'ReviewerProfile') {
             iconName = focused ? 'person' : 'person-outline';
           }
@@ -108,23 +111,23 @@ const ReviewerTabs = () => {
       />
       <Tab.Screen 
         name="PendingReviews" 
-        component={PendingReviewsScreen}
+        component={ReviewerReviewScreen}
         options={{
           tabBarLabel: 'Chờ đánh giá',
         }}
       />
       <Tab.Screen 
-        name="CompletedReviews" 
+        name="CompletedReviewsScreen" 
         component={CompletedReviewsScreen}
         options={{
           tabBarLabel: 'Đã đánh giá',
         }}
       />
       <Tab.Screen 
-        name="Statistics" 
-        component={StatisticsScreen}
+        name="ReviewerWallet" 
+        component={ReviewerWalletScreen}
         options={{
-          tabBarLabel: 'Thống kê',
+          tabBarLabel: 'Ví Coin',
         }}
       />
       <Tab.Screen 
