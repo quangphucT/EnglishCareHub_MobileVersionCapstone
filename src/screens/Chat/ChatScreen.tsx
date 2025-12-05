@@ -12,7 +12,7 @@ import {
   Platform,
   PermissionsAndroid,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -33,8 +33,12 @@ import {
 } from '@livekit/react-native';
 import { Track, RoomEvent } from 'livekit-client';
 
-// Register LiveKit globals
-registerGlobals();
+// Register LiveKit globals - wrapped in try-catch to prevent crashes
+try {
+  registerGlobals();
+} catch (error) {
+  console.warn('Failed to register LiveKit globals:', error);
+}
 
 // Types
 interface TranscriptionMessage {
@@ -303,6 +307,7 @@ const CONVERSATION_MESSAGES_KEY = 'ai_conversation_messages';
 const ChatScreen = () => {
   const navigation = useNavigation<any>();
   const queryClient = useQueryClient();
+  const insets = useSafeAreaInsets();
   const { data: userData } = useGetMeQuery();
   const { data: packagesData, isLoading: isLoadingPackages, error: packagesError } = useGetAIPackages();
   const chargeCoinMutation = useChargeCoinForConversation();
@@ -554,7 +559,7 @@ const ChatScreen = () => {
 
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 20 }}
+          contentContainerStyle={{ paddingBottom: 100 }}
         >
           {/* Hero Section */}
           <View className="bg-purple-100 rounded-2xl p-6 items-center mb-6">

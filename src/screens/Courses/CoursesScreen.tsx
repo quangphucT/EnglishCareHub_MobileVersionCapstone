@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Dimensions } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Dimensions, Platform } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useGetMeQuery } from '../../hooks/useGetMe';
 import { 
@@ -18,6 +18,7 @@ const { width } = Dimensions.get('window');
 
 const CoursesScreen = () => {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   
   // Get user data
   const { data: userData } = useGetMeQuery();
@@ -31,8 +32,8 @@ const CoursesScreen = () => {
   const [enrollingCourseId, setEnrollingCourseId] = useState<string | null>(null);
   
   // Hooks
-  const { data: coursesBasedOnLevel, isLoading } = useGetCoursesBasedOnLevelLearner(viewingLevel);
-  const { data: levelAndLearnerCourseIdData } = useGetLevelAndLearnerCourseIdAfterEnrolling();
+  const { data: coursesBasedOnLevel, isLoading, refetch: refetchCourses } = useGetCoursesBasedOnLevelLearner(viewingLevel);
+  const { data: levelAndLearnerCourseIdData, refetch: refetchLevelData } = useGetLevelAndLearnerCourseIdAfterEnrolling();
   const { mutate: enrollFirstCourse, isPending: isEnrollingFirst } = useEnrollFirstCourse();
   const { mutate: upLevel, isPending: isUpLevelLoading } = upLevelForLearner();
   const { mutate: enrollingPaidCourse, isPending: isEnrollingPaid } = useEnrollCourseNotFree();
@@ -44,6 +45,14 @@ const CoursesScreen = () => {
   useEffect(() => {
     setViewingLevel(userLevel);
   }, [userLevel]);
+
+  // Refetch data khi màn hình được focus (khi quay lại từ LearningPath)
+  useFocusEffect(
+    useCallback(() => {
+      refetchCourses();
+      refetchLevelData();
+    }, [viewingLevel])
+  );
 
   const courses = coursesBasedOnLevel?.data || [];
   const levels = ["A1", "A2", "B1", "B2", "C1", "C2"];

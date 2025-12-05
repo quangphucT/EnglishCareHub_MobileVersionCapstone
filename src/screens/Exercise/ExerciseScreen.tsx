@@ -481,12 +481,15 @@ const ExerciseScreen = () => {
         <Text className="text-gray-600">Không tìm thấy câu hỏi</Text>
       </View>
     );
+
+
+    
   }
 
   return (
     <SafeAreaView
       className="flex-1 bg-gradient-to-br from-gray-50 to-blue-50"
-      edges={["top"]}
+      edges={["top", "bottom"]}
     >
       {/* Header */}
       <View className="bg-white border-b border-gray-200 shadow-sm">

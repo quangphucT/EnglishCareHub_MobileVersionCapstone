@@ -14,9 +14,11 @@ import { Ionicons } from '@expo/vector-icons';
 import useGoogleAuth from "../../hooks/useGoogleAuth";
 
 const googleIcon: ImageSourcePropType = require("../../assets/images/googleIcon.png");
-const robotLogoIcon: ImageSourcePropType = require("../../assets/images/robotIcon.png");
+const robotLogoIcon: ImageSourcePropType = require("../../assets/images/robotIcon.webp");
 
 const { width } = Dimensions.get('window');
+
+
 
 type RoleTab = 'learner' | 'reviewer';
 
