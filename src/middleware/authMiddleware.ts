@@ -3,6 +3,7 @@ import * as SecureStore from "expo-secure-store";
 import { LoginRequest, LoginResponse, User } from "../types/auth";
 import { decodeJWT } from "../utils/jwtDecoder";
 import { authService } from "../api/auth.service";
+import { queryClient } from "../config/queryClient";
 
 export interface AuthState {
   isAuthenticated: boolean;
@@ -144,6 +145,9 @@ export class AuthMiddleware {
     googleLoginResponse: LoginResponse
   ): Promise<void> {
     try {
+      // Clear all cached data from previous user
+      queryClient.clear();
+      
       await Promise.all([
         SecureStore.setItemAsync(
           "access_token",
@@ -169,6 +173,9 @@ export class AuthMiddleware {
     credentials: LoginRequest
   ): Promise<void> {
     try {
+      // Clear all cached data from previous user
+      queryClient.clear();
+      
       // Chỉ lưu tokens vào SecureStore
       await Promise.all([
         SecureStore.setItemAsync("access_token", loginResponse.accessToken),
@@ -185,6 +192,9 @@ export class AuthMiddleware {
    */
   async handleLogout(): Promise<void> {
     try {
+      // Clear all React Query cache
+      queryClient.clear();
+      
       await Promise.all([
         SecureStore.deleteItemAsync("access_token"),
         SecureStore.deleteItemAsync("refresh_token"),

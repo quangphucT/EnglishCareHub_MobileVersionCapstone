@@ -14,7 +14,6 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { Audio } from "expo-av";
 import { Video, ResizeMode } from "expo-av";
 import { File, Paths } from "expo-file-system";
-import * as Speech from "expo-speech";
 import { useLearnerStore } from "../../store/learnerStore";
 import { useLearningPathCourseFull } from "../../hooks/learner/learningPath/learningPathHooks";
 import {
@@ -27,6 +26,45 @@ interface RouteParams {
   chapterId?: string;
   refetchLearningPath?: () => void;
 }
+
+// Component để hiển thị text có màu xanh/đỏ dựa trên kết quả phát âm
+interface ColoredTextProps {
+  text: string;
+  letterCorrectMask: string; // VD: "111 1110 10" - mỗi từ cách nhau bởi space, 1 = đúng, 0 = sai
+}
+
+const ColoredText: React.FC<ColoredTextProps> = ({ text, letterCorrectMask }) => {
+  if (!text || !letterCorrectMask) {
+    return <Text className="text-2xl font-semibold text-gray-900">{text}</Text>;
+  }
+
+  const words = text.split(" ");
+  const masks = letterCorrectMask.split(" ");
+
+  return (
+    <View className="flex-row flex-wrap justify-center">
+      {words.map((word, wordIdx) => {
+        const mask = masks[wordIdx] || "";
+        return (
+          <View key={wordIdx} className="flex-row mr-2 mb-1">
+            {word.split("").map((letter, letterIdx) => {
+              const isCorrect = mask[letterIdx] === "1";
+              return (
+                <Text
+                  key={letterIdx}
+                  className="text-2xl font-semibold"
+                  style={{ color: isCorrect ? "#10B981" : "#EF4444" }}
+                >
+                  {letter}
+                </Text>
+              );
+            })}
+          </View>
+        );
+      })}
+    </View>
+  );
+};
 
 const ExerciseScreen = () => {
   const navigation = useNavigation();
@@ -48,7 +86,6 @@ const ExerciseScreen = () => {
     },
     Boolean(currentCourse)
   );
-
   // Refetch data when screen mounts (for "Xem lại" or "Tiếp tục học")
   useEffect(() => {
     refetch();
@@ -67,9 +104,13 @@ const ExerciseScreen = () => {
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [pronunciationScores, setPronunciationScores] = useState<number[]>([]);
+  // State để theo dõi câu nào đã ghi âm trong session hiện tại (chỉ hiện kết quả khi ghi âm mới)
+  const [recordedInSession, setRecordedInSession] = useState<boolean[]>([]);
   const [ipaTranscripts, setIpaTranscripts] = useState<string[]>([]);
   const [realIpaTranscripts, setRealIpaTranscripts] = useState<string[]>([]);
   const [coloredContents, setColoredContents] = useState<string[]>([]);
+  // State để lưu dữ liệu phân tích từng ký tự (để render màu xanh/đỏ)
+  const [letterCorrectData, setLetterCorrectData] = useState<string[]>([]);
   const [AIExplainTheWrongForVoiceAI, setAIExplainTheWrongForVoiceAI] =
     useState<string[]>([]);
   const [learnerAnswerIds, setLearnerAnswerIds] = useState<string[]>([]);
@@ -116,18 +157,24 @@ const ExerciseScreen = () => {
         (q) => q.status?.toLowerCase() === "completed"
       );
       setRecorded(initialRecorded);
-      
+
       // Initialize scores from existing question scores
       const initialScores = questions.map((q) => q.score || 0);
       setPronunciationScores(initialScores);
-      
+
       setIpaTranscripts(new Array(questions.length).fill(""));
       setRealIpaTranscripts(new Array(questions.length).fill(""));
       setColoredContents(new Array(questions.length).fill(""));
+      setLetterCorrectData(new Array(questions.length).fill(""));
       setAIExplainTheWrongForVoiceAI(new Array(questions.length).fill(""));
       setLearnerAnswerIds(new Array(questions.length).fill(""));
+      // Mặc định không có câu nào được ghi âm trong session này
+      setRecordedInSession(new Array(questions.length).fill(false));
     }
   }, [questions, recorded.length]);
+
+  // Kiểm tra exercise đang ở trạng thái nào (NotStarted = bắt đầu học, khác = tiếp tục học)
+  const isNewExercise = currentExerciseData?.status === "NotStarted";
 
   const convertBlobToBase64 = useCallback(
     async (blob: Blob): Promise<string> => {
@@ -161,10 +208,7 @@ const ExerciseScreen = () => {
       currentExerciseData?.learningPathExerciseId &&
       currentExerciseData.status === "NotStarted"
     ) {
-      console.log(
-        "🎯 Starting exercise:",
-        currentExerciseData.learningPathExerciseId
-      );
+    
       startExercise({
         learningPathExerciseId: currentExerciseData.learningPathExerciseId,
         status: "InProgress",
@@ -268,9 +312,19 @@ const ExerciseScreen = () => {
           newColored[currentQuestionIndex] = coloredWords.trim();
           setColoredContents(newColored);
 
+          // Lưu dữ liệu is_letter_correct_all_words để render màu
+          const newLetterData = [...letterCorrectData];
+          newLetterData[currentQuestionIndex] = data.is_letter_correct_all_words || "";
+          setLetterCorrectData(newLetterData);
+
           const newRecorded = [...recorded];
           newRecorded[currentQuestionIndex] = true;
           setRecorded(newRecorded);
+
+          // Đánh dấu đã ghi âm trong session hiện tại
+          const newRecordedInSession = [...recordedInSession];
+          newRecordedInSession[currentQuestionIndex] = true;
+          setRecordedInSession(newRecordedInSession);
 
           // Store AI explanation
           const newAIExplain = [...AIExplainTheWrongForVoiceAI];
@@ -293,7 +347,7 @@ const ExerciseScreen = () => {
                   response.data.learnerAnswerId;
                 setLearnerAnswerIds(newAnswerIds);
                 setIsProcessingAudio(false);
-             
+
               },
               onError: (error) => {
                 setIsProcessingAudio(false);
@@ -405,7 +459,7 @@ const ExerciseScreen = () => {
       if (data && data.wavBase64) {
         // Tạo file trong cache directory
         const audioFile = new File(Paths.cache, `tts_audio_${Date.now()}.mp3`);
-        
+
         // Decode base64 và ghi vào file
         const binaryString = atob(data.wavBase64);
         const bytes = new Uint8Array(binaryString.length);
@@ -430,7 +484,7 @@ const ExerciseScreen = () => {
             sound.unloadAsync();
             soundRef.current = null;
             // Xóa file tạm
-            try { audioFile.delete(); } catch (e) {}
+            try { audioFile.delete(); } catch (e) { }
           }
         });
       } else {
@@ -481,12 +535,15 @@ const ExerciseScreen = () => {
         <Text className="text-gray-600">Không tìm thấy câu hỏi</Text>
       </View>
     );
+
+
+
   }
 
   return (
     <SafeAreaView
       className="flex-1 bg-gradient-to-br from-gray-50 to-blue-50"
-      edges={["top"]}
+      edges={["top", "bottom"]}
     >
       {/* Header */}
       <View className="bg-white border-b border-gray-200 shadow-sm">
@@ -503,9 +560,9 @@ const ExerciseScreen = () => {
                 <Text className="text-xs text-gray-500" numberOfLines={2}>
                   {currentExerciseData?.exerciseDescription || ""}
                 </Text>
-              </View>  
+              </View>
             </View>
-            
+
           </View>
         </View>
       </View>
@@ -524,20 +581,19 @@ const ExerciseScreen = () => {
             {questions.map((_, index) => (
               <View
                 key={index}
-                className={`h-1 flex-1 mx-0.5 rounded-full ${
-                  index < currentQuestionIndex
+                className={`h-1 flex-1 mx-0.5 rounded-full ${index < currentQuestionIndex
                     ? "bg-green-500"
                     : index === currentQuestionIndex
                       ? "bg-blue-500"
                       : "bg-gray-200"
-                }`}
+                  }`}
               />
             ))}
           </View>
         </View>
       </View>
 
-      <ScrollView className="flex-1 px-6">
+      <ScrollView className="flex-1 px-6" contentContainerStyle={{ paddingBottom: 20 }}>
         {/* Question type badge */}
         {/* <View className="items-center my-6">
           <View className="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full">
@@ -602,29 +658,31 @@ const ExerciseScreen = () => {
         )}
         {/* Question text */}
         <View className="items-center mb-6">
-          <Text className="text-3xl font-bold text-gray-900 text-center leading-relaxed">
+          {/* Text câu hỏi */}
+          <Text className="text-3xl font-bold text-gray-900 text-center leading-relaxed px-2">
             {currentQuestion.text}
           </Text>
 
-          {/* Nút nghe phát âm */}
-          <TouchableOpacity
-            onPress={handleSpeakQuestion}
+          {/* Nút nghe phát âm - tách riêng dưới text */}
+          <TouchableOpacity 
+            onPress={handleSpeakQuestion} 
             disabled={isSpeaking}
-            className="mt-4 bg-indigo-600 rounded-xl px-6 py-3 flex-row items-center gap-2"
-            style={{ opacity: isSpeaking ? 0.5 : 1 }}
+            className="mt-4 flex-row items-center bg-indigo-100 px-4 py-2 rounded-full"
+            style={{ opacity: isSpeaking ? 0.6 : 1 }}
           >
             <Ionicons
               name={isSpeaking ? "volume-high" : "volume-high-outline"}
-              size={20}
-              color="white"
+              size={22}
+              color="#4f46e5"
             />
-            <Text className="text-white font-semibold">
+            <Text className="text-indigo-700 font-semibold ml-2 text-sm">
               {isSpeaking ? "Đang phát..." : "Nghe phát âm"}
             </Text>
           </TouchableOpacity>
         </View>
-        {/* Question stats */}
-        {(currentQuestion.score >= 0 || currentQuestion.numberOfRetake > 0) && (
+
+        {/* Question stats - Chỉ hiện khi tiếp tục học (không phải bắt đầu học mới) */}
+        {!isNewExercise && (currentQuestion.score > 0 || currentQuestion.numberOfRetake > 0) && (
           <View className="flex-row justify-center gap-4 mb-6">
             {currentQuestion.score >= 0 && (
               <View className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
@@ -659,41 +717,8 @@ const ExerciseScreen = () => {
           </View>
         )}
 
-        {/* Recording button */}
-        <View className="items-center my-8">
-          <TouchableOpacity
-            onPress={handleRecord}
-            disabled={isProcessingAudio}
-            className={`w-32 h-32 rounded-full items-center justify-center shadow-lg ${
-              isRecording
-                ? "bg-red-500"
-                : recorded[currentQuestionIndex]
-                  ? "bg-green-500"
-                  : "bg-blue-500"
-            }`}
-            style={{ opacity: isProcessingAudio ? 0.5 : 1 }}
-          >
-            {isProcessingAudio ? (
-              <ActivityIndicator size="large" color="white" />
-            ) : isRecording ? (
-              <View className="w-8 h-8 bg-white rounded" />
-            ) : (
-              <Ionicons name="mic" size={48} color="white" />
-            )}
-          </TouchableOpacity>
-          <Text className="text-lg font-bold text-gray-900 mt-4">
-            {isProcessingAudio
-              ? "Đang xử lý..."
-              : isRecording
-                ? "Click để dừng"
-                : recorded[currentQuestionIndex]
-                  ? "Ghi lại"
-                  : "Bắt đầu ghi âm"}
-          </Text>
-        </View>
-
-        {/* Recording result */}
-        {recorded[currentQuestionIndex] && (
+        {/* Recording result - Chỉ hiện khi ghi âm mới trong session hiện tại */}
+        {recordedInSession[currentQuestionIndex] && (
           <View className="bg-green-50 border border-green-200 rounded-2xl p-6 mb-4">
             <View className="flex-row items-center justify-between mb-4">
               <View className="flex-row items-center gap-3">
@@ -713,15 +738,15 @@ const ExerciseScreen = () => {
             </View>
 
             {/* Colored text result */}
-            {coloredContents[currentQuestionIndex] && (
+            {letterCorrectData[currentQuestionIndex] && (
               <View className="mt-4 p-4 bg-white rounded-lg border border-green-200">
-                <Text className="text-xs text-gray-600 mb-2 font-medium">
+                <Text className="text-xs text-gray-600 mb-3 font-medium">
                   Phân tích chi tiết:
                 </Text>
-                <Text className="text-2xl font-semibold leading-relaxed">
-                  {/* Note: dangerouslySetInnerHTML doesn't work in RN, need custom component */}
-                  {currentQuestion.text}
-                </Text>
+                <ColoredText 
+                  text={currentQuestion.text} 
+                  letterCorrectMask={letterCorrectData[currentQuestionIndex]} 
+                />
               </View>
             )}
 
@@ -749,16 +774,16 @@ const ExerciseScreen = () => {
             <TouchableOpacity
               onPress={handlePlayRecording}
               disabled={isPlayingAudio}
-              className="bg-indigo-600 rounded-xl py-3 items-center mt-4"
+              className="bg-purple-50 border border-purple-200 rounded-[50px] py-3 items-center mt-4"
               style={{ opacity: isPlayingAudio ? 0.5 : 1 }}
             >
               <View className="flex-row items-center gap-2">
                 {isPlayingAudio ? (
-                  <ActivityIndicator size="small" color="white" />
+                  <ActivityIndicator size="small" color="#7C3AED" />
                 ) : (
-                  <Ionicons name="play" size={20} color="white" />
+                  <Ionicons name="play" size={20} color="#7C3AED" />
                 )}
-                <Text className="text-white font-semibold">
+                <Text className="text-purple-700 font-semibold">
                   {isPlayingAudio ? "Đang phát..." : "Nghe lại bản ghi"}
                 </Text>
               </View>
@@ -767,17 +792,28 @@ const ExerciseScreen = () => {
         )}
       </ScrollView>
 
-      {/* Footer Navigation */}
-      <View className="bg-white border-t border-gray-200 px-6 py-4">
+      {/* Footer Navigation with Recording Button */}
+      <View className="bg-white border-t border-gray-200 px-4 py-3">
+        {/* Recording status text */}
+        <Text className="text-center text-sm font-medium text-gray-600 mb-2">
+          {isProcessingAudio
+            ? "Đang xử lý..."
+            : isRecording
+              ? "Đang ghi âm - Nhấn để dừng"
+              : recorded[currentQuestionIndex]
+                ? "Nhấn để ghi lại"
+                : "Nhấn micro để ghi âm"}
+        </Text>
+        
         <View className="flex-row items-center justify-between">
+          {/* Previous Button */}
           <TouchableOpacity
             onPress={handlePreviousQuestion}
             disabled={currentQuestionIndex === 0}
-            className={`flex-row items-center px-6 py-3 rounded-xl border ${
-              currentQuestionIndex === 0
+            className={`flex-row items-center px-4 py-3 rounded-xl border ${currentQuestionIndex === 0
                 ? "border-gray-200 bg-gray-100"
                 : "border-blue-500 bg-white"
-            }`}
+              }`}
           >
             <Ionicons
               name="arrow-back"
@@ -785,37 +821,58 @@ const ExerciseScreen = () => {
               color={currentQuestionIndex === 0 ? "#9CA3AF" : "#3B82F6"}
             />
             <Text
-              className={`ml-2 font-semibold ${
-                currentQuestionIndex === 0 ? "text-gray-400" : "text-blue-600"
-              }`}
+              className={`ml-1 font-semibold text-sm ${currentQuestionIndex === 0 ? "text-gray-400" : "text-blue-600"
+                }`}
             >
-              Câu trước
+              Trước
             </Text>
           </TouchableOpacity>
 
+          {/* Recording Button - Center */}
+          <TouchableOpacity
+            onPress={handleRecord}
+            disabled={isProcessingAudio}
+            className={`w-20 h-20 rounded-full items-center justify-center shadow-lg ${isRecording
+                ? "bg-red-500"
+                : recorded[currentQuestionIndex]
+                  ? "bg-green-500"
+                  : "bg-blue-500"
+              }`}
+            style={{ opacity: isProcessingAudio ? 0.5 : 1 }}
+          >
+            {isProcessingAudio ? (
+              <ActivityIndicator size="large" color="white" />
+            ) : isRecording ? (
+              <View className="w-6 h-6 bg-white rounded" />
+            ) : (
+              <Ionicons name="mic" size={36} color="white" />
+            )}
+          </TouchableOpacity>
+
+          {/* Next Button */}
           {currentQuestionIndex === totalQuestions - 1 ? (
             <TouchableOpacity
               onPress={() => navigation.goBack()}
-              className="flex-row items-center px-10 py-3 rounded-xl bg-green-600"
+              className="flex-row items-center px-4 py-3 rounded-xl bg-green-600"
             >
-              <Ionicons name="home" size={20} color="white" />
-              <Text className="ml-2 text-white font-semibold text-base">
-                Quay về
+              <Ionicons name="home" size={18} color="white" />
+              <Text className="ml-1 text-white font-semibold text-sm">
+                Xong
               </Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
               onPress={handleNextQuestion}
-              className="flex-row items-center px-10 py-3 rounded-xl bg-blue-600"
+              className="flex-row items-center px-4 py-3 rounded-xl bg-blue-600"
             >
-              <Text className="font-semibold text-base text-white">
-                Câu tiếp theo
+              <Text className="font-semibold text-sm text-white">
+                Tiếp
               </Text>
               <Ionicons
                 name="arrow-forward"
                 size={16}
                 color="white"
-                style={{ marginLeft: 8 }}
+                style={{ marginLeft: 4 }}
               />
             </TouchableOpacity>
           )}

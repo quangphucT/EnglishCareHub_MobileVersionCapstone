@@ -1,6 +1,6 @@
 import React from 'react';
-import { Text, View, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Text, View, TouchableOpacity, ScrollView, ActivityIndicator, Platform } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useLogout } from '../../hooks/useAuth';
@@ -12,6 +12,7 @@ const ProfileScreen = () => {
   const logoutMutation = useLogout();
   const { refreshAuth } = useAuthRefresh();
   const { data: getMe, isLoading } = useGetMeQuery();
+  const insets = useSafeAreaInsets();
 
   const handleLogout = async () => {
     logoutMutation.mutate(undefined, {
@@ -28,7 +29,7 @@ const ProfileScreen = () => {
           Hồ sơ
         </Text>
         
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
           {/* User Info Card */}
           <View className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl p-6 mb-6">
             <View className="items-center">

@@ -8,8 +8,9 @@ import {
   Image,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as MediaLibrary from 'expo-media-library';
 import { captureRef } from 'react-native-view-shot';
@@ -19,6 +20,7 @@ import { getOrderCodeStatusService } from '../../api/coin.service';
 
 const WalletScreen = () => {
   const qrRef = useRef<View>(null);
+  const insets = useSafeAreaInsets();
   const { data: userData, refetch: refetchUser } = useGetMeQuery();
 
   // get coin service packages
@@ -168,7 +170,7 @@ const WalletScreen = () => {
           💰 Ví Coin
         </Text>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
           {/* Balance Card */}
           <View className="bg-yellow-500 rounded-2xl p-6 mb-4">
             <View className="flex-row items-center justify-between">

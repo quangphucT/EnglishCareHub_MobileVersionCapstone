@@ -12,7 +12,7 @@ import {
   Platform,
   PermissionsAndroid,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -33,8 +33,14 @@ import {
 } from '@livekit/react-native';
 import { Track, RoomEvent } from 'livekit-client';
 
-// Register LiveKit globals
-registerGlobals();
+// Register LiveKit globals - wrapped in try-catch to prevent crashes
+let livekitInitialized = false;
+try {
+  registerGlobals();
+  livekitInitialized = true;
+} catch (error) {
+  console.warn('Failed to register LiveKit globals:', error);
+}
 
 // Types
 interface TranscriptionMessage {
@@ -303,6 +309,7 @@ const CONVERSATION_MESSAGES_KEY = 'ai_conversation_messages';
 const ChatScreen = () => {
   const navigation = useNavigation<any>();
   const queryClient = useQueryClient();
+  const insets = useSafeAreaInsets();
   const { data: userData } = useGetMeQuery();
   const { data: packagesData, isLoading: isLoadingPackages, error: packagesError } = useGetAIPackages();
   const chargeCoinMutation = useChargeCoinForConversation();
@@ -374,29 +381,39 @@ const ChatScreen = () => {
   // Initialize audio session for LiveKit
   useEffect(() => {
     const setupAudio = async () => {
-      await AudioSession.configureAudio({
-        android: {
-          preferredOutputList: ['speaker'],
-          audioTypeOptions: {
-            manageAudioFocus: true,
-            audioMode: 'normal',
-            audioFocusMode: 'gain',
-            audioStreamType: 'music',
-            audioAttributesUsageType: 'media',
-            audioAttributesContentType: 'speech',
+      try {
+        await AudioSession.configureAudio({
+          android: {
+            preferredOutputList: ['speaker'],
+            audioTypeOptions: {
+              manageAudioFocus: true,
+              audioMode: 'normal',
+              audioFocusMode: 'gain',
+              audioStreamType: 'music',
+              audioAttributesUsageType: 'media',
+              audioAttributesContentType: 'speech',
+            },
           },
-        },
-        ios: {
-          defaultOutput: 'speaker',
-        },
-      });
-      await AudioSession.startAudioSession();
+          ios: {
+            defaultOutput: 'speaker',
+          },
+        });
+        await AudioSession.startAudioSession();
+      } catch (error) {
+        console.warn('Failed to setup audio session:', error);
+      }
     };
 
-    setupAudio();
+    if (livekitInitialized) {
+      setupAudio();
+    }
 
     return () => {
-      AudioSession.stopAudioSession();
+      try {
+        AudioSession.stopAudioSession();
+      } catch (error) {
+        console.warn('Failed to stop audio session:', error);
+      }
     };
   }, []);
 
@@ -458,6 +475,16 @@ const ChatScreen = () => {
 
     if (coinBalance < selectedPackage.amountCoin) {
       Alert.alert('Lỗi', 'Số dư không đủ! Vui lòng nạp thêm coin');
+      return;
+    }
+
+    // Check if LiveKit is initialized
+    if (!livekitInitialized) {
+      Alert.alert(
+        'Lỗi khởi tạo',
+        'Không thể khởi tạo tính năng trò chuyện. Vui lòng khởi động lại ứng dụng.',
+        [{ text: 'OK' }]
+      );
       return;
     }
 
@@ -554,7 +581,7 @@ const ChatScreen = () => {
 
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 20 }}
+          contentContainerStyle={{ paddingBottom: 100 }}
         >
           {/* Hero Section */}
           <View className="bg-purple-100 rounded-2xl p-6 items-center mb-6">
