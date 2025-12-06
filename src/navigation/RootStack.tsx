@@ -19,6 +19,8 @@ import ReviewerReviewScreen from "../screens/Reviewer/ReviewerReview";
 import ReviewerWalletScreen from "../screens/Reviewer/ReviewerWallet";
 import CompletedReviewsScreen from "../screens/Reviewer/CompletedReviewsScreen";
 import ReviewerProfileScreen from "../screens/Reviewer/ReviewerProfile";
+import AudioReviewScreen from "../screens/Profile/AudioReviewScreen";
+import MyRecordingsScreen from "../screens/Profile/MyRecordingsScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -157,6 +159,20 @@ export default function RootStack({ initialRouteName }: RootStackProps) {
       <Stack.Screen
         name="CompletedReviews"
         component={CompletedReviewsScreen}
+        options={{
+          contentStyle: { backgroundColor: "transparent" },
+        }}
+      />
+      <Stack.Screen
+        name="AudioReview"
+        component={AudioReviewScreen}
+        options={{
+          contentStyle: { backgroundColor: "transparent" },
+        }}
+      />
+      <Stack.Screen
+        name="MyRecordings"
+        component={MyRecordingsScreen}
         options={{
           contentStyle: { backgroundColor: "transparent" },
         }}
