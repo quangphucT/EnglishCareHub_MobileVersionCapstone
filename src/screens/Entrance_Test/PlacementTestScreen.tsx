@@ -468,8 +468,6 @@ export default function PlacementTestScreen() {
           <Text className="text-black font-semibold">Quay lại</Text>
         </TouchableOpacity>
       </View>  */}
-
-    
         <View
           className="px-6 pt-12 pb-6"
           style={{
