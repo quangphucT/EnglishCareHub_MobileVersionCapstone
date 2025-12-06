@@ -30,6 +30,7 @@ import {
   useTracks,
   AudioSession,
   registerGlobals,
+  useRoomContext,
 } from '@livekit/react-native';
 import { Track, RoomEvent } from 'livekit-client';
 
@@ -141,9 +142,11 @@ const VoiceAssistantContent: React.FC<{
 }> = ({ timeRemaining, onDisconnect, onMessagesUpdate, selectedPackage }) => {
   const { state, audioTrack, agentTranscriptions } = useVoiceAssistant();
   const { localParticipant } = useLocalParticipant();
+  const room = useRoomContext();
   const [messages, setMessages] = useState<TranscriptionMessage[]>([]);
   const scrollViewRef = useRef<ScrollView>(null);
   const messagesRef = useRef<TranscriptionMessage[]>([]);
+  const processedTranscriptionsRef = useRef<Set<string>>(new Set());
 
   // Keep messagesRef in sync and notify parent
   useEffect(() => {
@@ -151,28 +154,69 @@ const VoiceAssistantContent: React.FC<{
     onMessagesUpdate(messages);
   }, [messages, onMessagesUpdate]);
 
-  // Listen to agent transcriptions
+  // Listen to agent transcriptions (AI speaking)
   useEffect(() => {
     if (agentTranscriptions && agentTranscriptions.length > 0) {
       const lastTranscription = agentTranscriptions[agentTranscriptions.length - 1];
       if (lastTranscription && lastTranscription.text) {
-        const newMsg: TranscriptionMessage = {
-          id: `agent-${Date.now()}`,
-          text: lastTranscription.text,
-          isUser: false,
-          timestamp: new Date(),
-        };
-        setMessages((prev) => {
-          // Avoid duplicates
-          const exists = prev.find((m) => m.text === newMsg.text && !m.isUser);
-          if (!exists) {
-            return [...prev, newMsg];
-          }
-          return prev;
-        });
+        const transcriptKey = `agent-${lastTranscription.text}`;
+        
+        // Check if already processed
+        if (!processedTranscriptionsRef.current.has(transcriptKey)) {
+          processedTranscriptionsRef.current.add(transcriptKey);
+          
+          const newMsg: TranscriptionMessage = {
+            id: `agent-${Date.now()}`,
+            text: lastTranscription.text,
+            isUser: false,
+            timestamp: new Date(),
+          };
+          
+          setMessages((prev) => [...prev, newMsg]);
+        }
       }
     }
   }, [agentTranscriptions]);
+
+  // Listen to room transcriptions for user speech
+  useEffect(() => {
+    if (!room) return;
+
+    const handleTranscriptionReceived = (
+      transcriptions: any[],
+      participant: any
+    ) => {
+      // Only process transcriptions from local participant (user)
+      if (participant?.identity === localParticipant?.identity) {
+        transcriptions.forEach((transcription) => {
+          // Only add final transcriptions
+          if (transcription.final && transcription.text) {
+            const transcriptKey = `user-${transcription.text}`;
+            
+            if (!processedTranscriptionsRef.current.has(transcriptKey)) {
+              processedTranscriptionsRef.current.add(transcriptKey);
+              
+              const newMsg: TranscriptionMessage = {
+                id: `user-${Date.now()}-${Math.random()}`,
+                text: transcription.text,
+                isUser: true,
+                timestamp: new Date(),
+              };
+              
+              setMessages((prev) => [...prev, newMsg]);
+            }
+          }
+        });
+      }
+    };
+
+    // Subscribe to transcription events
+    room.on(RoomEvent.TranscriptionReceived, handleTranscriptionReceived);
+
+    return () => {
+      room.off(RoomEvent.TranscriptionReceived, handleTranscriptionReceived);
+    };
+  }, [room, localParticipant]);
 
   // Auto scroll to bottom
   useEffect(() => {
