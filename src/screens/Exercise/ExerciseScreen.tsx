@@ -270,7 +270,7 @@ const ExerciseScreen = () => {
           }
 
           const data = await res.json();
-
+         console.log("Data:", data)
           const acc = parseFloat(data.pronunciation_accuracy);
 
           // Store results
@@ -326,9 +326,9 @@ const ExerciseScreen = () => {
           newRecordedInSession[currentQuestionIndex] = true;
           setRecordedInSession(newRecordedInSession);
 
-          // Store AI explanation
+          // Store AI explanation - Sử dụng đúng field AIFeedback từ API
           const newAIExplain = [...AIExplainTheWrongForVoiceAI];
-          newAIExplain[currentQuestionIndex] = data.explain_the_wrong || "";
+          newAIExplain[currentQuestionIndex] = data.AIFeedback || "";
           setAIExplainTheWrongForVoiceAI(newAIExplain);
 
           // Submit answer to server
@@ -337,8 +337,8 @@ const ExerciseScreen = () => {
               learningPathQuestionId: currentQuestion.learningPathQuestionId,
               audioRecordingUrl: uri,
               transcribedText: data.ipa_transcript || "",
-              scoreForVoice: acc,
-              explainTheWrongForVoiceAI: data.explain_the_wrong || "",
+               scoreForVoice: Math.round(acc) || 0,
+              explainTheWrongForVoiceAI: data.AIFeedback || "",
             },
             {
               onSuccess: (response) => {
@@ -356,12 +356,10 @@ const ExerciseScreen = () => {
             }
           );
         } catch (error) {
-          console.error("Error processing audio:", error);
           setIsProcessingAudio(false);
           Alert.alert("Lỗi", "Không thể phân tích âm thanh");
         }
       } catch (error) {
-        console.error("Failed to stop recording:", error);
         setIsProcessingAudio(false);
         Alert.alert("Lỗi", "Không thể dừng ghi âm");
       }
@@ -440,7 +438,6 @@ const ExerciseScreen = () => {
       });
 
       const responseData = await response.json();
-      console.log('TTS API response received');
 
       // Parse response
       let data;
