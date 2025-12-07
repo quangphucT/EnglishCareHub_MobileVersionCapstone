@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   ScrollView,
   Text,
   TextInput,
@@ -12,12 +13,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
+import * as ImagePicker from "expo-image-picker";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { useAuthRefresh } from "../../navigation/AppNavigator";
 import { useReviewerCertificationUpload } from "../../hooks/reviewer/useReviewerCertificationUpload";
 import { useReviewerProfilePut } from "../../hooks/reviewer/useReviewerProfile";
 import { useGetMeQuery } from "../../hooks/useGetMe";
+import { useLogout } from "../../hooks/useAuth";
 
 type CertificateItem = {
   id: string;
@@ -48,6 +51,7 @@ const UploadingCertificate = ({ navigation }: UploadingCertificateProps) => {
   const queryClient = useQueryClient();
   const { refreshAuth } = useAuthRefresh();
   const { data: meData } = useGetMeQuery();
+  const logoutMutation = useLogout();
   const {
     mutateAsync: uploadCertificate,
     isPending: isUploadingCertificate,
@@ -126,6 +130,48 @@ const UploadingCertificate = ({ navigation }: UploadingCertificateProps) => {
       setCertificates((prev) => [...prev, ...mapped]);
     } catch (error) {
       Alert.alert("Lỗi", "Không thể mở trình chọn tệp. Vui lòng thử lại.");
+    }
+  };
+
+  const handlePickImages = async () => {
+    try {
+      // Request permission
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Cần quyền truy cập",
+          "Ứng dụng cần quyền truy cập thư viện ảnh để chọn ảnh."
+        );
+        return;
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true,
+        quality: 0.8,
+        allowsEditing: false,
+      });
+
+      if (result.canceled) {
+        return;
+      }
+
+      if (result.assets && result.assets.length > 0) {
+        const mapped = result.assets.map((asset) => ({
+          id: generateId(),
+          uri: asset.uri,
+          originalName: asset.fileName || `image_${Date.now()}.jpg`,
+          displayName: asset.fileName || `image_${Date.now()}.jpg`,
+          size: asset.fileSize || null,
+          mimeType: asset.mimeType || "image/jpeg",
+        }));
+
+        setCertificates((prev) => [...prev, ...mapped]);
+      }
+    } catch (error) {
+      console.error("Error picking images:", error);
+      Alert.alert("Lỗi", "Không thể mở thư viện ảnh. Vui lòng thử lại.");
     }
   };
 
@@ -209,12 +255,29 @@ const UploadingCertificate = ({ navigation }: UploadingCertificateProps) => {
 
       await sleep(1000);
 
-      await updateProfile({
-        userId: meData.userId,
-        experience: validExperience,
-        fullname: meData.fullName || "",
-        phoneNumber: meData.phoneNumber || "",
-      });
+      // Try to update profile, but if it doesn't exist (404), that's okay
+      // Backend may create the profile automatically when certificate is uploaded
+      // Or the profile will be created on first access
+      try {
+        await updateProfile({
+          userId: meData.userId,
+          experience: validExperience,
+          fullname: meData.fullName || "",
+          phoneNumber: meData.phoneNumber || "",
+        });
+      } catch (profileError: any) {
+        // If profile doesn't exist (404), it's okay - we'll skip the update
+        // The experience can be updated later when profile is created
+        // Only throw error if it's not a 404
+        if (profileError?.response?.status === 404) {
+          // Profile doesn't exist yet, which is fine
+          // Backend may create it automatically or it will be created later
+          console.log("Reviewer profile not found (404), skipping profile update");
+        } else {
+          // For other errors, re-throw them
+          throw profileError;
+        }
+      }
 
       queryClient.invalidateQueries({ queryKey: ["getMe"] });
       queryClient.invalidateQueries({
@@ -257,11 +320,20 @@ const UploadingCertificate = ({ navigation }: UploadingCertificateProps) => {
       >
         <TouchableOpacity
           className="flex-row items-center gap-2 mb-6"
-          onPress={() => {
-            if (navigation?.canGoBack()) {
+          onPress={async () => {
+            // Try to go back if possible
+            if (navigation?.canGoBack && navigation.canGoBack()) {
               navigation.goBack();
+            } else {
+              // If cannot go back (e.g., this is the initial route), logout and go to Login
+              logoutMutation.mutate(undefined, {
+                onSuccess: async () => {
+                  await refreshAuth();
+                },
+              });
             }
           }}
+          disabled={logoutMutation.isPending}
         >
           <Ionicons name="chevron-back" size={20} color="#94A3B8" />
           <Text className="text-sm font-medium text-gray-300">Quay lại</Text>
@@ -295,6 +367,24 @@ const UploadingCertificate = ({ navigation }: UploadingCertificateProps) => {
               <Text className="text-sm font-semibold text-gray-200 mb-2">
                 Tải lên tệp chứng chỉ
               </Text>
+              
+              {/* Image Picker Button */}
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={handlePickImages}
+                disabled={isPending}
+                className="bg-[#1d2a33] rounded-2xl border border-[#2ed7ff]/40 items-center justify-center px-5 py-4 mb-3"
+                style={{ borderStyle: "dashed" }}
+              >
+                <View className="flex-row items-center">
+                  <Feather name="image" size={24} color="#2ed7ff" />
+                  <Text className="text-sm text-white font-semibold ml-3">
+                    Chọn ảnh từ thư viện
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Document Picker Button */}
               <TouchableOpacity
                 activeOpacity={0.85}
                 onPress={handlePickDocuments}
@@ -330,36 +420,53 @@ const UploadingCertificate = ({ navigation }: UploadingCertificateProps) => {
                 </View>
 
                 <View className="space-y-3">
-                  {certificates.map((certificate, index) => (
-                    <View
-                      key={certificate.id}
-                      className="bg-[#22313c] border border-[#2c3e50] rounded-2xl p-4 space-y-3"
-                    >
-                      <View className="flex-row items-center justify-between">
-                        <View className="flex-row items-center flex-1 pr-3">
-                          <Feather name="file-text" size={20} color="#2ed7ff" />
-                          <View className="ml-3 flex-1">
-                            <Text
-                              className="text-sm text-white font-semibold"
-                              numberOfLines={1}
-                            >
-                              {certificate.originalName}
-                            </Text>
-                            <Text className="text-xs text-gray-400 mt-1">
-                              {formatFileSize(certificate.size)}
-                            </Text>
+                  {certificates.map((certificate, index) => {
+                    const isImage = certificate.mimeType?.startsWith("image/");
+                    return (
+                      <View
+                        key={certificate.id}
+                        className="bg-[#22313c] border border-[#2c3e50] rounded-2xl p-4 space-y-3"
+                      >
+                        <View className="flex-row items-center justify-between">
+                          <View className="flex-row items-center flex-1 pr-3">
+                            {isImage ? (
+                              <Feather name="image" size={20} color="#2ed7ff" />
+                            ) : (
+                              <Feather name="file-text" size={20} color="#2ed7ff" />
+                            )}
+                            <View className="ml-3 flex-1">
+                              <Text
+                                className="text-sm text-white font-semibold"
+                                numberOfLines={1}
+                              >
+                                {certificate.originalName}
+                              </Text>
+                              <Text className="text-xs text-gray-400 mt-1">
+                                {formatFileSize(certificate.size)}
+                              </Text>
+                            </View>
                           </View>
+                          <TouchableOpacity
+                            onPress={() =>
+                              handleRemoveCertificate(certificate.id)
+                            }
+                            disabled={isPending}
+                            className="w-9 h-9 rounded-full items-center justify-center bg-[#1b2530]"
+                          >
+                            <Feather name="trash-2" size={16} color="#94a3b8" />
+                          </TouchableOpacity>
                         </View>
-                        <TouchableOpacity
-                          onPress={() =>
-                            handleRemoveCertificate(certificate.id)
-                          }
-                          disabled={isPending}
-                          className="w-9 h-9 rounded-full items-center justify-center bg-[#1b2530]"
-                        >
-                          <Feather name="trash-2" size={16} color="#94a3b8" />
-                        </TouchableOpacity>
-                      </View>
+                        
+                        {/* Image Preview */}
+                        {isImage && certificate.uri && (
+                          <View className="mt-2 rounded-xl overflow-hidden bg-[#1a2730]">
+                            <Image
+                              source={{ uri: certificate.uri }}
+                              className="w-full h-48"
+                              resizeMode="contain"
+                            />
+                          </View>
+                        )}
 
                       <View>
                         <Text className="text-xs text-gray-300 mb-2">
@@ -377,7 +484,8 @@ const UploadingCertificate = ({ navigation }: UploadingCertificateProps) => {
                         />
                       </View>
                     </View>
-                  ))}
+                    );
+                  })}
                 </View>
               </View>
             )}

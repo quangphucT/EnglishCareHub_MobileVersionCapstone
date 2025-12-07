@@ -21,7 +21,7 @@ export interface ReviewerProfileResponse {
   }
   export const reviewerProfileGetService = async (userId: string): Promise<ReviewerProfileResponse> => {
     try {
-    const response = await httpClient.get<ReviewerProfileResponse>(`reviewer/profile/${userId}`);
+    const response = await httpClient.get<ReviewerProfileResponse>(`ReviewerProfile/${userId}`);
     return response.data;
     } catch (error: any) {  
       const message =
@@ -33,13 +33,16 @@ export interface ReviewerProfileResponse {
   };
   export const reviewerProfilePutService = async (userId: string, data: { experience: string; fullname: string; phoneNumber: string }): Promise<ReviewerProfileResponse> => {
     try {
-    const response = await httpClient.put<ReviewerProfileResponse>(`reviewer/profile/${userId}`, data);
+    const response = await httpClient.put<ReviewerProfileResponse>(`ReviewerProfile/${userId}`, data);
     return response.data;
     } catch (error: any) {
       const message =
         error?.response?.data?.message ||
         error.message ||
         "Không thể cập nhật thông tin reviewer";
-      throw new Error(message);
+      // Preserve status code for error handling
+      const customError: any = new Error(message);
+      customError.response = error?.response;
+      throw customError;
     }
   };
