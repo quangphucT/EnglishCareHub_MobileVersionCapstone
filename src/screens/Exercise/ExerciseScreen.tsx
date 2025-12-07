@@ -542,7 +542,7 @@ const ExerciseScreen = () => {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-gradient-to-br from-gray-50 to-blue-50"
+      className="flex-1 bg-white"
       edges={["top", "bottom"]}
     >
       {/* Header */}

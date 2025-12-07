@@ -30,12 +30,17 @@ export const submitAnswerQuestionService = async (
   data: SubmitAnswerQuestionRequest
 ): Promise<SubmitAnswerQuestionResponse> => {
   try {
+    // Tách learningPathQuestionId ra khỏi body vì nó đã nằm trong URL path
+    const { learningPathQuestionId, ...bodyData } = data;
+    
     const response = await httpClient.post<SubmitAnswerQuestionResponse>(
-      `LearnerAnswer/${data.learningPathQuestionId}/submit`,
-      data
+      `LearnerAnswer/${learningPathQuestionId}/submit`,
+      bodyData  // Chỉ gửi các field cần thiết, không có learningPathQuestionId
     );
     return response.data;
   } catch (error: any) {
+ 
+    
     const message =
       error?.response?.data?.message ||
       error.message ||
