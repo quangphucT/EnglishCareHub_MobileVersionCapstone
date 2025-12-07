@@ -47,7 +47,7 @@ export interface LearnerReviewHistoryResponse {
 }
 export const learnerReviewHistoryService = async (pageNumber: number, pageSize: number, status: string, keyword: string): Promise<LearnerReviewHistoryResponse> => {
     try {
-        const response = await httpClient.get<LearnerReviewHistoryResponse>('Feedback/history', {
+        const response = await httpClient.get<LearnerReviewHistoryResponse>('LearnerReview/my-history', {
             params: {
                 pageNumber: pageNumber,
                 pageSize: pageSize,
