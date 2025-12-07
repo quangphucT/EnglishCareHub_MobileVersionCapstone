@@ -26,7 +26,6 @@
 
       
       "versionCode": 2,
-      "minSdkVersion": 23,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "",
