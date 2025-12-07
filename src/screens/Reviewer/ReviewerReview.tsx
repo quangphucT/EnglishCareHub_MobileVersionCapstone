@@ -15,6 +15,7 @@ import {
   TouchableOpacity,
   View,
   Alert,
+  Animated,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -322,7 +323,7 @@ export default function ReviewerReviewScreen() {
         <View className="flex-row items-center">
           <Ionicons name="mic" size={16} color="#2563EB" />
           <Text className="text-xs text-slate-500 ml-2">
-            {item.type === "Record" ? "Bài nói" : "Bài viết"}
+            {item.type === "Record" ? "Thu âm" : "Câu trả lời"}
           </Text>
         </View>
         <Text className="text-sm font-medium text-blue-600">
@@ -478,6 +479,92 @@ export default function ReviewerReviewScreen() {
     );
   };
 
+  const [recording, setRecording] = useState<boolean>(false);
+  const streamRef = useRef<MediaStream | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordedAudioBlobMp3Ref = useRef<Blob | null>(null); // Store recorded audio blob
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  
+  const updateRecordingState = useCallback(() => {
+    if (recording) {
+      setRecording(false);
+      if (mediaRecorderRef.current) mediaRecorderRef.current.stop();
+    } else {
+      if (
+        mediaRecorderRef.current &&
+        mediaRecorderRef.current.state !== "recording"
+      ) {
+        audioChunksRef.current = [];
+        setRecording(true);
+        mediaRecorderRef.current.start();
+      }
+    }
+  }, [recording]);
+
+  // Pulse animation when recording
+  useEffect(() => {
+    if (recording) {
+      const pulse = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 0.7,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      pulse.start();
+      return () => pulse.stop();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [recording, pulseAnim]);
+  // Initialize MediaRecorder on component mount
+  useEffect(() => {
+    const constraints: MediaStreamConstraints = {
+      audio: { channelCount: 1, sampleRate: 48000 },
+    };
+    
+    navigator.mediaDevices
+      .getUserMedia(constraints)
+      .then((stream) => {
+        streamRef.current = stream;
+        const mr = new MediaRecorder(stream);
+        mediaRecorderRef.current = mr;
+        
+        mr.ondataavailable = (ev) => {
+          // Some browsers use ev.data.size
+          if (ev.data && ev.data.size > 0) {
+            audioChunksRef.current.push(ev.data);
+          }
+        };
+        
+        mr.onstop = async () => {
+          const blob = new Blob(audioChunksRef.current, { type: "audio/ogg" });
+          const blobMp3 = new Blob(audioChunksRef.current, { type: "audio/mp3" });
+          recordedAudioBlobMp3Ref.current = blobMp3; // Store blob for later upload
+          console.log("Recording stopped, blob stored:", blobMp3.size, "bytes");
+        };
+      })
+      .catch((error) => {
+        console.error("Error accessing microphone:", error);
+      });
+
+    // Cleanup function
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+    };
+  }, []);
+
   return (
     <SafeAreaView className="flex-1 bg-slate-50">
       <FlatList
@@ -603,7 +690,7 @@ export default function ReviewerReviewScreen() {
                   onPress={() => setShowAiFeedback((prev) => !prev)}
                 >
                   <View className="flex-row items-center justify-between bg-slate-100 rounded-2xl px-4 py-3">
-                    <Text className="text-sm font-semibold text-slate-800">
+                    <Text className="text-sm font-semibold text-slate-800 text-black">
                       {showAiFeedback ? "Ẩn" : "Hiện"} phản hồi từ AI
                     </Text>
                     <Ionicons
@@ -622,9 +709,48 @@ export default function ReviewerReviewScreen() {
                 </TouchableOpacity>
               ) : null}
 
-              <View className="flex-row justify-end mt-6">
+              <View className="flex-row justify-end items-center mt-6">
                 <TouchableOpacity
-                  className="px-4 py-3 rounded-2xl border border-slate-200 mr-3"
+                  onPress={updateRecordingState}
+                  disabled={
+                    !mediaRecorderRef.current ||
+                    submitReviewMutation.isPending ||
+                    isSubmittingReview
+                  }
+                  activeOpacity={0.8}
+                  style={{
+                    width: 72,
+                    height: 72,
+                    borderRadius: 36,
+                    borderWidth: 6,
+                    borderColor: '#FFFFFF',
+                    backgroundColor: recording ? '#477c5b' : '#49d67d',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 8,
+                    elevation: 8,
+                    opacity: (!mediaRecorderRef.current ||
+                      submitReviewMutation.isPending ||
+                      isSubmittingReview) ? 0.5 : 1,
+                  }}
+                >
+                  <Animated.View
+                    style={{
+                      opacity: recording ? pulseAnim : 1,
+                    }}
+                  >
+                    <Ionicons
+                      name="mic"
+                      size={40}
+                      color="#FFFFFF"
+                    />
+                  </Animated.View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  className="px-4 py-3 rounded-2xl border border-slate-200 mr-3 ml-4"
                   activeOpacity={0.8}
                   onPress={handleCloseModal}
                   disabled={isSubmittingReview || submitReviewMutation.isPending}
