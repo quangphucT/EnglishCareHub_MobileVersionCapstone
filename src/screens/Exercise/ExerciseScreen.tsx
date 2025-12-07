@@ -14,6 +14,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { Audio } from "expo-av";
 import { Video, ResizeMode } from "expo-av";
 import { File, Paths } from "expo-file-system";
+import YoutubePlayer from "react-native-youtube-iframe";
 import { useLearnerStore } from "../../store/learnerStore";
 import { useLearningPathCourseFull } from "../../hooks/learner/learningPath/learningPathHooks";
 import {
@@ -610,27 +611,37 @@ const ExerciseScreen = () => {
             {currentQuestion.media.map((mediaItem: any, idx: number) => (
               <View key={mediaItem.questionMediaId || idx}>
                 {mediaItem.videoUrl && (
-                  <View className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-4 mb-4">
-                    <View className="flex-row items-center gap-2 mb-3">
+                  <View className="bg-white rounded-2xl overflow-hidden shadow-md">
+                    <View className="flex-row items-center gap-2 px-4 pt-4 pb-3 bg-gray-50">
                       <View className="w-8 h-8 bg-blue-500 rounded-full items-center justify-center">
                         <Ionicons name="videocam" size={16} color="white" />
                       </View>
-                      <View>
+                      <View className="flex-1">
                         <Text className="text-sm font-semibold text-blue-900">
                           Video hướng dẫn khẩu hình
                         </Text>
                         <Text className="text-xs text-blue-700">
-                          Quan sát và bắt chước cách đặt miệng khi phát âm
+                          Quan sát cách đặt miệng khi phát âm
                         </Text>
                       </View>
                     </View>
-                    <Video
-                      source={{ uri: mediaItem.videoUrl }}
-                      style={{ width: "100%", height: 300, borderRadius: 12 }}
-                      useNativeControls
-                      resizeMode={ResizeMode.CONTAIN}
-                      isLooping
-                    />
+                    
+                    <View className="bg-black">
+                      <YoutubePlayer
+                        height={220}
+                        play={false}
+                        videoId={mediaItem.videoUrl.includes('youtube.com') || mediaItem.videoUrl.includes('youtu.be') 
+                          ? mediaItem.videoUrl.split('v=')[1]?.split('&')[0] || mediaItem.videoUrl.split('/').pop()
+                          : mediaItem.videoUrl}
+                      />
+                    </View>
+
+                    <View className="flex-row items-center px-4 py-3 bg-blue-50">
+                      <Ionicons name="bulb-outline" size={16} color="#3B82F6" />
+                      <Text className="text-xs text-gray-700 ml-2 flex-1">
+                        Tip: Xem video nhiều lần để bắt chước chính xác
+                      </Text>
+                    </View>
                   </View>
                 )}
               </View>
