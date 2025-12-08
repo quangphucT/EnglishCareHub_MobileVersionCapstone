@@ -93,29 +93,43 @@ export default function ReviewerReviewScreen() {
         return;
       }
 
+      console.log('🎵 [AUDIO] Attempting to play:', audioUrl);
       setIsAudioLoading(true);
+      
       try {
         if (audioPlayerRef.current) {
+          console.log('🎵 [AUDIO] Stopping previous audio...');
           audioPlayerRef.current.stop(() => {
             audioPlayerRef.current?.release();
             audioPlayerRef.current = null;
           });
         }
 
+        console.log('🎵 [AUDIO] Creating new Sound instance...');
         const sound = new Sound(audioUrl, undefined, (error?: Error) => {
           if (error) {
             console.error("❌ [AUDIO] Failed to load audio:", error);
-            Alert.alert("Không thể phát audio", "Vui lòng thử lại sau.");
+            console.error("❌ [AUDIO] Error details:", {
+              message: error.message,
+              name: error.name,
+              stack: error.stack
+            });
+            Alert.alert("Không thể phát audio", `Lỗi: ${error.message}\n\nURL: ${audioUrl}`);
             setIsAudioLoading(false);
             return;
           }
 
+          
           audioPlayerRef.current = sound;
           sound.setVolume(1);
+          
+          console.log('🎵 [AUDIO] Starting playback...');
           sound.play((success: boolean) => {
             if (!success) {
-              console.warn("⚠️ [AUDIO] Playback was interrupted");
+              console.warn("⚠️ [AUDIO] Playback was interrupted or failed");
               Alert.alert("Không thể phát audio", "Luồng phát bị gián đoạn.");
+            } else {
+              console.log('✅ [AUDIO] Playback completed successfully');
             }
             sound.release();
             if (audioPlayerRef.current === sound) {
@@ -125,7 +139,7 @@ export default function ReviewerReviewScreen() {
           });
         });
       } catch (error) {
-        console.error("❌ [AUDIO] Failed to play audio:", error);
+        console.error("❌ [AUDIO] Exception while creating Sound:", error);
         Alert.alert("Không thể phát audio", "Vui lòng thử lại sau.");
         setIsAudioLoading(false);
       }
@@ -135,17 +149,27 @@ export default function ReviewerReviewScreen() {
 
   const pendingReviews: PendingReview[] = useMemo(() => {
     const items = pendingReviewsData?.data?.items ?? [];
-    return items.map((item) => ({
-      id: item.id,
-      question: item.questionText,
-      audioUrl: item.audioUrl,
-      submittedAt: dayjs(item.submittedAt).format("DD/MM/YYYY"),
-      learnerFullName: item.learnerFullName,
-      type: item.type,
-      aiFeedback: item.aiFeedback,
-      numberOfReview:
-        numberOfReviewUpdates[item.id] ?? item.numberOfReview ?? 0,
-    }));
+    return items.map((item) => {
+      console.log('📝 Pending Review Item:', {
+        id: item.id,
+        audioUrl: item.audioUrl,
+        hasAudio: !!item.audioUrl,
+        questionText: item.questionText?.substring(0, 50),
+        type: item.type
+      });
+      
+      return {
+        id: item.id,
+        question: item.questionText,
+        audioUrl: item.audioUrl,
+        submittedAt: dayjs(item.submittedAt).format("DD/MM/YYYY"),
+        learnerFullName: item.learnerFullName,
+        type: item.type,
+        aiFeedback: item.aiFeedback,
+        numberOfReview:
+          numberOfReviewUpdates[item.id] ?? item.numberOfReview ?? 0,
+      };
+    });
   }, [pendingReviewsData, numberOfReviewUpdates]);
 
   const availableReviews = useMemo(
@@ -195,6 +219,9 @@ export default function ReviewerReviewScreen() {
       setShowAiFeedback(false);
       setIsModalVisible(true);
       setIsSubmittingReview(false);
+      setHasRecordedAudio(false);
+      setRecording(false);
+      recordedAudioBlobMp3Ref.current = null;
       requestAnimationFrame(() => {
         modalScrollRef.current?.scrollTo({ y: 0, animated: false });
       });
@@ -480,6 +507,7 @@ export default function ReviewerReviewScreen() {
   };
 
   const [recording, setRecording] = useState<boolean>(false);
+  const [hasRecordedAudio, setHasRecordedAudio] = useState<boolean>(false);
   const streamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -548,8 +576,16 @@ export default function ReviewerReviewScreen() {
         mr.onstop = async () => {
           const blob = new Blob(audioChunksRef.current, { type: "audio/ogg" });
           const blobMp3 = new Blob(audioChunksRef.current, { type: "audio/mp3" });
-          recordedAudioBlobMp3Ref.current = blobMp3; // Store blob for later upload
+          recordedAudioBlobMp3Ref.current = blobMp3;
           console.log("Recording stopped, blob stored:", blobMp3.size, "bytes");
+          
+          if (blobMp3.size > 0) {
+            setHasRecordedAudio(true);
+            Alert.alert("✅ Ghi âm thành công", `Đã ghi được ${(blobMp3.size / 1024).toFixed(1)} KB audio`);
+          } else {
+            setHasRecordedAudio(false);
+            Alert.alert("❌ Lỗi ghi âm", "Không có dữ liệu audio. Vui lòng thử lại.");
+          }
         };
       })
       .catch((error) => {
@@ -708,6 +744,26 @@ export default function ReviewerReviewScreen() {
                   )}
                 </TouchableOpacity>
               ) : null}
+
+              {/* Recording Status */}
+              <View className="mt-4 bg-slate-50 rounded-2xl px-4 py-3">
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-row items-center">
+                    <View className={`w-3 h-3 rounded-full mr-2 ${
+                      recording ? 'bg-red-500' : hasRecordedAudio ? 'bg-green-500' : 'bg-gray-300'
+                    }`} />
+                    <Text className="text-sm font-medium text-slate-700">
+                      {recording ? '🎵 Đang ghi âm...' : hasRecordedAudio ? '✅ Đã ghi audio' : '⏺ Chưa ghi audio'}
+                    </Text>
+                  </View>
+                  {hasRecordedAudio && (
+                    <View className="flex-row items-center">
+                      <Ionicons name="checkmark-circle" size={16} color="#16A34A" />
+                      <Text className="text-xs text-green-600 ml-1">Sẵn sàng gửi</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
 
               <View className="flex-row justify-end items-center mt-6">
                 <TouchableOpacity
