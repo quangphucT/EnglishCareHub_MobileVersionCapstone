@@ -31,6 +31,7 @@ import { useReviewFeedback } from "../../hooks/reviewer/useReviewerFeedback";
 import { useGetMeQuery } from "../../hooks/useGetMe";
 import { ReviewCompleted, signalRService } from "../../utils/realtime";
 import { useRealtime } from "../../utils/realtimeProvider";
+import { uploadAudioToCloudinary } from "../../api/uploadAudio.service";
 
 type PendingReview = {
   id: string;
@@ -63,6 +64,8 @@ export default function ReviewerReviewScreen() {
   const [isAudioLoading, setIsAudioLoading] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackPageNumber, setFeedbackPageNumber] = useState(1);
+  const [recording, setRecording] = useState<boolean>(false);
+  const [hasRecordedAudio, setHasRecordedAudio] = useState<boolean>(false);
 
   const {
     data: pendingReviewsData,
@@ -79,6 +82,9 @@ export default function ReviewerReviewScreen() {
   const { isConnected } = useRealtime();
   const modalScrollRef = useRef<ScrollView>(null);
   const audioPlayerRef = useRef<Sound | null>(null);
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const recordedAudioUriRef = useRef<string | null>(null);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     Sound.setCategory("Playback", true);
@@ -294,7 +300,72 @@ export default function ReviewerReviewScreen() {
     }
 
     try {
-      setIsSubmittingReview(true);   
+      setIsSubmittingReview(true);
+      
+      // Upload audio nếu có và là local file URI
+      let recordAudioUrl: string | null = null;
+      if (recordedAudioUriRef.current) {
+        const uri = recordedAudioUriRef.current;
+        
+        // Nếu là URL hợp lệ (http/https), sử dụng trực tiếp
+        if (uri.startsWith('http://') || uri.startsWith('https://')) {
+          recordAudioUrl = uri;
+        } else {
+          // Nếu là local file URI, upload lên server trước
+          try {
+            console.log('📤 Uploading audio to server...');
+            const uploadedUrl = await uploadAudioToCloudinary({
+              uri: uri,
+              name: `review-audio-${Date.now()}.mp3`,
+              type: 'audio/mpeg',
+            });
+            
+            if (uploadedUrl) {
+              recordAudioUrl = uploadedUrl;
+              console.log('✅ Audio uploaded successfully:', uploadedUrl);
+            } else {
+              console.warn('⚠️ Audio upload returned null, continuing without audio URL');
+              recordAudioUrl = null;
+            }
+          } catch (uploadError: any) {
+            console.error('❌ Error uploading audio:', uploadError);
+            // Nếu upload thất bại, hỏi người dùng có muốn tiếp tục không
+            const shouldContinue = await new Promise<boolean>((resolve) => {
+              Alert.alert(
+                "Lỗi upload audio",
+                uploadError?.message || "Không thể upload audio. Bạn có muốn tiếp tục gửi review không có audio không?",
+                [
+                  {
+                    text: "Hủy",
+                    style: "cancel",
+                    onPress: () => resolve(false),
+                  },
+                  {
+                    text: "Tiếp tục",
+                    onPress: () => resolve(true),
+                  },
+                ]
+              );
+            });
+            
+            if (!shouldContinue) {
+              setIsSubmittingReview(false);
+              return;
+            }
+            
+            // Tiếp tục với recordAudioUrl = null
+            recordAudioUrl = null;
+          }
+        }
+      }
+      
+      // Gửi review với audio URL (hoặc null nếu không có)
+      if (!userData?.reviewerProfile?.reviewerProfileId) {
+        Alert.alert("Thiếu thông tin", "Không tìm thấy tài khoản Reviewer.");
+        setIsSubmittingReview(false);
+        return;
+      }
+      
       await submitReviewMutation.mutateAsync({
         learnerAnswerId:
           selectedReview.type === "Record" ? null : selectedReview.id,
@@ -302,8 +373,12 @@ export default function ReviewerReviewScreen() {
         reviewerProfileId: userData.reviewerProfile.reviewerProfileId,
         score: parsedScore,
         comment: trimmedComment,
-        recordAudioUrl: recordedAudioUriRef.current, // ✅ Gửi audio URI thay vì null
+        recordAudioUrl: recordAudioUrl,
       });
+
+      setReviewedAnswers((prev) => [...prev, selectedReview.id]);
+      Alert.alert("Thành công", "Bạn đã đánh giá bài làm này.");
+      handleCloseModal();
 
       setReviewedAnswers((prev) => [...prev, selectedReview.id]);
       Alert.alert("Thành công", "Bạn đã đánh giá bài làm này.");
@@ -507,12 +582,6 @@ export default function ReviewerReviewScreen() {
     );
   };
 
-  const [recording, setRecording] = useState<boolean>(false);
-  const [hasRecordedAudio, setHasRecordedAudio] = useState<boolean>(false);
-  const recordingRef = useRef<Audio.Recording | null>(null);
-  const recordedAudioUriRef = useRef<string | null>(null);
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  
   const updateRecordingState = useCallback(async () => {
     if (recording) {
       // Stop recording

@@ -22,7 +22,7 @@ export interface ReviewerReviewPendingResponse {
     questionText: string;
   }
   export interface SubmitReviewerReviewRequest {
-    learnerAnswerId: string | null;
+      learnerAnswerId: string | null;
       recordId: string | null;
       reviewerProfileId: string | null;
       score: number;
