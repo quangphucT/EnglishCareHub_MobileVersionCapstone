@@ -267,7 +267,7 @@ const AudioReviewScreen = () => {
         <View className="flex-row items-center ml-3">
           <Ionicons name="star" size={18} color="#FBBF24" />
           <Text className={`text-base font-bold ml-1 ${getScoreColor(item.score)}`}>
-            {item.score}/100
+            {item.score}/10
           </Text>
         </View>
       </View>

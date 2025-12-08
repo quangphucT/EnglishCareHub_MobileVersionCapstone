@@ -21,7 +21,9 @@ import CompletedReviewsScreen from "../screens/Reviewer/CompletedReviewsScreen";
 import ReviewerProfileScreen from "../screens/Reviewer/ReviewerProfile";
 import AudioReviewScreen from "../screens/Profile/AudioReviewScreen";
 import MyRecordingsScreen from "../screens/Profile/MyRecordingsScreen";
-
+import LearnerRecordFolderPage from "../screens/Learner_Record/LearnerRecordFolderPage";
+import LearnerRecordPage from "../screens/Learner_Record/LeanerRecordPage";
+import LearnerRecordQuestion from "../screens/Learner_Record/LearnerRecordQuestion";
 const Stack = createNativeStackNavigator();
 
 interface RootStackProps {
@@ -173,6 +175,27 @@ export default function RootStack({ initialRouteName }: RootStackProps) {
       <Stack.Screen
         name="MyRecordings"
         component={MyRecordingsScreen}
+        options={{
+          contentStyle: { backgroundColor: "transparent" },
+        }}
+      />
+      <Stack.Screen
+        name="LearnerRecordFolderPage"
+        component={LearnerRecordFolderPage}
+        options={{
+          contentStyle: { backgroundColor: "transparent" },
+        }}
+      />
+      <Stack.Screen
+        name="LearnerRecordPage"
+        component={LearnerRecordPage}
+        options={{
+          contentStyle: { backgroundColor: "transparent" },
+        }}
+      />
+      <Stack.Screen
+        name="LearnerRecordQuestion"
+        component={LearnerRecordQuestion}
         options={{
           contentStyle: { backgroundColor: "transparent" },
         }}

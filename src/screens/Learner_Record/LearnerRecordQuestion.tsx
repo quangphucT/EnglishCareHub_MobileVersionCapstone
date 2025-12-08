@@ -65,7 +65,7 @@ const LearnerRecordQuestion = () => {
   const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
   const [recording, setRecording] = useState<boolean>(false);
   const [uiBlocked, setUiBlocked] = useState<boolean>(false);
-  const [mainTitle, setMainTitle] = useState<string>('AI Pronunciation Trainer');
+  const [mainTitle, setMainTitle] = useState<string>('An English Speaking Platform with AI');
   const [pronunciationAccuracy, setPronunciationAccuracy] = useState<string>('');
   const [aiFeedback, setAiFeedback] = useState<string>('');
   const [originalScriptHtml, setOriginalScriptHtml] = useState<string>('');
@@ -153,12 +153,40 @@ const LearnerRecordQuestion = () => {
   // Convert audio URI to base64
   const convertAudioToBase64 = useCallback(async (uri: string): Promise<string> => {
     try {
-      // Read file as base64 using FileSystem
-      // expo-file-system uses 'base64' as string for encoding
-      const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: 'base64',
-      } as any);
-      return base64;
+      // First, try using FileSystem (more reliable for local files)
+      try {
+        const base64 = await FileSystem.readAsStringAsync(uri, {
+          encoding: 'base64' as any,
+        });
+        if (base64 && base64.length > 0) {
+          return base64;
+        }
+      } catch (fsError) {
+        console.log('FileSystem method failed, trying fetch method:', fsError);
+      }
+
+      // Fallback: Use fetch to get blob and convert
+      const response = await fetch(uri);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch audio: ${response.status}`);
+      }
+      
+      const blob = await response.blob();
+      
+      // Convert blob to base64
+      return new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64String = reader.result as string;
+          // Remove data URL prefix if present
+          const base64 = base64String.includes(',') 
+            ? base64String.split(',')[1] 
+            : base64String;
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
     } catch (error) {
       console.error('Error converting audio to base64:', error);
       throw new Error('Failed to convert audio to base64. Please try again.');
@@ -175,7 +203,9 @@ const LearnerRecordQuestion = () => {
       setMainTitle('Đang phát âm thanh mẫu...');
 
       // Get plain text from HTML
-      let text = originalScriptHtml.replace(/<[^>]*>?/gm, '') || currentContent;
+      let text = (originalScriptHtml && typeof originalScriptHtml === 'string' 
+        ? originalScriptHtml.replace(/<[^>]*>?/gm, '') 
+        : '') || currentContent;
       text = text.trim();
 
       if (!text) {
@@ -192,12 +222,12 @@ const LearnerRecordQuestion = () => {
         onDone: () => {
           setUiBlocked(false);
           setIsPlayingSample(false);
-          setMainTitle('AI Pronunciation Trainer');
+          setMainTitle('An English Speaking Platform with AI');
         },
         onStopped: () => {
           setUiBlocked(false);
           setIsPlayingSample(false);
-          setMainTitle('AI Pronunciation Trainer');
+          setMainTitle('An English Speaking Platform with AI');
         },
         onError: () => {
           setUiBlocked(false);
@@ -242,7 +272,7 @@ const LearnerRecordQuestion = () => {
           if (status.didJustFinish) {
             setUiBlocked(false);
             setIsPlayingRecorded(false);
-            setMainTitle('AI Pronunciation Trainer');
+            setMainTitle('An English Speaking Platform with AI');
             sound.unloadAsync();
             recordedSoundRef.current = null;
           }
@@ -257,7 +287,7 @@ const LearnerRecordQuestion = () => {
           await sound.setPositionAsync(0);
           setUiBlocked(false);
           setIsPlayingRecorded(false);
-          setMainTitle('AI Pronunciation Trainer');
+          setMainTitle('An English Speaking Platform with AI');
         }, Math.max(0, Math.round(duration)));
       }
     } catch (error) {
@@ -295,7 +325,16 @@ const LearnerRecordQuestion = () => {
         recordedAudioUriRef.current = uri;
 
         // Convert to base64 for API
-        const base64 = await convertAudioToBase64(uri);
+        let base64: string;
+        try {
+          base64 = await convertAudioToBase64(uri);
+        } catch (convertError: any) {
+          console.error('Error converting audio to base64:', convertError);
+          setMainTitle('Lỗi: Không thể chuyển đổi audio');
+          Alert.alert('Lỗi', convertError?.message || 'Không thể chuyển đổi audio sang base64. Vui lòng thử lại.');
+          setUiBlocked(false);
+          return;
+        }
 
         if (!base64 || base64.length < 6) {
           setMainTitle('Lỗi: File audio không hợp lệ');
@@ -304,7 +343,9 @@ const LearnerRecordQuestion = () => {
         }
 
         // Get text content
-        let text = originalScriptHtml.replace(/<[^>]*>?/gm, '') || currentContent;
+        let text = (originalScriptHtml && typeof originalScriptHtml === 'string' 
+          ? originalScriptHtml.replace(/<[^>]*>?/gm, '') 
+          : '') || currentContent;
         text = text.trim().replace(/\s\s+/g, ' ');
 
         if (!text) {
@@ -410,14 +451,14 @@ const LearnerRecordQuestion = () => {
 
           setOriginalScriptHtml(coloredWords.trim());
           setCurrentSoundRecorded(true);
-          setMainTitle('AI Pronunciation Trainer');
+          setMainTitle('An English Speaking Platform with AI');
         } catch (error) {
           console.error('Error processing audio:', error);
           setMainTitle('Lỗi: Không thể phân tích audio');
           Alert.alert('Lỗi', 'Không thể phân tích audio. Vui lòng thử lại.');
         } finally {
           setUiBlocked(false);
-        }
+        }   
       } catch (error) {
         console.error('Error stopping recording:', error);
         setMainTitle('Lỗi: Không thể dừng ghi âm');
@@ -426,7 +467,7 @@ const LearnerRecordQuestion = () => {
     } else {
       // Start recording
       try {
-        setMainTitle('Đang ghi âm... Nhấn lại để dừng');
+        setMainTitle('Đang ghi âm...');
         await Audio.setAudioModeAsync({
           allowsRecordingIOS: true,
           playsInSilentModeIOS: true,
@@ -513,7 +554,7 @@ const LearnerRecordQuestion = () => {
       setPronunciationAccuracy('');
       setTranslatedScript(data.transcript_translation || '');
       setCurrentSoundRecorded(false);
-      setMainTitle('AI Pronunciation Trainer');
+      setMainTitle('An English Speaking Platform with AI');
     } catch (error) {
       console.error('Error fetching sample:', error);
       setMainTitle('Lỗi Server');
@@ -740,9 +781,11 @@ const LearnerRecordQuestion = () => {
               <ScrollView className="max-h-64 mb-4" showsVerticalScrollIndicator={true}>
                 <View className="mb-4">
                   <Text className="text-2xl font-semibold text-blue-600 mb-2">
-                    {originalScriptHtml.replace(/<[^>]*>?/gm, '') || currentContent}
+                    {(originalScriptHtml && typeof originalScriptHtml === 'string' 
+                      ? originalScriptHtml.replace(/<[^>]*>?/gm, '') 
+                      : '') || currentContent}
                   </Text>
-                  {originalScriptHtml.includes('<span') && (
+                  {originalScriptHtml && typeof originalScriptHtml === 'string' && originalScriptHtml.includes('<span') && (
                     <Text className="text-lg text-gray-700">
                       {/* Render colored text - simplified for mobile */}
                       {originalScriptHtml.replace(/<[^>]*>?/gm, '')}

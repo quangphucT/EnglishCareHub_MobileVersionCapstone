@@ -20,8 +20,9 @@ import {
   useLearnerRecordFolderCreate,
   useLearnerRecordFolderDelete,
   useLearnerRecordFolderRename,
+  useLearnerRecordUpdateContent,
 } from '../../hooks/learner/learnerRecord/learnerRecordHook';
-import type { RecordCategory } from '../../api/learnerRecord.service';
+import type { Record, RecordCategory } from '../../api/learnerRecord.service';
 
 const LearnerRecordFolderPage = () => {
   const navigation = useNavigation();
@@ -39,6 +40,27 @@ const LearnerRecordFolderPage = () => {
   const { mutateAsync: deleteFolder, isPending: isDeletingFolder } = useLearnerRecordFolderDelete();
   const { mutateAsync: renameFolder, isPending: isRenamingFolder } = useLearnerRecordFolderRename();
 
+  const [editingContent, setEditingContent] = useState("");
+  const [recordToEdit, setRecordToEdit] = useState<Record | null>(null);
+  const [showEditContentDialog, setShowEditContentDialog] = useState(false)
+  const { mutateAsync: updateRecordContent, isPending: isUpdatingRecordContent } = useLearnerRecordUpdateContent();
+  const handleUpdateRecordContent = async () => {
+    if (!recordToEdit || !editingContent.trim()) return;
+    try {
+      await updateRecordContent({ 
+        recordId: recordToEdit.recordId, 
+        content: editingContent.trim() 
+      });
+      setEditingContent("");
+      setRecordToEdit(null);
+      setShowEditContentDialog(false);
+      Alert.alert("Cập nhật nội dung thành công");
+    } catch (error: any) {
+      // Error handled by hook
+      Alert.alert(error.message || "Cập nhật nội dung record thất bại");
+      console.error(error);
+    }
+  };
   // Handle response structure
   const folders = (() => {
     if (!foldersData) return [];
@@ -121,7 +143,7 @@ const LearnerRecordFolderPage = () => {
       }}
       onPress={() => {
         // Navigate to records page with folderId
-        // navigation.navigate('LearnerRecordPage', { folderId: item.learnerRecordId });
+        navigation.navigate('LearnerRecordPage', { folderId: item.learnerRecordId });
       }}
     >
       <View className="flex-row items-center justify-between">

@@ -99,7 +99,7 @@ const ProfileScreen = () => {
             </TouchableOpacity>
 
             <TouchableOpacity 
-              onPress={() => navigation.navigate('MyRecordings' as never)}
+              onPress={() => navigation.navigate('LearnerRecordFolderPage' as never)}
               className="flex-row items-center p-4"
               activeOpacity={0.7}
             >

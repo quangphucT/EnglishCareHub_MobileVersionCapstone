@@ -20,6 +20,7 @@ import {
   useLearnerRecords,
   useLearnerRecordCreate,
   useLearnerRecordDelete,
+  useLearnerRecordUpdateContent,
 } from '../../hooks/learner/learnerRecord/learnerRecordHook';
 import type { Record } from '../../api/learnerRecord.service';
 
@@ -31,6 +32,8 @@ const LearnerRecordPage = () => {
   const [showCreateRecordDialog, setShowCreateRecordDialog] = useState(false);
   const [newRecordContent, setNewRecordContent] = useState('');
   const [feedbackRecord, setFeedbackRecord] = useState<Record | null>(null);
+  const [editingRecord, setEditingRecord] = useState<Record | null>(null);
+  const [editingContent, setEditingContent] = useState('');
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
 
@@ -40,6 +43,7 @@ const LearnerRecordPage = () => {
   // Mutations
   const { mutateAsync: createRecord, isPending: isCreatingRecord } = useLearnerRecordCreate();
   const { mutateAsync: deleteRecord, isPending: isDeletingRecord } = useLearnerRecordDelete();
+  const { mutateAsync: updateRecordContent, isPending: isUpdatingContent } = useLearnerRecordUpdateContent();
 
   // Setup and cleanup audio
   useEffect(() => {
@@ -108,6 +112,26 @@ const LearnerRecordPage = () => {
         },
       ]
     );
+  };
+
+  const handleEditRecord = (record: Record) => {
+    setEditingRecord(record);
+    setEditingContent(record.content);
+  };
+
+  const handleUpdateRecordContent = async () => {
+    if (!editingRecord || !editingContent.trim()) return;
+
+    try {
+      await updateRecordContent({
+        recordId: editingRecord.recordId,
+        content: editingContent.trim(),
+      });
+      setEditingRecord(null);
+      setEditingContent('');
+    } catch (error) {
+      // Error handled by hook
+    }
   };
 
   const handlePlayAudio = async (audioUrl: string | null, recordId: string) => {
@@ -213,6 +237,10 @@ const LearnerRecordPage = () => {
                 item.content,
                 'Chọn hành động',
                 [
+                  {
+                    text: 'Chỉnh sửa',
+                    onPress: () => handleEditRecord(item),
+                  },
                   hasAiFeedback
                     ? {
                         text: 'Xem phản hồi AI',
@@ -285,7 +313,7 @@ const LearnerRecordPage = () => {
             onPress={() => navigation.goBack()}
             className="mt-6 bg-blue-600 rounded-xl px-6 py-3"
           >
-            <Text className="text-white font-semibold">Quay lại</Text>
+            <Text className="text-black font-semibold">Quay lại</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -332,7 +360,7 @@ const LearnerRecordPage = () => {
               <TouchableOpacity
                 onPress={() => {
                   // Navigate to practice page
-                  // navigation.navigate('PracticeRecord', { folderId });
+                  navigation.navigate('LearnerRecordQuestion', { folderId });
                 }}
                 className="flex-1 bg-blue-600 rounded-xl p-4 flex-row items-center justify-center"
                 style={{
@@ -513,6 +541,89 @@ const LearnerRecordPage = () => {
             </View>
           </View>
         </View>
+      </Modal>
+
+      {/* Edit Record Modal */}
+      <Modal
+        visible={!!editingRecord}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          setEditingRecord(null);
+          setEditingContent('');
+        }}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          className="flex-1"
+        >
+          <View className="flex-1 bg-black/50 justify-end">
+            <View className="bg-white rounded-t-3xl px-4 pt-6 pb-8">
+              <View className="flex-row items-center justify-between mb-6">
+                <Text className="text-xl font-bold text-gray-900">Chỉnh sửa record</Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setEditingRecord(null);
+                    setEditingContent('');
+                  }}
+                >
+                  <Ionicons name="close" size={28} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+
+              <View className="mb-4">
+                <Text className="text-sm font-medium text-gray-700 mb-2">
+                  Nội dung record
+                </Text>
+                <TextInput
+                  value={editingContent}
+                  onChangeText={setEditingContent}
+                  placeholder="Nhập nội dung record"
+                  multiline
+                  numberOfLines={4}
+                  className="border border-gray-300 rounded-xl px-4 py-3 text-base"
+                  placeholderTextColor="#9CA3AF"
+                  textAlignVertical="top"
+                  autoFocus
+                />
+              </View>
+
+              <View className="flex-row gap-3">
+                <TouchableOpacity
+                  onPress={() => {
+                    setEditingRecord(null);
+                    setEditingContent('');
+                  }}
+                  className="flex-1 py-3 bg-gray-100 rounded-xl items-center"
+                >
+                  <Text className="text-gray-700 font-medium">Hủy</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleUpdateRecordContent}
+                  disabled={!editingContent.trim() || isUpdatingContent}
+                  className={`flex-1 py-3 rounded-xl items-center flex-row justify-center ${
+                    !editingContent.trim() || isUpdatingContent
+                      ? 'bg-gray-300'
+                      : 'bg-blue-600'
+                  }`}
+                >
+                  {isUpdatingContent && (
+                    <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
+                  )}
+                  <Text
+                    className={`font-medium ${
+                      !editingContent.trim() || isUpdatingContent
+                        ? 'text-gray-500'
+                        : 'text-white'
+                    }`}
+                  >
+                    {isUpdatingContent ? 'Đang cập nhật...' : 'Cập nhật'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
