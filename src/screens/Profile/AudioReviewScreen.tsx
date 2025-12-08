@@ -610,7 +610,8 @@ const AudioReviewScreen = () => {
           className="flex-1"
         >
           <View className="flex-1 bg-black/50 justify-end">
-            <View className="bg-white rounded-t-3xl max-h-[85%]">
+            <View className="bg-white rounded-t-3xl" style={{ maxHeight: '85%', flexDirection: 'column' }}>
+              {/* Header */}
               <View className="px-4 pt-4 pb-2 border-b border-gray-200">
                 <View className="flex-row items-center justify-between">
                   <Text className="text-lg font-bold text-gray-900">Gửi đơn</Text>
@@ -623,9 +624,15 @@ const AudioReviewScreen = () => {
                 </Text>
               </View>
 
+              {/* Scrollable Content */}
               {selectedReview && (
-                <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-                  <View className="px-4 pt-4">
+                <ScrollView 
+                  showsVerticalScrollIndicator={true}
+                  contentContainerStyle={{ paddingBottom: 20, paddingTop: 16 }}
+                  style={{ flex: 1 }}
+                  nestedScrollEnabled={true}
+                >
+                  <View className="px-4">
                     {/* Review Info */}
                     <View className="bg-gray-50 rounded-lg p-4 mb-4">
                       <Text className="text-xs text-gray-500 mb-1">Câu hỏi:</Text>
@@ -688,21 +695,24 @@ const AudioReviewScreen = () => {
 
                     {/* Tab Content */}
                     {activeTab === 'feedback' ? (
-                      <View className="space-y-4">
+                      <View style={{ gap: 16 }}>
                         <View>
                           <Text className="text-sm font-medium text-gray-700 mb-2">
-                            Đánh giá (1-5)
+                            Đánh giá (1-5) *
                           </Text>
-                          <View className="flex-row items-center gap-2">
+                          <View className="flex-row items-center" style={{ gap: 8, marginBottom: 8 }}>
                             {[1, 2, 3, 4, 5].map((rating) => (
                               <TouchableOpacity
                                 key={rating}
                                 onPress={() => setFeedbackRating(rating)}
-                                className={`w-12 h-12 rounded-lg items-center justify-center ${
-                                  feedbackRating === rating
-                                    ? 'bg-purple-600'
-                                    : 'bg-gray-100'
-                                }`}
+                                style={{
+                                  width: 48,
+                                  height: 48,
+                                  borderRadius: 8,
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  backgroundColor: feedbackRating === rating ? '#7C3AED' : '#F3F4F6',
+                                }}
                               >
                                 <Ionicons
                                   name="star"
@@ -712,10 +722,44 @@ const AudioReviewScreen = () => {
                               </TouchableOpacity>
                             ))}
                           </View>
+                          <View className="flex-row items-center" style={{ gap: 8 }}>
+                            <Text className="text-xs text-gray-500">Hoặc nhập số:</Text>
+                            <TextInput
+                              keyboardType="numeric"
+                              value={feedbackRating.toString()}
+                              onChangeText={(text) => {
+                                const num = parseInt(text) || 0;
+                                if (num >= 1 && num <= 5) {
+                                  setFeedbackRating(num);
+                                } else if (text === '') {
+                                  setFeedbackRating(1);
+                                }
+                              }}
+                              style={{
+                                width: 60,
+                                height: 36,
+                                borderWidth: 1,
+                                borderColor: '#D1D5DB',
+                                borderRadius: 8,
+                                paddingHorizontal: 8,
+                                textAlign: 'center',
+                                fontSize: 14,
+                                color: '#111827',
+                                backgroundColor: '#FFFFFF',
+                              }}
+                              maxLength={1}
+                            />
+                            <Text className="text-xs text-gray-500">/ 5</Text>
+                          </View>
+                          {feedbackRating < 1 || feedbackRating > 5 ? (
+                            <Text className="text-xs text-red-500 mt-1">
+                              Vui lòng chọn đánh giá từ 1 đến 5
+                            </Text>
+                          ) : null}
                         </View>
                         <View>
                           <Text className="text-sm font-medium text-gray-700 mb-2">
-                            Nhận xét của bạn
+                            Nhận xét của bạn *
                           </Text>
                           <TextInput
                             multiline
@@ -723,10 +767,25 @@ const AudioReviewScreen = () => {
                             value={feedbackContent}
                             onChangeText={setFeedbackContent}
                             placeholder="Chia sẻ cảm nhận của bạn về chất lượng review..."
-                            className="border border-gray-200 rounded-lg px-3 py-2 text-sm min-h-[100px]"
+                            style={{
+                              borderWidth: 1,
+                              borderColor: '#E5E7EB',
+                              borderRadius: 8,
+                              paddingHorizontal: 12,
+                              paddingVertical: 10,
+                              fontSize: 14,
+                              color: '#111827',
+                              minHeight: 100,
+                              backgroundColor: '#FFFFFF',
+                            }}
                             placeholderTextColor="#9CA3AF"
                             textAlignVertical="top"
                           />
+                          {!feedbackContent.trim() ? (
+                            <Text className="text-xs text-red-500 mt-1">
+                              Vui lòng nhập nhận xét
+                            </Text>
+                          ) : null}
                         </View>
                       </View>
                     ) : (
@@ -740,18 +799,41 @@ const AudioReviewScreen = () => {
                           value={reportReason}
                           onChangeText={setReportReason}
                           placeholder="Mô tả chi tiết vấn đề bạn gặp phải với review này..."
-                          className="border border-gray-200 rounded-lg px-3 py-2 text-sm min-h-[100px]"
+                          style={{
+                            borderWidth: 1,
+                            borderColor: '#E5E7EB',
+                            borderRadius: 8,
+                            paddingHorizontal: 12,
+                            paddingVertical: 10,
+                            fontSize: 14,
+                            color: '#111827',
+                            minHeight: 100,
+                            backgroundColor: '#FFFFFF',
+                          }}
                           placeholderTextColor="#9CA3AF"
                           textAlignVertical="top"
                         />
+                        {!reportReason.trim() ? (
+                          <Text className="text-xs text-red-500 mt-1">
+                            Vui lòng nhập lý do báo cáo
+                          </Text>
+                        ) : null}
+                        <View className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          <View className="flex-row items-start">
+                            <Ionicons name="information-circle" size={16} color="#3B82F6" style={{ marginTop: 2, marginRight: 8 }} />
+                            <Text className="text-xs text-blue-700 flex-1">
+                              Báo cáo sẽ được xem xét bởi đội ngũ quản trị. Vui lòng cung cấp thông tin chi tiết và chính xác.
+                            </Text>
+                          </View>
+                        </View>
                       </View>
                     )}
                   </View>
                 </ScrollView>
               )}
 
-              {/* Footer */}
-              <View className="px-4 py-4 border-t border-gray-200 flex-row gap-2">
+              {/* Footer - Always visible at bottom */}
+              <View className="px-4 py-4 border-t border-gray-200 bg-white flex-row" style={{ gap: 8 }}>
                 <TouchableOpacity
                   onPress={() => setIsRequestDialogOpen(false)}
                   disabled={isSubmittingFeedback || isSubmittingReport}
