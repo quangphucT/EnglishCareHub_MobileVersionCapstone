@@ -20,6 +20,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Sound from "react-native-sound";
+import { Audio } from "expo-av";
 import dayjs from "dayjs";
 import {
   useReviewReviewPending,
@@ -221,7 +222,7 @@ export default function ReviewerReviewScreen() {
       setIsSubmittingReview(false);
       setHasRecordedAudio(false);
       setRecording(false);
-      recordedAudioBlobMp3Ref.current = null;
+      recordedAudioUriRef.current = null;
       requestAnimationFrame(() => {
         modalScrollRef.current?.scrollTo({ y: 0, animated: false });
       });
@@ -508,24 +509,55 @@ export default function ReviewerReviewScreen() {
 
   const [recording, setRecording] = useState<boolean>(false);
   const [hasRecordedAudio, setHasRecordedAudio] = useState<boolean>(false);
-  const streamRef = useRef<MediaStream | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const recordedAudioBlobMp3Ref = useRef<Blob | null>(null); // Store recorded audio blob
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const recordedAudioUriRef = useRef<string | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   
-  const updateRecordingState = useCallback(() => {
+  const updateRecordingState = useCallback(async () => {
     if (recording) {
-      setRecording(false);
-      if (mediaRecorderRef.current) mediaRecorderRef.current.stop();
+      // Stop recording
+      try {
+        if (!recordingRef.current) return;
+        
+        await recordingRef.current.stopAndUnloadAsync();
+        const uri = recordingRef.current.getURI();
+        
+        if (uri) {
+          recordedAudioUriRef.current = uri;
+      
+          setHasRecordedAudio(true);
+          Alert.alert(" Ghi âm thành công", "Đã ghi được audio của bạn");
+        } else {
+          setHasRecordedAudio(false);
+          Alert.alert(" Lỗi ghi âm", "Không có dữ liệu audio. Vui lòng thử lại.");
+        }
+        
+        recordingRef.current = null;
+        setRecording(false);
+      } catch (error) {
+        console.error('Error stopping recording:', error);
+        Alert.alert('Lỗi', 'Không thể dừng ghi âm');
+        setRecording(false);
+      }
     } else {
-      if (
-        mediaRecorderRef.current &&
-        mediaRecorderRef.current.state !== "recording"
-      ) {
-        audioChunksRef.current = [];
+      // Start recording
+      try {
+        await Audio.requestPermissionsAsync();
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: true,
+          playsInSilentModeIOS: true,
+        });
+
+        const { recording: newRecording } = await Audio.Recording.createAsync(
+          Audio.RecordingOptionsPresets.HIGH_QUALITY
+        );
+
+        recordingRef.current = newRecording;
         setRecording(true);
-        mediaRecorderRef.current.start();
+        console.log('⏺ Recording started');
+      } catch (error) {
+        console.error('Failed to start recording:', error);
+        Alert.alert('Lỗi', 'Không thể bắt đầu ghi âm. Vui lòng cấp quyền microphone.');
       }
     }
   }, [recording]);
@@ -553,50 +585,12 @@ export default function ReviewerReviewScreen() {
       pulseAnim.setValue(1);
     }
   }, [recording, pulseAnim]);
-  // Initialize MediaRecorder on component mount
-  useEffect(() => {
-    const constraints: MediaStreamConstraints = {
-      audio: { channelCount: 1, sampleRate: 48000 },
-    };
-    
-    navigator.mediaDevices
-      .getUserMedia(constraints)
-      .then((stream) => {
-        streamRef.current = stream;
-        const mr = new MediaRecorder(stream);
-        mediaRecorderRef.current = mr;
-        
-        mr.ondataavailable = (ev) => {
-          // Some browsers use ev.data.size
-          if (ev.data && ev.data.size > 0) {
-            audioChunksRef.current.push(ev.data);
-          }
-        };
-        
-        mr.onstop = async () => {
-          const blob = new Blob(audioChunksRef.current, { type: "audio/ogg" });
-          const blobMp3 = new Blob(audioChunksRef.current, { type: "audio/mp3" });
-          recordedAudioBlobMp3Ref.current = blobMp3;
-          console.log("Recording stopped, blob stored:", blobMp3.size, "bytes");
-          
-          if (blobMp3.size > 0) {
-            setHasRecordedAudio(true);
-            Alert.alert("✅ Ghi âm thành công", `Đã ghi được ${(blobMp3.size / 1024).toFixed(1)} KB audio`);
-          } else {
-            setHasRecordedAudio(false);
-            Alert.alert("❌ Lỗi ghi âm", "Không có dữ liệu audio. Vui lòng thử lại.");
-          }
-        };
-      })
-      .catch((error) => {
-        console.error("Error accessing microphone:", error);
-      });
 
-    // Cleanup function
+  // Cleanup on unmount
+  useEffect(() => {
     return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
+      if (recordingRef.current) {
+        recordingRef.current.stopAndUnloadAsync();
       }
     };
   }, []);
@@ -769,7 +763,6 @@ export default function ReviewerReviewScreen() {
                 <TouchableOpacity
                   onPress={updateRecordingState}
                   disabled={
-                    !mediaRecorderRef.current ||
                     submitReviewMutation.isPending ||
                     isSubmittingReview
                   }
@@ -788,8 +781,7 @@ export default function ReviewerReviewScreen() {
                     shadowOpacity: 0.3,
                     shadowRadius: 8,
                     elevation: 8,
-                    opacity: (!mediaRecorderRef.current ||
-                      submitReviewMutation.isPending ||
+                    opacity: (submitReviewMutation.isPending ||
                       isSubmittingReview) ? 0.5 : 1,
                   }}
                 >
