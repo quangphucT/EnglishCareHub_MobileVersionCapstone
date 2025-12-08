@@ -294,7 +294,7 @@ export default function ReviewerReviewScreen() {
     }
 
     try {
-      setIsSubmittingReview(true);
+      setIsSubmittingReview(true);   
       await submitReviewMutation.mutateAsync({
         learnerAnswerId:
           selectedReview.type === "Record" ? null : selectedReview.id,
@@ -302,7 +302,7 @@ export default function ReviewerReviewScreen() {
         reviewerProfileId: userData.reviewerProfile.reviewerProfileId,
         score: parsedScore,
         comment: trimmedComment,
-        recordAudioUrl: null,
+        recordAudioUrl: recordedAudioUriRef.current, // ✅ Gửi audio URI thay vì null
       });
 
       setReviewedAnswers((prev) => [...prev, selectedReview.id]);
@@ -535,7 +535,6 @@ export default function ReviewerReviewScreen() {
         recordingRef.current = null;
         setRecording(false);
       } catch (error) {
-        console.error('Error stopping recording:', error);
         Alert.alert('Lỗi', 'Không thể dừng ghi âm');
         setRecording(false);
       }
