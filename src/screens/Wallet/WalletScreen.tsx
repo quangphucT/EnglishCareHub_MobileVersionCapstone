@@ -55,7 +55,6 @@ const WalletScreen = () => {
         
         if (isCancelled) return;
         
-        console.log('📦 Order status response:', res);
         const status = res?.status;
 
         if (status === 'Paid') {
@@ -260,6 +259,8 @@ const WalletScreen = () => {
                   {coinPackages.map((pkg) => {
                     const hasBonus = pkg.bonusPercent > 0;
                     const isLoading = loadingPackageId === pkg.servicePackageId;
+                    const bonusCoin = hasBonus ? Math.floor((pkg.numberOfCoin * pkg.bonusPercent) / 100) : 0;
+                    const totalCoin = pkg.numberOfCoin + bonusCoin;
 
                     return (
                       <TouchableOpacity
@@ -267,9 +268,10 @@ const WalletScreen = () => {
                         onPress={() => handleBuyCoin(pkg.servicePackageId)}
                         disabled={isLoading || isBuying}
                         activeOpacity={0.7}
-                        className="rounded-2xl overflow-hidden border border-gray-200"
+                        className="rounded-2xl overflow-hidden border-2"
                         style={{
                           backgroundColor: 'white',
+                          borderColor: hasBonus ? '#F59E0B' : '#E5E7EB',
                           shadowColor: '#000',
                           shadowOffset: { width: 0, height: 2 },
                           shadowOpacity: 0.1,
@@ -277,7 +279,14 @@ const WalletScreen = () => {
                           elevation: 3,
                         }}
                       >
-                        <View className="p-4">
+                        {/* Bonus Badge */}
+                        {hasBonus && (
+                          <View className="bg-amber-500 px-3 py-1 absolute top-0 left-0 z-10 rounded-br-xl">
+                            <Text className="text-white text-xs font-bold">+{pkg.bonusPercent}% BONUS</Text>
+                          </View>
+                        )}
+
+                        <View className="p-4" style={{ paddingTop: hasBonus ? 32 : 16 }}>
                           {/* Header Row */}
                           <View className="flex-row items-start justify-between mb-3">
                             <View className="flex-1">
@@ -286,7 +295,6 @@ const WalletScreen = () => {
                                 {pkg.description}
                               </Text>
                             </View>
-                            
                           </View>
 
                           {/* Coin Display */}
@@ -295,10 +303,28 @@ const WalletScreen = () => {
                               <View className="w-10 h-10 bg-yellow-400 rounded-full items-center justify-center mr-3">
                                 <Ionicons name="logo-bitcoin" size={22} color="white" />
                               </View>
-                              <Text className="text-3xl font-black text-yellow-600">
-                                {pkg.numberOfCoin.toLocaleString()}
-                              </Text>
-                              <Text className="text-base text-yellow-700 font-medium ml-2">Coin</Text>
+                              <View className="items-center">
+                                {hasBonus ? (
+                                  <>
+                                    <Text className="text-3xl font-black text-yellow-600">
+                                      {totalCoin.toLocaleString()}
+                                    </Text>
+                                    <View className="flex-row items-center gap-1">
+                                      <Text className="text-xs text-gray-500 line-through">
+                                        {pkg.numberOfCoin.toLocaleString()}
+                                      </Text>
+                                      <Text className="text-xs font-bold text-green-600">
+                                        +{bonusCoin.toLocaleString()} Coin
+                                      </Text>
+                                    </View>
+                                  </>
+                                ) : (
+                                  <Text className="text-3xl font-black text-yellow-600">
+                                    {pkg.numberOfCoin.toLocaleString()}
+                                  </Text>
+                                )}
+                                <Text className="text-base text-yellow-700 font-medium">Coin</Text>
+                              </View>
                             </View>
                           </View>
 
@@ -314,7 +340,7 @@ const WalletScreen = () => {
 
                             <View 
                               className={`px-6 py-2.5 rounded-full ${
-                                isLoading ? 'bg-gray-300' : 'bg-blue-600'
+                                isLoading ? 'bg-gray-300' : hasBonus ? 'bg-amber-500' : 'bg-blue-600'
                               }`}
                             >
                               {isLoading ? (

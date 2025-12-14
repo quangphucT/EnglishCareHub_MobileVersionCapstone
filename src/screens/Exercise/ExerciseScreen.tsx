@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -115,6 +116,7 @@ const ExerciseScreen = () => {
   const [AIExplainTheWrongForVoiceAI, setAIExplainTheWrongForVoiceAI] =
     useState<string[]>([]);
   const [learnerAnswerIds, setLearnerAnswerIds] = useState<string[]>([]);
+  const [mediaViewMode, setMediaViewMode] = useState<"video" | "image">("video");
 
   const recordingRef = useRef<Audio.Recording | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
@@ -605,47 +607,178 @@ const ExerciseScreen = () => {
           </View>
         </View> */}
 
-        {/* Video khẩu hình (nếu có) */}
+        {/* Media Section - Video và Hình ảnh với Tabs */}
         {currentQuestion?.media && currentQuestion.media.length > 0 && (
           <View className="mb-6">
-            {currentQuestion.media.map((mediaItem: any, idx: number) => (
-              <View key={mediaItem.questionMediaId || idx}>
-                {mediaItem.videoUrl && (
-                  <View className="bg-white rounded-2xl overflow-hidden shadow-md">
-                    <View className="flex-row items-center gap-2 px-4 pt-4 pb-3 bg-gray-50">
-                      <View className="w-8 h-8 bg-blue-500 rounded-full items-center justify-center">
-                        <Ionicons name="videocam" size={16} color="white" />
-                      </View>
-                      <View className="flex-1">
-                        <Text className="text-sm font-semibold text-blue-900">
-                          Video hướng dẫn khẩu hình
-                        </Text>
-                        <Text className="text-xs text-blue-700">
-                          Quan sát cách đặt miệng khi phát âm
-                        </Text>
-                      </View>
-                    </View>
-                    
-                    <View className="bg-black">
-                      <YoutubePlayer
-                        height={220}
-                        play={false}
-                        videoId={mediaItem.videoUrl.includes('youtube.com') || mediaItem.videoUrl.includes('youtu.be') 
-                          ? mediaItem.videoUrl.split('v=')[1]?.split('&')[0] || mediaItem.videoUrl.split('/').pop()
-                          : mediaItem.videoUrl}
-                      />
-                    </View>
+            {currentQuestion.media.map((mediaItem: any, idx: number) => {
+              const hasVideo = !!mediaItem.videoUrl;
+              const hasImage = !!mediaItem.imageUrl;
 
-                    <View className="flex-row items-center px-4 py-3 bg-blue-50">
-                      <Ionicons name="bulb-outline" size={16} color="#3B82F6" />
-                      <Text className="text-xs text-gray-700 ml-2 flex-1">
-                        Tip: Xem video nhiều lần để bắt chước chính xác
+              return (
+                <View key={mediaItem.questionMediaId || idx} className="bg-white rounded-2xl overflow-hidden shadow-md">
+                  {/* Tabs Navigation */}
+                  <View className="flex-row border-b border-gray-200">
+                    <TouchableOpacity
+                      onPress={() => setMediaViewMode("video")}
+                      className={`flex-1 flex-row items-center justify-center gap-2 py-3 border-b-2 ${
+                        mediaViewMode === "video"
+                          ? "border-indigo-600 bg-indigo-50"
+                          : "border-transparent bg-gray-50"
+                      }`}
+                    >
+                      <Ionicons
+                        name="videocam"
+                        size={18}
+                        color={mediaViewMode === "video" ? "#4F46E5" : "#6B7280"}
+                      />
+                      <Text
+                        className={`text-sm font-semibold ${
+                          mediaViewMode === "video" ? "text-indigo-600" : "text-gray-500"
+                        }`}
+                      >
+                        Video Hướng Dẫn
                       </Text>
-                    </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={() => setMediaViewMode("image")}
+                      className={`flex-1 flex-row items-center justify-center gap-2 py-3 border-b-2 ${
+                        mediaViewMode === "image"
+                          ? "border-indigo-600 bg-indigo-50"
+                          : "border-transparent bg-gray-50"
+                      }`}
+                    >
+                      <Ionicons
+                        name="image"
+                        size={18}
+                        color={mediaViewMode === "image" ? "#4F46E5" : "#6B7280"}
+                      />
+                      <Text
+                        className={`text-sm font-semibold ${
+                          mediaViewMode === "image" ? "text-indigo-600" : "text-gray-500"
+                        }`}
+                      >
+                        Hình Ảnh Minh Họa
+                      </Text>
+                    </TouchableOpacity>
                   </View>
-                )}
-              </View>
-            ))}
+
+                  {/* Tab Content */}
+                  <View className="p-4">
+                    {/* Video Tab Content */}
+                    {mediaViewMode === "video" && (
+                      <View>
+                        {hasVideo ? (
+                          <View>
+                            <View className="flex-row items-center gap-2 mb-3">
+                              <View className="w-8 h-8 bg-blue-500 rounded-full items-center justify-center">
+                                <Ionicons name="play" size={14} color="white" />
+                              </View>
+                              <View className="flex-1">
+                                <Text className="text-sm font-semibold text-blue-900">
+                                  Video Hướng Dẫn Khẩu Hình
+                                </Text>
+                                <Text className="text-xs text-blue-700">
+                                  Quan sát cách đặt miệng khi phát âm
+                                </Text>
+                              </View>
+                            </View>
+
+                            <View className="bg-black rounded-xl overflow-hidden">
+                              <YoutubePlayer
+                                height={220}
+                                play={false}
+                                videoId={
+                                  mediaItem.videoUrl.includes("youtube.com") ||
+                                  mediaItem.videoUrl.includes("youtu.be")
+                                    ? mediaItem.videoUrl.split("v=")[1]?.split("&")[0] ||
+                                      mediaItem.videoUrl.split("/").pop()
+                                    : mediaItem.videoUrl
+                                }
+                              />
+                            </View>
+
+                            <View className="flex-row items-start mt-3 bg-blue-50 rounded-lg p-3">
+                              <Ionicons name="bulb-outline" size={16} color="#3B82F6" />
+                              <Text className="text-xs text-blue-800 ml-2 flex-1 font-medium">
+                                💡 Mẹo: Xem video nhiều lần, tạm dừng để quan sát chi tiết
+                                chuyển động môi và lưỡi
+                              </Text>
+                            </View>
+                          </View>
+                        ) : (
+                          <View className="py-12 items-center">
+                            <View className="w-16 h-16 bg-blue-100 rounded-full items-center justify-center mb-3">
+                              <Ionicons name="videocam-off" size={32} color="#3B82F6" />
+                            </View>
+                            <Text className="text-gray-500 font-medium text-center">
+                              Video chưa có sẵn
+                            </Text>
+                            <Text className="text-sm text-gray-400 mt-1 text-center">
+                              Vui lòng xem tab Hình Ảnh để tham khảo
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    )}
+
+                    {/* Image Tab Content */}
+                    {mediaViewMode === "image" && (
+                      <View>
+                        {hasImage ? (
+                          <View>
+                            <View className="flex-row items-center gap-2 mb-3">
+                              <View className="w-8 h-8 bg-green-500 rounded-full items-center justify-center">
+                                <Ionicons name="image" size={14} color="white" />
+                              </View>
+                              <View className="flex-1">
+                                <Text className="text-sm font-semibold text-green-900">
+                                  Hình Ảnh Minh Họa Khẩu Hình
+                                </Text>
+                                <Text className="text-xs text-green-700">
+                                  Tham khảo vị trí khẩu hình chuẩn
+                                </Text>
+                              </View>
+                            </View>
+
+                            <View className="bg-gray-100 rounded-xl overflow-hidden">
+                              <Image
+                                source={{ uri: mediaItem.imageUrl }}
+                                style={{
+                                  width: "100%",
+                                  height: 220,
+                                  resizeMode: "contain",
+                                }}
+                              />
+                            </View>
+
+                            <View className="flex-row items-start mt-3 bg-green-50 rounded-lg p-3">
+                              <Ionicons name="bulb-outline" size={16} color="#10B981" />
+                              <Text className="text-xs text-green-800 ml-2 flex-1 font-medium">
+                                💡 Mẹo: Quan sát kỹ vị trí lưỡi, răng và môi trong hình để
+                                phát âm chuẩn
+                              </Text>
+                            </View>
+                          </View>
+                        ) : (
+                          <View className="py-12 items-center">
+                            <View className="w-16 h-16 bg-green-100 rounded-full items-center justify-center mb-3">
+                              <Ionicons name="image-outline" size={32} color="#10B981" />
+                            </View>
+                            <Text className="text-gray-500 font-medium text-center">
+                              Hình ảnh chưa có sẵn
+                            </Text>
+                            <Text className="text-sm text-gray-400 mt-1 text-center">
+                              Vui lòng xem tab Video để học
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                </View>
+              );
+            })}
           </View>
         )}
         {/* Processing status */}
@@ -749,7 +882,7 @@ const ExerciseScreen = () => {
             {letterCorrectData[currentQuestionIndex] && (
               <View className="mt-4 p-4 bg-white rounded-lg border border-green-200">
                 <Text className="text-xs text-gray-600 mb-3 font-medium">
-                  Phân tích chi tiết:
+                  Phân tích âm vị:
                 </Text>
                 <ColoredText 
                   text={currentQuestion.text} 
@@ -871,7 +1004,11 @@ const ExerciseScreen = () => {
           ) : (
             <TouchableOpacity
               onPress={handleNextQuestion}
-              className="flex-row items-center px-4 py-3 rounded-xl bg-blue-600"
+              disabled={isProcessingAudio}
+              className={`flex-row items-center px-4 py-3 rounded-xl ${
+                isProcessingAudio ? "bg-gray-400" : "bg-blue-600"
+              }`}
+              style={{ opacity: isProcessingAudio ? 0.5 : 1 }}
             >
               <Text className="font-semibold text-sm text-white">
                 Tiếp

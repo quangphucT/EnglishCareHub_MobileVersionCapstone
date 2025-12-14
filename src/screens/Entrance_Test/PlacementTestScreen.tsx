@@ -14,6 +14,7 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Audio } from "expo-av";
@@ -26,6 +27,23 @@ interface ResultsAfterTest {
   averageScore: number;
   assignedLevel: string;
 }
+
+interface TestSession {
+  assessmentId: string;
+  currentQuestionIndex: number;
+  recorded: boolean[];
+  recordingAttempts: number[];
+  pronunciationScores: number[];
+  pronunciationAccuracy: string[];
+  ipaTranscripts: string[];
+  realIpaTranscripts: string[];
+  coloredContents: string[];
+  timestamp: number;
+}
+
+const TEST_SESSION_KEY = "@placement_test_session";
+const SESSION_TIMEOUT = 2 * 60 * 60 * 1000; // 2 giờ
+
 export default function PlacementTestScreen() {
   const { refreshAuth } = useAuthRefresh();
   const logoutMutation = useLogout();
@@ -71,7 +89,7 @@ export default function PlacementTestScreen() {
       sectionType: string;
     }> = [];
 
-    const typeOrder = ["word", "sentence", "paragraph"];
+    const typeOrder = ["WORD", "SENTENCE", "PHRASE"];
     const sortedSections = [...testData.data.sections].sort((a, b) => {
       return typeOrder.indexOf(a.type) - typeOrder.indexOf(b.type);
     });
@@ -106,6 +124,52 @@ export default function PlacementTestScreen() {
     }
   }, [allQuestions, recorded.length]);
 
+  // Load saved session on mount
+  useEffect(() => {
+    const loadSession = async () => {
+      if (!testData?.data?.assessmentId) return;
+
+      try {
+        const sessionData = await AsyncStorage.getItem(TEST_SESSION_KEY);
+        if (!sessionData) return;
+
+        const session: TestSession = JSON.parse(sessionData);
+        const now = Date.now();
+
+        // Kiểm tra session timeout và assessmentId match
+        if (
+          now - session.timestamp > SESSION_TIMEOUT ||
+          session.assessmentId !== testData.data.assessmentId
+        ) {
+          // Session hết hạn hoặc khác bài test - xóa
+          await AsyncStorage.removeItem(TEST_SESSION_KEY);
+          return;
+        }
+
+        // Restore session
+        console.log("🔄 Khôi phục session test đã lưu");
+        setCurrentQuestionIndex(session.currentQuestionIndex);
+        setRecorded(session.recorded);
+        setRecordingAttempts(session.recordingAttempts);
+        setPronunciationScores(session.pronunciationScores);
+        setPronunciationAccuracy(session.pronunciationAccuracy);
+        setIpaTranscripts(session.ipaTranscripts);
+        setRealIpaTranscripts(session.realIpaTranscripts);
+        setColoredContents(session.coloredContents);
+
+        Alert.alert(
+          "Tiếp tục bài test",
+          "Chúng tôi đã phát hiện bạn có bài test chưa hoàn thành. Bài test sẽ được tiếp tục từ vị trí đã lưu.",
+          [{ text: "OK" }]
+        );
+      } catch (error) {
+        console.error("Lỗi khi load session:", error);
+      }
+    };
+
+    loadSession();
+  }, [testData?.data?.assessmentId]);
+
   // Request audio permissions
   useEffect(() => {
     (async () => {
@@ -118,6 +182,42 @@ export default function PlacementTestScreen() {
       }
     })();
   }, []);
+
+  const saveSession = useCallback(
+    async (
+      questionIndex: number,
+      recordedData: boolean[],
+      attempts: number[],
+      scores: number[],
+      accuracy: string[],
+      ipa: string[],
+      realIpa: string[],
+      colored: string[]
+    ) => {
+      if (!testData?.data?.assessmentId) return;
+
+      try {
+        const session: TestSession = {
+          assessmentId: testData.data.assessmentId,
+          currentQuestionIndex: questionIndex,
+          recorded: recordedData,
+          recordingAttempts: attempts,
+          pronunciationScores: scores,
+          pronunciationAccuracy: accuracy,
+          ipaTranscripts: ipa,
+          realIpaTranscripts: realIpa,
+          coloredContents: colored,
+          timestamp: Date.now(),
+        };
+
+        await AsyncStorage.setItem(TEST_SESSION_KEY, JSON.stringify(session));
+        console.log("💾 Đã lưu session test");
+      } catch (error) {
+        console.error("Lỗi khi lưu session:", error);
+      }
+    },
+    [testData?.data?.assessmentId]
+  );
 
   const convertBlobToBase64 = useCallback(
     async (blob: Blob): Promise<string> => {
@@ -283,6 +383,18 @@ export default function PlacementTestScreen() {
         (newAttempts[currentQuestionIndex] || 0) + 1;
       setRecordingAttempts(newAttempts);
 
+      // Lưu session sau khi ghi âm thành công
+      await saveSession(
+        currentQuestionIndex,
+        newRecorded,
+        newAttempts,
+        newScores,
+        newAccuracy,
+        newIpa,
+        newRealIpa,
+        newColored
+      );
+
       setIsProcessingAudio(false);
     } catch (error) {
       setRecordingStatus("idle");
@@ -302,6 +414,18 @@ export default function PlacementTestScreen() {
       newAttempts[currentQuestionIndex] =
         (newAttempts[currentQuestionIndex] || 0) + 1;
       setRecordingAttempts(newAttempts);
+
+      // Lưu session ngay cả khi có lỗi
+      await saveSession(
+        currentQuestionIndex,
+        newRecorded,
+        newAttempts,
+        newScores,
+        pronunciationAccuracy,
+        ipaTranscripts,
+        realIpaTranscripts,
+        coloredContents
+      );
 
       Alert.alert(
         "Cảnh báo",
@@ -394,9 +518,16 @@ export default function PlacementTestScreen() {
       };
 
       submitPlacementTest(payload, {
-        onSuccess: (data) => {
+        onSuccess: async (data) => {
           if (data.data) {
             setResultsAfterTest(data.data);
+          }
+          // Xóa session sau khi nộp bài thành công
+          try {
+            await AsyncStorage.removeItem(TEST_SESSION_KEY);
+            console.log("🗑️ Đã xóa session test");
+          } catch (error) {
+            console.error("Lỗi khi xóa session:", error);
           }
         },
         onError: (error: any) => {
@@ -456,18 +587,108 @@ export default function PlacementTestScreen() {
     return ((currentQuestionIndex + (done ? 1 : 0)) / totalQuestions) * 100;
   };
 
+  const renderColoredText = (htmlString: string) => {
+    if (!htmlString) return null;
+
+    // Parse HTML spans and create Text components with colors
+    const spanRegex = /<span style="color: (#[A-F0-9]+)">(.?)<\/span>/gi;
+    const parts: { text: string; color: string }[] = [];
+    let match;
+    let lastIndex = 0;
+
+    while ((match = spanRegex.exec(htmlString)) !== null) {
+      // Add any text before the span (including spaces)
+      if (match.index > lastIndex) {
+        const beforeText = htmlString.substring(lastIndex, match.index);
+        if (beforeText) {
+          parts.push({ text: beforeText, color: "#1F2937" });
+        }
+      }
+      // Add the colored span
+      parts.push({ text: match[2], color: match[1] });
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Add any remaining text
+    if (lastIndex < htmlString.length) {
+      const remainingText = htmlString.substring(lastIndex);
+      if (remainingText) {
+        parts.push({ text: remainingText, color: "#1F2937" });
+      }
+    }
+
+    return (
+      <Text className="text-lg font-semibold leading-relaxed">
+        {parts.map((part, index) => (
+          <Text key={index} style={{ color: part.color }}>
+            {part.text}
+          </Text>
+        ))}
+      </Text>
+    );
+  };
+
+  const clearSession = async () => {
+    Alert.alert(
+      "Xóa dữ liệu bài test",
+      "Bạn có chắc chắn muốn xóa tiến trình bài test đã lưu? Bạn sẽ phải làm lại từ đầu.",
+      [
+        {
+          text: "Hủy",
+          style: "cancel",
+        },
+        {
+          text: "Xóa",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await AsyncStorage.removeItem(TEST_SESSION_KEY);
+              console.log("🗑️ Đã xóa session test");
+              
+              // Reset toàn bộ state
+              setCurrentQuestionIndex(0);
+              setRecorded(new Array(allQuestions.length).fill(false));
+              setRecordingAttempts(new Array(allQuestions.length).fill(0));
+              setPronunciationScores(new Array(allQuestions.length).fill(0));
+              setPronunciationAccuracy(new Array(allQuestions.length).fill(""));
+              setIpaTranscripts(new Array(allQuestions.length).fill(""));
+              setRealIpaTranscripts(new Array(allQuestions.length).fill(""));
+              setColoredContents(new Array(allQuestions.length).fill(""));
+              setRecordingStatus("idle");
+              setDone(false);
+              
+              Alert.alert("Thành công", "Bài test đã được reset. Bạn có thể bắt đầu lại.");
+            } catch (error) {
+              console.error("Lỗi khi xóa session:", error);
+              Alert.alert("Lỗi", "Không thể xóa dữ liệu. Vui lòng thử lại.");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-white">
       <View className="flex-1 bg-gray-50">
         {/* Header */}
-       {/* <View>
-        <TouchableOpacity
-          onPress={handleLogout}
-          className="mt-6 bg-purple-600 px-6 py-3 rounded-xl"
-        >
-          <Text className="text-black font-semibold">Quay lại</Text>
-        </TouchableOpacity>
-      </View>  */}
+        {/* Button xóa dữ liệu test - Bỏ comment khi cần */}
+        {/* <View className="px-6 pt-4">
+          <TouchableOpacity
+            onPress={clearSession}
+            className="bg-red-600 px-4 py-2 rounded-xl self-end"
+          >
+            <Text className="text-white font-semibold text-sm">🗑️ Xóa dữ liệu test</Text>
+          </TouchableOpacity>
+        </View> */}
+        {/* <View>
+          <TouchableOpacity
+            onPress={handleLogout}
+            className="absolute top-4 right-4 bg-gray-200 px-3 py-2 rounded-full z-10"
+          >
+            <Ionicons name="log-out-outline" size={20} color="#374151" />
+          </TouchableOpacity>
+        </View> */}
         <View
           className="px-6 pt-12 pb-6"
           style={{
@@ -479,7 +700,7 @@ export default function PlacementTestScreen() {
           <View className="flex-row items-center justify-between mb-4">
             <View>
               <Text className="text-white text-2xl font-bold">
-                Placement Test
+                Bài kiểm tra đầu vào
               </Text>
               <Text className="text-white/90 text-sm mt-1">
                 {currentQuestion.sectionType.toUpperCase()}
@@ -500,7 +721,7 @@ export default function PlacementTestScreen() {
             />
           </View>
           <Text className="text-white/90 text-xs mt-2">
-            {Math.round(getProgress())}% hoàn thành
+            {currentQuestionIndex + (done ? 1 : 0)}/{totalQuestions} câu hoàn thành
           </Text>
         </View>
 
@@ -571,12 +792,17 @@ export default function PlacementTestScreen() {
 
               <TouchableOpacity
                 onPress={handleRecord}
-                disabled={isProcessingAudio && recordingStatus !== "recording"}
+                disabled={
+                  isProcessingAudio ||
+                  ((recordingAttempts[currentQuestionIndex] || 0) >= 2 &&
+                    recordingStatus !== "recording")
+                }
                 className="items-center mb-4"
                 style={{
                   opacity:
-                    (recordingAttempts[currentQuestionIndex] || 0) >= 2 &&
-                    recordingStatus !== "recording"
+                    isProcessingAudio ||
+                    ((recordingAttempts[currentQuestionIndex] || 0) >= 2 &&
+                      recordingStatus !== "recording")
                       ? 0.5
                       : 1,
                 }}
@@ -589,7 +815,7 @@ export default function PlacementTestScreen() {
                     backgroundColor:
                       recordingStatus === "recording"
                         ? "#EF4444"
-                        : recorded[currentQuestionIndex]
+                        : (recordingAttempts[currentQuestionIndex] || 0) >= 2
                           ? "#10B981"
                           : "#7C3AED",
                     alignItems: "center",
@@ -605,7 +831,7 @@ export default function PlacementTestScreen() {
                     name={
                       recordingStatus === "recording"
                         ? "stop"
-                        : recorded[currentQuestionIndex]
+                        : (recordingAttempts[currentQuestionIndex] || 0) >= 2
                           ? "checkmark"
                           : "mic"
                     }
@@ -616,20 +842,24 @@ export default function PlacementTestScreen() {
               </TouchableOpacity>
 
               <Text className="text-center text-base font-semibold text-gray-900 mb-1">
-                {recordingStatus === "recording"
-                  ? "Nhấn để dừng ghi âm"
-                  : (recordingAttempts[currentQuestionIndex] || 0) >= 2
-                    ? "Đã hết lượt ghi âm"
-                    : recorded[currentQuestionIndex]
-                      ? `Bạn có thể ghi lại (${2 - (recordingAttempts[currentQuestionIndex] || 0)} lượt)`
-                      : "Nhấn để bắt đầu"}
+                {isProcessingAudio && recordingStatus !== "recording"
+                  ? "Đang xử lý..."
+                  : recordingStatus === "recording"
+                    ? "Nhấn để dừng ghi âm"
+                    : (recordingAttempts[currentQuestionIndex] || 0) >= 2
+                      ? "Đã hết lượt ghi âm"
+                      : recorded[currentQuestionIndex]
+                        ? `Bạn có thể ghi lại (${2 - (recordingAttempts[currentQuestionIndex] || 0)} lượt)`
+                        : "Nhấn để bắt đầu"}
               </Text>
               <Text className="text-center text-sm text-gray-600">
-                {recordingStatus === "recording"
-                  ? "Đọc rõ ràng vào microphone"
-                  : (recordingAttempts[currentQuestionIndex] || 0) >= 2
-                    ? "Vui lòng tiếp tục câu tiếp theo"
-                    : "Bạn có 2 lần ghi âm cho mỗi câu"}
+                {isProcessingAudio && recordingStatus !== "recording"
+                  ? "Vui lòng đợi, đang phân tích âm thanh..."
+                  : recordingStatus === "recording"
+                    ? "Đọc rõ ràng vào microphone"
+                    : (recordingAttempts[currentQuestionIndex] || 0) >= 2
+                      ? "Vui lòng tiếp tục câu tiếp theo"
+                      : "Bạn có 2 lần ghi âm cho mỗi câu"}
               </Text>
             </View>
 
@@ -660,7 +890,7 @@ export default function PlacementTestScreen() {
                 )}
 
                 {realIpaTranscripts[currentQuestionIndex] && (
-                  <View className="bg-blue-50 rounded-xl p-3 border border-blue-200">
+                  <View className="bg-blue-50 rounded-xl p-3 border border-blue-200 mb-2">
                     <Text className="text-xs font-semibold text-blue-700 mb-1">
                        Phát âm chuẩn
                     </Text>
@@ -669,11 +899,32 @@ export default function PlacementTestScreen() {
                     </Text>
                   </View>
                 )}
+
+                {coloredContents[currentQuestionIndex] && (
+                  <View className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                    <Text className="text-xs font-semibold text-gray-600 mb-2">
+                      Phân tích chi tiết âm vị chữ cái
+                    </Text>
+                    <View className="flex-row flex-wrap">
+                      {renderColoredText(coloredContents[currentQuestionIndex])}
+                    </View>
+                    <View className="flex-row items-center mt-3 pt-3 border-t border-gray-200">
+                      <View className="flex-row items-center mr-4">
+                        <View className="w-3 h-3 rounded-full bg-green-500 mr-1" />
+                        <Text className="text-xs text-gray-600">Âm vị đúng</Text>
+                      </View>
+                      <View className="flex-row items-center">
+                        <View className="w-3 h-3 rounded-full bg-red-500 mr-1" />
+                        <Text className="text-xs text-gray-600">Âm vị sai</Text>
+                      </View>
+                    </View>
+                  </View>
+                )}
               </View>
             )}
 
             {/* Play Recording Button */}
-            {recorded[currentQuestionIndex] && (
+            {/* {recorded[currentQuestionIndex] && (
               <TouchableOpacity
                 onPress={playRecording}
                 disabled={isPlayingAudio}
@@ -686,7 +937,7 @@ export default function PlacementTestScreen() {
                     : "▶ Nghe lại bản ghi âm"}
                 </Text>
               </TouchableOpacity>
-            )}
+            )} */}
           </ScrollView>
         ) : (
           <ScrollView className="flex-1 px-6 py-8">
@@ -764,21 +1015,25 @@ export default function PlacementTestScreen() {
           <View className="px-6 py-5">
             <TouchableOpacity
               className={`py-4 rounded-full ${
-                recorded[currentQuestionIndex] ? "bg-gray-200" : "bg-gray-200"
+                recorded[currentQuestionIndex] && !isProcessingAudio
+                  ? "bg-gray-200"
+                  : "bg-gray-200"
               }`}
               onPress={handleNext}
-              disabled={!recorded[currentQuestionIndex]}
+              disabled={!recorded[currentQuestionIndex] || isProcessingAudio}
             >
               <Text
                 className={`text-center text-base font-bold ${
-                  recorded[currentQuestionIndex]
+                  recorded[currentQuestionIndex] && !isProcessingAudio
                     ? "text-black"
                     : "text-gray-400"
                 }`}
               >
-                {currentQuestionIndex < totalQuestions - 1
-                  ? "Tiếp tục →"
-                  : "✓ Hoàn thành bài thi"}
+                {isProcessingAudio
+                  ? "Đang xử lý..."
+                  : currentQuestionIndex < totalQuestions - 1
+                    ? "Tiếp tục →"
+                    : "✓ Hoàn thành bài thi"}
               </Text>
             </TouchableOpacity>
           </View>

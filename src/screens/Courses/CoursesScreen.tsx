@@ -373,6 +373,7 @@ const CoursesScreen = () => {
             const status = enrolledCourse?.status || "";
             const isCompleted = status === "Completed";
             const isInProgress = status === "InProgress";
+            const isNotStarted = status === "NotStarted";
 
             return (
               <View
@@ -380,7 +381,7 @@ const CoursesScreen = () => {
                 className="bg-white rounded-2xl mb-4 overflow-hidden shadow-sm"
                 style={{
                   borderLeftWidth: 4,
-                  borderLeftColor: isCompleted ? '#10B981' : isInProgress ? '#3B82F6' : isFirstCourse ? '#10B981' : '#F59E0B',
+                  borderLeftColor: isCompleted ? '#10B981' : isInProgress ? '#3B82F6' : isNotStarted ? '#F59E0B' : isFirstCourse ? '#10B981' : '#F59E0B',
                 }}
               >
                 {/* Course Header */}
@@ -446,15 +447,15 @@ const CoursesScreen = () => {
                     {isEnrolled && (
                       <View 
                         className={`rounded-full px-3 py-1.5 ${
-                          isCompleted ? 'bg-green-100' : 'bg-blue-100'
+                          isCompleted ? 'bg-green-100' : isInProgress ? 'bg-blue-100' : 'bg-amber-100'
                         }`}
                       >
                         <Text 
                           className={`text-xs font-semibold ${
-                            isCompleted ? 'text-green-700' : 'text-blue-700'
+                            isCompleted ? 'text-green-700' : isInProgress ? 'text-blue-700' : 'text-amber-700'
                           }`}
                         >
-                          {isCompleted ? '✓ Hoàn thành' : '● Đang học'}
+                          {isCompleted ? '✓ Hoàn thành' : isInProgress ? '● Đang học' : '◷ Chưa bắt đầu'}
                         </Text>
                       </View>
                     )}
@@ -472,7 +473,7 @@ const CoursesScreen = () => {
                         )
                       }
                       style={{
-                        backgroundColor: isCompleted ? '#10B981' : '#3B82F6',
+                        backgroundColor: isCompleted ? '#10B981' : isNotStarted ? '#F59E0B' : '#3B82F6',
                         borderRadius: 12,
                         paddingVertical: 14,
                         flexDirection: 'row',
@@ -480,9 +481,13 @@ const CoursesScreen = () => {
                         justifyContent: 'center',
                       }}
                     >
-                      <Ionicons name={isCompleted ? "refresh" : "play-circle"} size={20} color="white" />
+                      <Ionicons 
+                        name={isCompleted ? "refresh" : isNotStarted ? "rocket" : "play-circle"} 
+                        size={20} 
+                        color="white" 
+                      />
                       <Text className="text-white font-bold ml-2">
-                        {isCompleted ? "Ôn tập lại" : "Tiếp tục học"}
+                        {isCompleted ? "Ôn tập lại" : isNotStarted ? "Bắt đầu học" : "Tiếp tục học"}
                       </Text>
                       <Ionicons name="arrow-forward" size={18} color="white" style={{ marginLeft: 8 }} />
                     </TouchableOpacity>
