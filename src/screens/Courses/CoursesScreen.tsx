@@ -63,14 +63,31 @@ const CoursesScreen = () => {
   // Check if user can access a level
   const canAccessLevel = (targetLevel: string): boolean => {
     const targetIndex = levels.indexOf(targetLevel);
-    if (targetIndex === 0) return true;
-    
-    for (let i = 0; i < targetIndex; i++) {
+    const userLevelIndex = levels.indexOf(userLevel);
+
+    // Level hiện tại của user → luôn mở
+    if (targetIndex === userLevelIndex) return true;
+
+    // Level thấp hơn userLevel
+    if (targetIndex < userLevelIndex) {
+      const levelData = levelsData.find((l) => l.Level === targetLevel);
+      // Chỉ mở nếu đã có courses (đã từng học qua level này)
+      // Khóa nếu không có courses (skip từ entrance test)
+      return !!(levelData?.Courses && levelData.Courses.length > 0);
+    }
+
+    // Level cao hơn userLevel → cần hoàn thành từ userLevel trở đi
+    for (let i = userLevelIndex; i < targetIndex; i++) {
       const levelData = levelsData.find((l) => l.Level === levels[i]);
-      if (!levelData || levelData.TotalCourses !== levelData.CompletedCourses || levelData.TotalCourses === 0) {
+      if (
+        !levelData ||
+        levelData.TotalCourses !== levelData.CompletedCourses ||
+        levelData.TotalCourses === 0
+      ) {
         return false;
       }
     }
+
     return true;
   };
 
