@@ -22,6 +22,7 @@ import {
   useStartExercise,
   useSubmitAnswerQuestion,
 } from "../../hooks/learner/exercise/exerciseHooks";
+import { uploadAudioToCloudinary } from "../../api/uploadAudio.service";
 
 interface RouteParams {
   exerciseId: string;
@@ -342,16 +343,33 @@ const ExerciseScreen = () => {
           newAIExplain[currentQuestionIndex] = data.AIFeedback || "";
           setAIExplainTheWrongForVoiceAI(newAIExplain);
 
-          // Store the uploaded audio URL for this question (using local file URI for now)
+          // Upload audio to Cloudinary before submitting
+          console.log("Uploading audio to Cloudinary...");
+          const cloudinaryUrl = await uploadAudioToCloudinary({
+            uri: uri,
+            name: `record-${Date.now()}.mp3`,
+            type: "audio/mpeg",
+          });
+
+          if (!cloudinaryUrl) {
+            console.error("Failed to upload audio to Cloudinary");
+            setIsProcessingAudio(false);
+            Alert.alert("Lỗi", "Không thể tải lên audio. Vui lòng thử lại.");
+            return;
+          }
+
+          console.log("Audio uploaded to Cloudinary:", cloudinaryUrl);
+
+          // Store the uploaded audio URL for this question
           const newUploadedAudioUrls = [...uploadedAudioUrls];
-          newUploadedAudioUrls[currentQuestionIndex] = uri;
+          newUploadedAudioUrls[currentQuestionIndex] = cloudinaryUrl;
           setUploadedAudioUrls(newUploadedAudioUrls);
 
-          // Submit answer to server
+          // Submit answer to server with Cloudinary URL
           submitAnswerQuestion(
             {
               learningPathQuestionId: currentQuestion.learningPathQuestionId,
-              audioRecordingUrl: uri,
+              audioRecordingUrl: cloudinaryUrl,
               transcribedText: data.ipa_transcript || "",
               scoreForVoice: Math.round(acc) || 0,
               explainTheWrongForVoiceAI: data.AIFeedback || "",
