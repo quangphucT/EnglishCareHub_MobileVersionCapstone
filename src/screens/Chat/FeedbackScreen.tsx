@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -32,6 +32,7 @@ const CONVERSATION_MESSAGES_KEY = 'ai_conversation_messages';
 
 const FeedbackScreen = () => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   
   const [messages, setMessages] = useState<TranscriptionMessage[]>([]);
   const [feedbackSections, setFeedbackSections] = useState<FeedbackSection[]>([]);
@@ -66,13 +67,29 @@ const FeedbackScreen = () => {
     setFeedbackSections([]);
 
     try {
+      // Filter out messages with empty or invalid text
+      const validMessages = msgs.filter((msg) => {
+        const text = msg.text?.trim();
+        return text && text.length > 0;
+      });
+
+      if (validMessages.length === 0) {
+        throw new Error('Không có tin nhắn hợp lệ để phân tích');
+      }
+
       // Combine messages into text format
-      const conversationText = msgs
+      const conversationText = validMessages
         .map((msg) => {
           const speaker = msg.isUser ? 'You' : 'Agent';
-          return `${speaker}: ${msg.text}`;
+          // Clean the text - remove any problematic characters
+          const cleanText = (msg.text || '')
+            .trim()
+            .replace(/[\x00-\x1F\x7F]/g, ' '); // Remove control characters
+          return `${speaker}: ${cleanText}`;
         })
         .join('\n');
+
+      console.log('Sending feedback request with text:', conversationText);
 
       // Call the API
       const response = await fetch(`${AI_FEEDBACK_URL}/aiFeedback/`, {
@@ -84,13 +101,17 @@ const FeedbackScreen = () => {
           text: conversationText,
         }),
       });
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Feedback API error:', response.status, errorText);
         throw new Error(`API error: ${response.status}`);
       }
+
       const data = await response.json();
       setFeedbackSections(parseFeedback(data.feedback || ''));
     } catch (err) {
-    
+      console.error('Feedback fetch error:', err);
       setError((err as Error).message || 'Failed to fetch feedback');
     } finally {
       setLoading(false);
@@ -338,7 +359,10 @@ const FeedbackScreen = () => {
       </ScrollView>
 
       {/* Bottom Button */}
-      <View className="px-4 py-4 bg-white border-t border-gray-100">
+      <View 
+        className="px-4 py-4 bg-white border-t border-gray-100"
+        style={{ paddingBottom: insets.bottom + 16 }}
+      >
         <TouchableOpacity
           onPress={handleGoBack}
           className="bg-purple-600 py-4 rounded-xl items-center"

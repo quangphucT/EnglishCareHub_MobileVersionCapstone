@@ -19,6 +19,8 @@ interface Question {
   text: string;
   type: string;
   orderIndex: number;
+  audioRecordingUrl: string;
+  explainTheWrongForVoiceAI: string;
   media: QuestionMedia[];
 }
 
@@ -53,6 +55,7 @@ interface Course {
   description: string;
   level: string;
   price: number;
+
 }
 
 interface LearningPathCourseData {

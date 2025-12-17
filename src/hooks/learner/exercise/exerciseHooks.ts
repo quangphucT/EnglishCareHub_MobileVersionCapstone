@@ -41,9 +41,9 @@ export const useStartExercise = () => {
       // Invalidate learning path queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["learningPathCourseFull"] });
     },
-    onError: (error) => {
-      console.error("❌ Start exercise error:", error);
-    },
+    // onError: (error) => {
+    //   console.error("❌ Start exercise error:", error);
+    // },
   });
 };
 

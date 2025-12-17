@@ -142,15 +142,33 @@ const CoursesScreen = () => {
 
   // Handle enroll paid course
   const handleEnrollCourseNotFree = (courseId: string) => {
-    if (!learnerCourseIdOnZustand) {
-      Alert.alert("Lỗi", "Vui lòng tham gia khóa học đầu tiên trước");
+    // Lấy learnerCourseId từ Zustand, nếu không có thì lấy từ API data
+    let learnerCourseId: string | null = learnerCourseIdOnZustand || null;
+
+    // Nếu không có trong Zustand (sau khi logout/login lại), lấy từ levelAndLearnerCourseIdData
+    if (!learnerCourseId) {
+      const userLevelData = levelAndLearnerCourseIdData?.data?.levels.find(
+        (item) => item.Level === userLevel
+      );
+
+      // Bắt buộc phải lấy learnerCourseId từ course đang InProgress
+      if (userLevelData?.Courses && userLevelData.Courses.length > 0) {
+        const inProgressCourse = userLevelData.Courses.find(
+          (c) => c.status === "InProgress"
+        );
+        learnerCourseId = inProgressCourse?.learnerCourseId || null;
+      }
+    }
+
+    if (!learnerCourseId) {
+      Alert.alert("Cảnh báo", "Bạn cần hoàn thành bước đăng ký khoá học miễn phí trước khi có thể mua khoá học trả phí.");
       return;
     }
 
     setEnrollingCourseId(courseId);
     enrollingPaidCourse(
       {
-        learnerCourseId: learnerCourseIdOnZustand,
+        learnerCourseId: learnerCourseId,
         courseId: courseId,
       },
       {
@@ -358,7 +376,7 @@ const CoursesScreen = () => {
                 </View>
               </View>
               <View className="bg-green-100 px-3 py-1 rounded-full">
-                <Text className="text-green-700 text-xs font-semibold">Khóa đầu miễn phí</Text>
+                <Text className="text-green-700 text-xs font-semibold" numberOfLines={1}>Khóa đầu miễn phí</Text>
               </View>
             </View>
           </View>

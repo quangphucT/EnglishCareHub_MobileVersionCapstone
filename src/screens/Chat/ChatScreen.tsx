@@ -11,6 +11,7 @@ import {
   Animated,
   Platform,
   PermissionsAndroid,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -155,25 +156,71 @@ const VoiceAssistantContent: React.FC<{
   }, [messages, onMessagesUpdate]);
 
   // Listen to agent transcriptions (AI speaking)
+  // Dùng ref để track segment hiện tại đang nói
+  const currentSegmentIdRef = useRef<string | null>(null);
+  
   useEffect(() => {
     if (agentTranscriptions && agentTranscriptions.length > 0) {
-      const lastTranscription = agentTranscriptions[agentTranscriptions.length - 1];
+      const lastTranscription = agentTranscriptions[agentTranscriptions.length - 1] as any;
+      
       if (lastTranscription && lastTranscription.text) {
-        const transcriptKey = `agent-${lastTranscription.text}`;
+        // Lấy segment_id để nhóm các phần của cùng 1 câu nói
+        const segmentId = lastTranscription.segment_id || lastTranscription.id || 'default';
         
-        // Check if already processed
-        if (!processedTranscriptionsRef.current.has(transcriptKey)) {
-          processedTranscriptionsRef.current.add(transcriptKey);
+        setMessages((prev) => {
+          const lastMessage = prev[prev.length - 1];
+          const isSameSegment = currentSegmentIdRef.current === segmentId;
+          const isLastFromAgent = lastMessage && !lastMessage.isUser;
           
-          const newMsg: TranscriptionMessage = {
+          // Nếu cùng segment hoặc (message cuối từ agent và chưa final)
+          if (isSameSegment && isLastFromAgent) {
+            // Update message hiện tại
+            const updated = [...prev];
+            updated[updated.length - 1] = {
+              ...lastMessage,
+              text: lastTranscription.text,
+            };
+            return updated;
+          }
+          
+          // Nếu final, đánh dấu đã xử lý xong segment này
+          if (lastTranscription.final) {
+            const finalKey = `final-${segmentId}`;
+            if (processedTranscriptionsRef.current.has(finalKey)) {
+              return prev;
+            }
+            processedTranscriptionsRef.current.add(finalKey);
+            
+            // Nếu message cuối từ agent (đang update) → chỉ cập nhật text
+            if (isLastFromAgent && isSameSegment) {
+              currentSegmentIdRef.current = null;
+              const updated = [...prev];
+              updated[updated.length - 1] = {
+                ...lastMessage,
+                text: lastTranscription.text,
+              };
+              return updated;
+            }
+            
+            // Tạo message final mới
+            currentSegmentIdRef.current = null;
+            return [...prev, {
+              id: `agent-${Date.now()}`,
+              text: lastTranscription.text,
+              isUser: false,
+              timestamp: new Date(),
+            }];
+          }
+          
+          // Segment mới bắt đầu - tạo message mới
+          currentSegmentIdRef.current = segmentId;
+          return [...prev, {
             id: `agent-${Date.now()}`,
             text: lastTranscription.text,
             isUser: false,
             timestamp: new Date(),
-          };
-          
-          setMessages((prev) => [...prev, newMsg]);
-        }
+          }];
+        });
       }
     }
   }, [agentTranscriptions]);
@@ -725,141 +772,146 @@ const ChatScreen = () => {
         transparent={true}
         onRequestClose={() => setIsPackageModalVisible(false)}
       >
-        <View className="flex-1 bg-black/50 justify-end">
-          <View className="bg-white rounded-t-3xl px-4 pt-6 pb-8">
-            <View className="flex-row items-center justify-between mb-6">
-              <Text className="text-xl font-bold text-gray-900">
-                Chọn gói thời gian
-              </Text>
-              <TouchableOpacity
-                onPress={() => setIsPackageModalVisible(false)}
-              >
-                <Ionicons name="close" size={28} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-
-            {/* User Name Input */}
-            <View className="mb-4">
-              <Text className="text-gray-700 font-medium mb-2">
-                Tên của bạn
-              </Text>
-              <TextInput
-                className="border border-gray-300 rounded-xl px-4 py-3 text-gray-900"
-                placeholder="Nhập tên của bạn"
-                value={userName}
-                onChangeText={setUserName}
-              />
-            </View>
-
-            {/* Package List */}
-            {isLoadingPackages ? (
-              <View className="items-center py-8">
-                <ActivityIndicator size="large" color="#7C3AED" />
-              </View>
-            ) : packagesError ? (
-              <View className="items-center py-8">
-                <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
-                <Text className="text-red-500 mt-2 text-center">
-                  Lỗi: {packagesError.message}
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          className="flex-1"
+        >
+          <View className="flex-1 bg-black/50 justify-end">
+            <View className="bg-white rounded-t-3xl px-4 pt-6" style={{ paddingBottom: insets.bottom + 16 }}>
+              <View className="flex-row items-center justify-between mb-6">
+                <Text className="text-xl font-bold text-gray-900">
+                  Chọn gói thời gian
                 </Text>
+                <TouchableOpacity
+                  onPress={() => setIsPackageModalVisible(false)}
+                >
+                  <Ionicons name="close" size={28} color="#6B7280" />
+                </TouchableOpacity>
               </View>
-            ) : packages.length === 0 ? (
-              <View className="items-center py-8">
-                <Ionicons name="cube-outline" size={48} color="#9CA3AF" />
-                <Text className="text-gray-400 mt-2">
-                  Không có gói nào khả dụng
+
+              {/* User Name Input */}
+              <View className="mb-4">
+                <Text className="text-gray-700 font-medium mb-2">
+                  Tên của bạn
                 </Text>
+                <TextInput
+                  className="border border-gray-300 rounded-xl px-4 py-3 text-gray-900"
+                  placeholder="Nhập tên của bạn"
+                  value={userName}
+                  onChangeText={setUserName}
+                />
               </View>
-            ) : (
-              <ScrollView className="max-h-64 mb-4">
-                {packages.map((pkg) => {
-                  const isSelected =
-                    selectedPackage?.aiConversationChargeId === pkg.aiConversationChargeId;
-                  const canAfford = coinBalance >= pkg.amountCoin;
 
-                  return (
-                    <TouchableOpacity
-                      key={pkg.aiConversationChargeId}
-                      className={`border-2 rounded-xl p-4 mb-3 ${
-                        isSelected
-                          ? 'border-purple-600 bg-purple-50'
-                          : canAfford
-                          ? 'border-gray-200'
-                          : 'border-gray-200 opacity-50'
-                      }`}
-                      onPress={() => handleSelectPackage(pkg)}
-                      disabled={!canAfford}
-                    >
-                      <View className="flex-row items-center justify-between">
-                        <View className="flex-1">
-                          <Text className="font-bold text-gray-900 text-lg">
-                            Gói {pkg.allowedMinutes} phút
-                          </Text>
-                          <Text className="text-gray-500 mt-1">
-                            {pkg.allowedMinutes} phút trò chuyện
-                          </Text>
-                        </View>
-                        <View className="items-end">
-                          <View className="flex-row items-center">
-                            <Ionicons
-                              name="logo-bitcoin"
-                              size={18}
-                              color="#F59E0B"
-                            />
-                            <Text className="font-bold text-yellow-600 text-lg ml-1">
-                              {pkg.amountCoin}
-                            </Text>
-                          </View>
-                          {!canAfford && (
-                            <Text className="text-red-500 text-xs mt-1">
-                              Không đủ coin
-                            </Text>
-                          )}
-                        </View>
-                      </View>
-                      {isSelected && (
-                        <View className="absolute top-2 right-2">
-                          <Ionicons
-                            name="checkmark-circle"
-                            size={24}
-                            color="#7C3AED"
-                          />
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            )}
-
-            {/* Confirm Button */}
-            <TouchableOpacity
-              className={`rounded-xl py-4 items-center ${
-                selectedPackage && userName.trim()
-                  ? 'bg-purple-600'
-                  : 'bg-gray-300'
-              }`}
-              onPress={handleStartConversation}
-              disabled={
-                !selectedPackage ||
-                !userName.trim() ||
-                chargeCoinMutation.isPending ||
-                isConnecting
-              }
-            >
-              {chargeCoinMutation.isPending || isConnecting ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <View className="flex-row items-center">
-                  <Ionicons name="chatbubbles" size={20} color="white" />
-                  <Text className="text-white font-bold text-lg ml-2">
-                    Bắt đầu ({selectedPackage?.amountCoin ?? 0} coin)
+              {/* Package List */}
+              {isLoadingPackages ? (
+                <View className="items-center py-8">
+                  <ActivityIndicator size="large" color="#7C3AED" />
+                </View>
+              ) : packagesError ? (
+                <View className="items-center py-8">
+                  <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
+                  <Text className="text-red-500 mt-2 text-center">
+                    Lỗi: {packagesError.message}
                   </Text>
                 </View>
+              ) : packages.length === 0 ? (
+                <View className="items-center py-8">
+                  <Ionicons name="cube-outline" size={48} color="#9CA3AF" />
+                  <Text className="text-gray-400 mt-2">
+                    Không có gói nào khả dụng
+                  </Text>
+                </View>
+              ) : (
+                <ScrollView className="max-h-64 mb-4" showsVerticalScrollIndicator={false}>
+                  {packages.map((pkg) => {
+                    const isSelected =
+                      selectedPackage?.aiConversationChargeId === pkg.aiConversationChargeId;
+                    const canAfford = coinBalance >= pkg.amountCoin;
+
+                    return (
+                      <TouchableOpacity
+                        key={pkg.aiConversationChargeId}
+                        className={`border-2 rounded-xl p-4 mb-3 ${
+                          isSelected
+                            ? 'border-purple-600 bg-purple-50'
+                            : canAfford
+                            ? 'border-gray-200'
+                            : 'border-gray-200 opacity-50'
+                        }`}
+                        onPress={() => handleSelectPackage(pkg)}
+                        disabled={!canAfford}
+                      >
+                        <View className="flex-row items-center justify-between">
+                          <View className="flex-1">
+                            <Text className="font-bold text-gray-900 text-lg">
+                              Gói {pkg.allowedMinutes} phút
+                            </Text>
+                            <Text className="text-gray-500 mt-1">
+                              {pkg.allowedMinutes} phút trò chuyện
+                            </Text>
+                          </View>
+                          <View className="items-end">
+                            <View className="flex-row items-center">
+                              <Ionicons
+                                name="wallet"
+                                size={18}
+                                color="#F59E0B"
+                              />
+                              <Text className="font-bold text-yellow-600 text-lg ml-1">
+                                {pkg.amountCoin}
+                              </Text>
+                            </View>
+                            {!canAfford && (
+                              <Text className="text-red-500 text-xs mt-1">
+                                Không đủ coin
+                              </Text>
+                            )}
+                          </View>
+                        </View>
+                        {isSelected && (
+                          <View className="absolute top-2 right-2">
+                            <Ionicons
+                              name="checkmark-circle"
+                              size={24}
+                              color="#7C3AED"
+                            />
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
               )}
-            </TouchableOpacity>
+
+              {/* Confirm Button */}
+              <TouchableOpacity
+                className={`rounded-xl py-4 items-center mb-4 ${
+                  selectedPackage && userName.trim()
+                    ? 'bg-purple-600'
+                    : 'bg-gray-300'
+                }`}
+                onPress={handleStartConversation}
+                disabled={
+                  !selectedPackage ||
+                  !userName.trim() ||
+                  chargeCoinMutation.isPending ||
+                  isConnecting
+                }
+              >
+                {chargeCoinMutation.isPending || isConnecting ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <View className="flex-row items-center">
+                    <Ionicons name="chatbubbles" size={20} color="white" />
+                    <Text className="text-white font-bold text-lg ml-2">
+                      Bắt đầu ({selectedPackage?.amountCoin ?? 0} coin)
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
