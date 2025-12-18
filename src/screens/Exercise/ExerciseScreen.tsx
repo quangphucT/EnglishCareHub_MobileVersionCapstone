@@ -758,18 +758,12 @@ const ExerciseScreen = () => {
                             </View>
 
                             <View className="bg-black rounded-xl overflow-hidden">
-                              <YoutubePlayer
-                                height={220}
-                                play={false}
-                                videoId={
-                                  mediaItem.videoUrl.includes("youtube.com") ||
-                                  mediaItem.videoUrl.includes("youtu.be")
-                                    ? mediaItem.videoUrl
-                                        .split("v=")[1]
-                                        ?.split("&")[0] ||
-                                      mediaItem.videoUrl.split("/").pop()
-                                    : mediaItem.videoUrl
-                                }
+                              <Video
+                                source={{ uri: mediaItem.videoUrl }}
+                                style={{ width: "100%", height: 220 }}
+                                useNativeControls
+                                resizeMode={ResizeMode.CONTAIN}
+                                isLooping={false}
                               />
                             </View>
 
