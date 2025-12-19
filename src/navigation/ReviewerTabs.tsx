@@ -86,9 +86,7 @@ const ReviewerTabs = () => {
         tabBarIcon: ({ focused, color, size }: { focused: boolean; color: string; size: number }) => {
           let iconName: keyof typeof Ionicons.glyphMap = 'home';
 
-          if (route.name === 'Dashboard') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'PendingReviews') {
+          if (route.name === 'PendingReviews') {
             iconName = focused ? 'document-text' : 'document-text-outline';
           } else if (route.name === 'CompletedReviewsScreen') {
             iconName = focused ? 'checkmark-circle' : 'checkmark-circle-outline';
@@ -102,13 +100,13 @@ const ReviewerTabs = () => {
         },
       })}
     >
-      <Tab.Screen 
+      {/* <Tab.Screen 
         name="Dashboard" 
         component={ReviewerMainScreen}
         options={{
           tabBarLabel: 'Trang chủ',
         }}
-      />
+      /> */}
       <Tab.Screen 
         name="PendingReviews" 
         component={ReviewerReviewScreen}

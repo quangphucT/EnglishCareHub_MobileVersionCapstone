@@ -18,7 +18,8 @@ import ReviewerWaiting from "../screens/Reviewer/ReviewerWaiting";
 import ReviewerReviewScreen from "../screens/Reviewer/ReviewerReview";
 import ReviewerWalletScreen from "../screens/Reviewer/ReviewerWallet";
 import CompletedReviewsScreen from "../screens/Reviewer/CompletedReviewsScreen";
-import ReviewerProfileScreen from "../screens/Reviewer/ReviewerProfile";
+import ReviewerProfileScreen from "../screens/Profile/ReviewerProfile";
+import LearnerProfile from "../screens/Profile/LearnerProfile";
 import AudioReviewScreen from "../screens/Profile/AudioReviewScreen";
 import MyRecordingsScreen from "../screens/Profile/MyRecordingsScreen";
 import LearnerRecordFolderPage from "../screens/Learner_Record/LearnerRecordFolderPage";
@@ -154,6 +155,13 @@ export default function RootStack({ initialRouteName }: RootStackProps) {
       <Stack.Screen
         name="ReviewerProfile"
         component={ReviewerProfileScreen}
+        options={{
+          contentStyle: { backgroundColor: "transparent" },
+        }}
+      />
+      <Stack.Screen
+        name="LearnerProfile"
+        component={LearnerProfile}
         options={{
           contentStyle: { backgroundColor: "transparent" },
         }}

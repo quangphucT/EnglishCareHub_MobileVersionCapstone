@@ -215,15 +215,22 @@ const ReviewerWalletScreen: React.FC = () => {
         contentContainerStyle={{ paddingBottom: 32 }}
         className="flex-1 px-4"
       >
-        <View className="mt-4 space-y-4">
-          <View className="bg-white rounded-3xl p-5 border border-purple-100 shadow-md">
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-base font-medium text-slate-600">
+      <View className="mb-3">
+      <View className="flex-row items-center mb-2"> 
+        <Text className="text-2xl font-black text-slate-900">
+          Ví của tôi
+        </Text>
+      </View>
+    </View>
+        <View className="mt-4 flex-row gap-3">
+          <View className="flex-1 bg-white rounded-3xl p-4 border border-purple-100 shadow-md">
+            <View className="flex-row justify-between items-center mb-3">
+              <Text className="text-sm font-medium text-slate-600">
                 Tổng thu nhập
               </Text>
-              <Ionicons name="trending-up" size={22} color="#7c3aed" />
+              <Ionicons name="trending-up" size={18} color="#7c3aed" />
             </View>
-            <Text className="text-3xl font-bold text-slate-900">
+            <Text className="text-xl font-bold text-slate-900">
               {totals.totalEarnedMoney.toLocaleString("vi-VN")} VND
             </Text>
             <Text className="text-xs text-slate-500 mt-1">
@@ -231,14 +238,14 @@ const ReviewerWalletScreen: React.FC = () => {
             </Text>
           </View>
 
-          <View className="bg-white rounded-3xl p-5 border border-emerald-100 shadow-md">
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-base font-medium text-slate-600">
+          <View className="flex-1 bg-white rounded-3xl p-4 border border-emerald-100 shadow-md">
+            <View className="flex-row justify-between items-center mb-3">
+              <Text className="text-sm font-medium text-slate-600">
                 Số dư hiện tại
               </Text>
-              <Ionicons name="wallet" size={22} color="#059669" />
+              <Ionicons name="wallet" size={18} color="#059669" />
             </View>
-            <Text className="text-3xl font-bold text-slate-900">
+            <Text className="text-xl font-bold text-slate-900">
               {totals.currentBalanceMoney.toLocaleString("vi-VN")} VND
             </Text>
             <Text className="text-xs text-slate-500 mt-1">
