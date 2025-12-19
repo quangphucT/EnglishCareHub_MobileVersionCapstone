@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  Platform,
   Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -15,7 +14,6 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { Audio } from "expo-av";
 import { Video, ResizeMode } from "expo-av";
 import { File, Paths } from "expo-file-system";
-import YoutubePlayer from "react-native-youtube-iframe";
 import { useLearnerStore } from "../../store/learnerStore";
 import { useLearningPathCourseFull } from "../../hooks/learner/learningPath/learningPathHooks";
 import {
@@ -33,7 +31,7 @@ interface RouteParams {
 // Component để hiển thị text có màu xanh/đỏ dựa trên kết quả phát âm
 interface ColoredTextProps {
   text: string;
-  letterCorrectMask: string; // VD: "111 1110 10" - mỗi từ cách nhau bởi space, 1 = đúng, 0 = sai
+  letterCorrectMask: string; 
 }
 
 const ColoredText: React.FC<ColoredTextProps> = ({
@@ -628,12 +626,12 @@ const ExerciseScreen = () => {
       {/* Progress bar */}
       <View className="bg-white border-b border-gray-100">
         <View className="px-6 py-3">
-          <View className="h-2 bg-gray-200 rounded-full overflow-hidden">
+          {/* <View className="h-2 bg-gray-200 rounded-full overflow-hidden">
             <View
               className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
               style={{ width: `${progressPercentage}%` }}
             />
-          </View>
+          </View> */}
           {/* Mini progress indicators */}
           <View className="flex-row justify-between mt-2">
             {questions.map((_, index) => (
@@ -774,7 +772,7 @@ const ExerciseScreen = () => {
                                 color="#3B82F6"
                               />
                               <Text className="text-xs text-blue-800 ml-2 flex-1 font-medium">
-                                💡 Mẹo: Xem video nhiều lần, tạm dừng để quan
+                                 Mẹo: Xem video nhiều lần, tạm dừng để quan
                                 sát chi tiết chuyển động môi và lưỡi
                               </Text>
                             </View>
@@ -891,9 +889,9 @@ const ExerciseScreen = () => {
         <View className="items-center mb-4">
           <View className="px-5 py-2 bg-indigo-100 rounded-full">
             <Text className="text-indigo-700 text-sm font-semibold">
-              {currentQuestion.type === "word"
+              {currentQuestion.type === "Word"
                 ? "Word"
-                : currentQuestion.type === "sentence"
+                : currentQuestion.type === "Sentence"
                   ? "Sentence"
                   : "Phrase"}
             </Text>
@@ -924,35 +922,44 @@ const ExerciseScreen = () => {
 
         {/* Question stats - Chỉ hiện khi tiếp tục học (không phải bắt đầu học mới) */}
         {!isNewExercise &&
-          (currentQuestion.score > 0 || currentQuestion.numberOfRetake > 0) && (
-            <View className="flex-row justify-center gap-4 mb-6">
+          (currentQuestion.score > 0 || currentQuestion.numberOfRetake > 0 || (currentQuestion.relearnScore !== null && currentQuestion.relearnScore !== undefined)) && (
+            <View className="flex-row justify-center gap-1 mb-6">
               {currentQuestion.score >= 0 && (
-                <View className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
-                  <View className="flex-row items-center gap-2">
-                    <Ionicons name="star" size={16} color="#2563EB" />
-                    <View>
-                      <Text className="text-xs text-blue-700 font-medium">
-                        Điểm gần nhất
-                      </Text>
-                      <Text className="text-lg font-bold text-blue-900">
-                        {currentQuestion.score}/100
-                      </Text>
-                    </View>
+                <View className=" px-2 py-1.5 flex-1 max-w-[110px]">
+                  <View className="items-center">
+                    <Ionicons name="star" size={14} color="#2563EB" />
+                    <Text className="text-[10px] text-blue-700 font-medium text-center" numberOfLines={1}>
+                      {currentExerciseData?.status === "Completed" ? "Điểm hoàn thành" : "Điểm gần nhất"}
+                    </Text>
+                    <Text className="text-sm font-bold text-blue-900">
+                      {currentQuestion.score}/100
+                    </Text>
                   </View>
                 </View>
               )}
               {currentQuestion.numberOfRetake > 0 && (
-                <View className="bg-orange-50 border border-orange-200 rounded-lg px-4 py-2">
-                  <View className="flex-row items-center gap-2">
-                    <Ionicons name="refresh" size={16} color="#EA580C" />
-                    <View>
-                      <Text className="text-xs text-orange-700 font-medium">
-                        Số lần làm lại
-                      </Text>
-                      <Text className="text-lg font-bold text-orange-900">
-                        {currentQuestion.numberOfRetake}
-                      </Text>
-                    </View>
+                <View className=" rounded-lg px-2 py-1.5 flex-1 max-w-[110px]">
+                  <View className="items-center">
+                    <Ionicons name="refresh" size={14} color="#EA580C" />
+                    <Text className="text-[10px] text-orange-700 font-medium text-center" numberOfLines={1}>
+                      Số lần làm lại
+                    </Text>
+                    <Text className="text-sm font-bold text-orange-900">
+                      {currentQuestion.numberOfRetake}
+                    </Text>
+                  </View>
+                </View>
+              )}
+              {currentQuestion.relearnScore !== null && currentQuestion.relearnScore !== undefined && (
+                <View className=" px-2 py-1.5 flex-1 max-w-[110px]">
+                  <View className="items-center">
+                    <Ionicons name="checkmark-circle" size={14} color="#059669" />
+                    <Text className="text-[10px] text-emerald-700 font-medium text-center" numberOfLines={1}>
+                      Điểm ôn tập
+                    </Text>
+                    <Text className="text-sm font-bold text-emerald-900">
+                      {currentQuestion.relearnScore}
+                    </Text>
                   </View>
                 </View>
               )}

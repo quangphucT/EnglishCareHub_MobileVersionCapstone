@@ -89,7 +89,7 @@ export default function PlacementTestScreen() {
       sectionType: string;
     }> = [];
 
-    const typeOrder = ["WORD", "SENTENCE", "PHRASE"];
+    const typeOrder = ["Word", "Sentence", "Phrase"];
     const sortedSections = [...testData.data.sections].sort((a, b) => {
       return typeOrder.indexOf(a.type) - typeOrder.indexOf(b.type);
     });
@@ -145,9 +145,6 @@ export default function PlacementTestScreen() {
           await AsyncStorage.removeItem(TEST_SESSION_KEY);
           return;
         }
-
-        // Restore session
-        console.log("🔄 Khôi phục session test đã lưu");
         setCurrentQuestionIndex(session.currentQuestionIndex);
         setRecorded(session.recorded);
         setRecordingAttempts(session.recordingAttempts);
@@ -211,7 +208,7 @@ export default function PlacementTestScreen() {
         };
 
         await AsyncStorage.setItem(TEST_SESSION_KEY, JSON.stringify(session));
-        console.log("💾 Đã lưu session test");
+
       } catch (error) {
         console.error("Lỗi khi lưu session:", error);
       }
@@ -525,7 +522,7 @@ export default function PlacementTestScreen() {
           // Xóa session sau khi nộp bài thành công
           try {
             await AsyncStorage.removeItem(TEST_SESSION_KEY);
-            console.log("🗑️ Đã xóa session test");
+ 
           } catch (error) {
             console.error("Lỗi khi xóa session:", error);
           }

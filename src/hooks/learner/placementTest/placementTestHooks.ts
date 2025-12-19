@@ -15,7 +15,7 @@ export interface GetPlacementTestResponse {
 }
 
 export interface Section {
-  type: "paragraph" | "word" | "sentence"; // hoặc string nếu muốn mở rộng
+  type: "Word" | "Sentence" | "Phrase"; 
   questions: Question[];
 }
 

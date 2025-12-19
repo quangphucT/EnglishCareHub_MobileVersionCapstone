@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Dimensions } from 'react-native';
+import { useState, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -10,7 +10,6 @@ import { useGetMeQuery } from '../../hooks/useGetMe';
 import { useStartExercise } from '../../hooks/learner/exercise/exerciseHooks';
 import { useLearningPathCourseFull } from '../../hooks/learner/learningPath/learningPathHooks';
 
-const { width } = Dimensions.get('window');
 
 const LearningPathScreen = () => {
   const navigation = useNavigation();
@@ -42,33 +41,6 @@ const LearningPathScreen = () => {
   const [loadingExerciseId, setLoadingExerciseId] = useState<string | null>(null);
   const [expandedChapterId, setExpandedChapterId] = useState<string | null>(null);
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "completed":
-        return "bg-green-100 border-green-200";
-      case "in_progress":
-      case "inprogress":
-        return "bg-blue-100 border-blue-200";
-      case "locked":
-        return "bg-gray-100 border-gray-200";
-      default:
-        return "bg-gray-100 border-gray-200";
-    }
-  };
-
-  // const getStatusTextColor = (status: string) => {
-  //   switch (status.toLowerCase()) {
-  //     case "completed":
-  //       return "text-green-600";
-  //     case "in_progress":
-  //     case "inprogress":
-  //       return "text-blue-600";
-  //     case "locked":
-  //       return "text-gray-400";
-  //     default:
-  //       return "text-gray-600";
-  //   }
-  // };
 
   const getStatusText = (status: string) => {
     switch (status.toLowerCase()) {
@@ -85,7 +57,6 @@ const LearningPathScreen = () => {
   };
 
   const handleNavigateToCourses = () => {
-    // Navigate to Courses tab
     navigation.navigate('Courses' as never);
   };
 
@@ -214,9 +185,7 @@ const LearningPathScreen = () => {
             <Text className="text-white/80 text-sm">Khóa học</Text>
             <Text className="text-white text-lg font-bold" numberOfLines={1}>{course.title}</Text>
           </View>
-          {/* <View className="bg-white/20 px-3 py-1.5 rounded-full">
-            <Text className="text-white font-semibold text-sm">{course.level}</Text>
-          </View> */}
+     
         </View>
       </LinearGradient>
 
@@ -523,7 +492,7 @@ const LearningPathScreen = () => {
                                       <Text className="text-white font-semibold text-sm ml-2">
                                         {exercise.status === "NotStarted" ? "Bắt đầu"
                                           : exercise.status === "InProgress" ? "Tiếp tục"
-                                          : "Xem lại"}
+                                          : "Ôn tập lại"}
                                       </Text>
                                     </>
                                   )}
