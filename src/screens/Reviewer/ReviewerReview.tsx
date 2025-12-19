@@ -469,19 +469,7 @@ export default function ReviewerReviewScreen() {
               Theo dõi và chấm điểm câu trả lời của học viên
             </Text>
           </View>
-          <View
-            className={`px-3 py-1 rounded-full ${
-              isConnected ? "bg-green-100" : "bg-slate-100"
-            }`}
-          >
-            <Text
-              className={`text-xs font-medium ${
-                isConnected ? "text-green-700" : "text-slate-500"
-              }`}
-            >
-              {isConnected ? "Realtime ON" : "Realtime OFF"}
-            </Text>
-          </View>
+          
         </View>
         <View className="flex-row -mx-1 mb-6">
           {stats.map((stat) => (

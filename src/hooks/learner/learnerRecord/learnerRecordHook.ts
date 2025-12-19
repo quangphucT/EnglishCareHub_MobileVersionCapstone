@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Alert } from "react-native";
-import { RecordCategoryResponse, LearnerRecordFolderService, CreateRecordCategoryResponse, LearnerRecordFolderCreateService, DeleteResponse, LearnerRecordFolderDeleteService, LearnerRecordFolderRenameService, RecordResponse, LearnerRecordService, CreateRecordResponse, LearnerRecordCreateService, LearnerRecordDeleteService, ReviewRecordResponse, LearnerRecordUpdateContentService, LearnerRecordUpdateService, ReviewRecordRequest } from "../../../api/learnerRecord.service";
+import { RecordCategoryResponse, LearnerRecordFolderService, CreateRecordCategoryResponse, LearnerRecordFolderCreateService, DeleteResponse, LearnerRecordFolderDeleteService, LearnerRecordFolderRenameService, RecordResponse, LearnerRecordService, CreateRecordResponse, LearnerRecordCreateService, LearnerRecordDeleteService, ReviewRecordResponse, LearnerRecordUpdateContentService, LearnerRecordUpdateService, ReviewRecordRequest, ActiveRecordChargeResponse, getActiveRecordCharge, LearnerBuyRecordChargeService } from "../../../api/learnerRecord.service";
 
 // Folder/Category Hooks
 export const useLearnerRecordFolders = () => {
@@ -125,6 +125,27 @@ export const useLearnerRecordUpdate= () => {
     },
     onError: (error) => {
       Alert.alert(error.message || "Cập nhật nội dung record thất bại");
+    },
+  });
+};
+
+export const useAdminRecordChargeActive = () => {
+  return useQuery<ActiveRecordChargeResponse, Error>({
+      queryKey: ["adminRecordChargeActive"],
+      queryFn: () => getActiveRecordCharge(),
+  });
+}
+export const useLearnerBuyRecordCharge = () => {
+  const queryClient = useQueryClient();
+  return useMutation<any, Error, { folderId: string; recordChargeId: string }>({
+    mutationFn: ({ folderId, recordChargeId }) => LearnerBuyRecordChargeService(folderId, recordChargeId),
+    onSuccess: (data) => {
+      Alert.alert(data.message || "Mua đánh giá record thành công");
+      queryClient.invalidateQueries({ queryKey: ["learnerRecords"] });
+      queryClient.invalidateQueries({ queryKey: ["learnerRecordFolders"] });
+    },
+    onError: (error) => {
+      Alert.alert(error.message || "Mua đánh giá record thất bại");
     },
   });
 };

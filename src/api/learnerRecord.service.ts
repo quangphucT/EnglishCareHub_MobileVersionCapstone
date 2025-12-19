@@ -133,3 +133,31 @@ export const LearnerRecordUpdateService = async (recordId: string, reviewData: R
         throw new Error(error.response?.data?.message || 'Không thể cập nhật bản ghi');
     }
 }
+
+export interface ActiveRecordChargeResponse {
+    isSucess: boolean;
+    data: RecordChargeActiveItem[];
+    businessCode: number;
+    message: string;
+}
+export interface RecordChargeActiveItem {
+    recordChargeId: string;
+    amountCoin: number;
+    allowedRecordCount: number;
+}
+export async function getActiveRecordCharge(): Promise<ActiveRecordChargeResponse> {
+    try {
+        const response = await httpClient.get<ActiveRecordChargeResponse>('RecordCharge/active');
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || 'Không thể tải đánh giá record');
+    }
+}
+export async function LearnerBuyRecordChargeService(folderId: string, recordChargeId: string): Promise<any> {
+    try {
+        const response = await httpClient.post<any>(`RecordCharge/${folderId}/purchase-record`, { recordChargeId });
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || 'Không thể mua đánh giá record');
+    }
+}

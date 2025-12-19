@@ -77,43 +77,45 @@ const ProfileScreen = () => {
        
         </View>
 
-        {/* Learning Section */}
-        <View className="px-4 mb-3">
-          <Text className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wide">
-            Học tập
-          </Text>
-          <View className="bg-white rounded-xl overflow-hidden shadow-sm">
-            <TouchableOpacity 
-              onPress={() => navigation.navigate('AudioReview' as never)}
-              className="flex-row items-center p-4 border-b border-gray-100"
-              activeOpacity={0.7}
-            >
-              <View className="w-10 h-10 bg-purple-100 rounded-full items-center justify-center">
-                <Ionicons name="mic" size={20} color="#7C3AED" />
-              </View>
-              <View className="flex-1 ml-3">
-                <Text className="text-gray-900 font-semibold">Đánh giá Audio</Text>
-                <Text className="text-xs text-gray-500 mt-0.5">Xem đánh giá phát âm</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#D1D5DB" />
-            </TouchableOpacity>
+        {/* Learning Section - Only show for Learner role */}
+        {getMe?.role === "LEARNER" && (
+          <View className="px-4 mb-3">
+            <Text className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wide">
+              Học tập
+            </Text>
+            <View className="bg-white rounded-xl overflow-hidden shadow-sm">
+              <TouchableOpacity 
+                onPress={() => navigation.navigate('AudioReview' as never)}
+                className="flex-row items-center p-4 border-b border-gray-100"
+                activeOpacity={0.7}
+              >
+                <View className="w-10 h-10 bg-purple-100 rounded-full items-center justify-center">
+                  <Ionicons name="mic" size={20} color="#7C3AED" />
+                </View>
+                <View className="flex-1 ml-3">
+                  <Text className="text-gray-900 font-semibold">Đánh giá Audio</Text>
+                  <Text className="text-xs text-gray-500 mt-0.5">Xem đánh giá phát âm</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#D1D5DB" />
+              </TouchableOpacity>
 
-            <TouchableOpacity 
-              onPress={() => navigation.navigate('LearnerRecordFolderPage' as never)}
-              className="flex-row items-center p-4"
-              activeOpacity={0.7}
-            >
-              <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center">
-                <Ionicons name="recording" size={20} color="#3B82F6" />
-              </View>
-              <View className="flex-1 ml-3">
-                <Text className="text-gray-900 font-semibold">Thu âm của tôi</Text>
-                <Text className="text-xs text-gray-500 mt-0.5">Quản lý bản ghi âm</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#D1D5DB" />
-            </TouchableOpacity>
+              <TouchableOpacity 
+                onPress={() => navigation.navigate('LearnerRecordFolderPage' as never)}
+                className="flex-row items-center p-4"
+                activeOpacity={0.7}
+              >
+                <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center">
+                  <Ionicons name="recording" size={20} color="#3B82F6" />
+                </View>
+                <View className="flex-1 ml-3">
+                  <Text className="text-gray-900 font-semibold">Thu âm của tôi</Text>
+                  <Text className="text-xs text-gray-500 mt-0.5">Quản lý bản ghi âm</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#D1D5DB" />
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        )}
 
         {/* Account Section */}
         <View className="px-4 mb-3">
@@ -122,6 +124,25 @@ const ProfileScreen = () => {
           </Text>
           <View className="bg-white rounded-xl overflow-hidden shadow-sm">
             <TouchableOpacity 
+              onPress={() => {
+                if (getMe?.role === "REVIEWER") {
+                  // Navigate using parent navigator if available (when inside tab navigator)
+                  const parent = navigation.getParent();
+                  if (parent) {
+                    parent.navigate("ReviewerProfile" as never);
+                  } else {
+                    // Fallback to direct navigation
+                    (navigation as any).navigate("ReviewerProfile");
+                  }
+                } else if (getMe?.role === "LEARNER") {
+                  const parent = navigation.getParent();
+                  if (parent) {
+                    parent.navigate("LearnerProfile" as never);
+                  } else {
+                    (navigation as any).navigate("LearnerProfile");
+                  }
+                }
+              }}
               className="flex-row items-center p-4 border-b border-gray-100"
               activeOpacity={0.7}
             >
