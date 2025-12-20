@@ -21,6 +21,7 @@ import {
   useSubmitAnswerQuestion,
 } from "../../hooks/learner/exercise/exerciseHooks";
 import { uploadAudioToCloudinary } from "../../api/uploadAudio.service";
+import BuyReviewModal from "../../components/BuyReviewModal";
 
 interface RouteParams {
   exerciseId: string;
@@ -31,7 +32,7 @@ interface RouteParams {
 // Component để hiển thị text có màu xanh/đỏ dựa trên kết quả phát âm
 interface ColoredTextProps {
   text: string;
-  letterCorrectMask: string; 
+  letterCorrectMask: string;
 }
 
 const ColoredText: React.FC<ColoredTextProps> = ({
@@ -123,6 +124,7 @@ const ExerciseScreen = () => {
   );
   const [uploadedAudioUrls, setUploadedAudioUrls] = useState<string[]>([]); // Track latest audio URLs after recording
   const [isPlayingPreviousAudio, setIsPlayingPreviousAudio] = useState(false);
+  const [isBuyReviewModalOpen, setIsBuyReviewModalOpen] = useState(false);
 
   const recordingRef = useRef<Audio.Recording | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
@@ -772,8 +774,8 @@ const ExerciseScreen = () => {
                                 color="#3B82F6"
                               />
                               <Text className="text-xs text-blue-800 ml-2 flex-1 font-medium">
-                                 Mẹo: Xem video nhiều lần, tạm dừng để quan
-                                sát chi tiết chuyển động môi và lưỡi
+                                Mẹo: Xem video nhiều lần, tạm dừng để quan sát
+                                chi tiết chuyển động môi và lưỡi
                               </Text>
                             </View>
                           </View>
@@ -899,37 +901,47 @@ const ExerciseScreen = () => {
         </View>
 
         {/* Question text */}
-        <View className="flex-row items-center justify-center mb-6 px-2">
-          {/* Text câu hỏi */}
-          <Text className="text-3xl font-bold text-gray-900 leading-relaxed text-center mr-3">
-            {currentQuestion.text}
-          </Text>
+        <View className="mb-6 px-2" style={{ position: "relative" }}>
+          <View className="flex-row items-center justify-center">
+            {/* Text câu hỏi */}
+            <Text className="text-3xl font-bold text-gray-900 leading-relaxed text-center mr-3">
+              {currentQuestion.text}
+            </Text>
 
-          {/* Nút nghe phát âm */}
-          <TouchableOpacity
-            onPress={handleSpeakQuestion}
-            disabled={isSpeaking}
-            className="flex-row items-center"
-            style={{ opacity: isSpeaking ? 0.6 : 1 }}
-          >
-            <Ionicons
-              name={isSpeaking ? "volume-high" : "volume-high-outline"}
-              size={25}
-              color="#4f46e5"
-            />
-          </TouchableOpacity>
+            {/* Nút nghe phát âm */}
+            <TouchableOpacity
+              onPress={handleSpeakQuestion}
+              disabled={isSpeaking}
+              className="flex-row items-center"
+              style={{ opacity: isSpeaking ? 0.6 : 1 }}
+            >
+              <Ionicons
+                name={isSpeaking ? "volume-high" : "volume-high-outline"}
+                size={25}
+                color="#4f46e5"
+              />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Question stats - Chỉ hiện khi tiếp tục học (không phải bắt đầu học mới) */}
         {!isNewExercise &&
-          (currentQuestion.score > 0 || currentQuestion.numberOfRetake > 0 || (currentQuestion.relearnScore !== null && currentQuestion.relearnScore !== undefined)) && (
+          (currentQuestion.score > 0 ||
+            currentQuestion.numberOfRetake > 0 ||
+            (currentQuestion.relearnScore !== null &&
+              currentQuestion.relearnScore !== undefined)) && (
             <View className="flex-row justify-center gap-1 mb-6">
               {currentQuestion.score >= 0 && (
                 <View className=" px-2 py-1.5 flex-1 max-w-[110px]">
                   <View className="items-center">
                     <Ionicons name="star" size={14} color="#2563EB" />
-                    <Text className="text-[10px] text-blue-700 font-medium text-center" numberOfLines={1}>
-                      {currentExerciseData?.status === "Completed" ? "Điểm hoàn thành" : "Điểm gần nhất"}
+                    <Text
+                      className="text-[10px] text-blue-700 font-medium text-center"
+                      numberOfLines={1}
+                    >
+                      {currentExerciseData?.status === "Completed"
+                        ? "Điểm hoàn thành"
+                        : "Điểm gần nhất"}
                     </Text>
                     <Text className="text-sm font-bold text-blue-900">
                       {currentQuestion.score}/100
@@ -941,7 +953,10 @@ const ExerciseScreen = () => {
                 <View className=" rounded-lg px-2 py-1.5 flex-1 max-w-[110px]">
                   <View className="items-center">
                     <Ionicons name="refresh" size={14} color="#EA580C" />
-                    <Text className="text-[10px] text-orange-700 font-medium text-center" numberOfLines={1}>
+                    <Text
+                      className="text-[10px] text-orange-700 font-medium text-center"
+                      numberOfLines={1}
+                    >
                       Số lần làm lại
                     </Text>
                     <Text className="text-sm font-bold text-orange-900">
@@ -950,19 +965,28 @@ const ExerciseScreen = () => {
                   </View>
                 </View>
               )}
-              {currentQuestion.relearnScore !== null && currentQuestion.relearnScore !== undefined && (
-                <View className=" px-2 py-1.5 flex-1 max-w-[110px]">
-                  <View className="items-center">
-                    <Ionicons name="checkmark-circle" size={14} color="#059669" />
-                    <Text className="text-[10px] text-emerald-700 font-medium text-center" numberOfLines={1}>
-                      Điểm ôn tập
-                    </Text>
-                    <Text className="text-sm font-bold text-emerald-900">
-                      {currentQuestion.relearnScore}
-                    </Text>
+              {currentQuestion.relearnScore !== null &&
+                currentQuestion.relearnScore !== undefined && (
+                  <View className=" px-2 py-1.5 flex-1 max-w-[110px]">
+                    <View className="items-center">
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={14}
+                        color="#059669"
+                      />
+                      <Text
+                        className="text-[10px] text-emerald-700 font-medium text-center"
+                        numberOfLines={1}
+                      >
+                        Điểm ôn tập
+                      </Text>
+                      <Text className="text-sm font-bold text-emerald-900">
+                        {currentQuestion.relearnScore}
+                      </Text>
+                    </View>
                   </View>
-                </View>
-              )}
+                )}
+             
             </View>
           )}
 
@@ -992,18 +1016,27 @@ const ExerciseScreen = () => {
                   )
                 }
                 disabled={isPlayingPreviousAudio}
-                className="bg-purple-600 px-4 py-2 rounded-full flex-row items-center"
+                className=" px-4 py-2 rounded-full flex-row items-center"
                 style={{ opacity: isPlayingPreviousAudio ? 0.6 : 1 }}
               >
                 {isPlayingPreviousAudio ? (
-                  <ActivityIndicator size="small" color="white" />
+                  <ActivityIndicator size="small" color="black" />
                 ) : (
-                  <Ionicons name="play" size={16} color="white" />
+                  <Ionicons name="play" size={16} color="black" />
                 )}
-                <Text className="text-white font-semibold ml-1 text-sm">
-                  {isPlayingPreviousAudio ? "Đang phát..." : "Phát"}
+                <Text className="text-black font-semibold ml-1 text-sm">
+                  {isPlayingPreviousAudio ? "" : ""}
                 </Text>
               </TouchableOpacity>
+              
+              {learnerAnswerIds[currentQuestionIndex] && (
+                <TouchableOpacity
+                  onPress={() => setIsBuyReviewModalOpen(true)}
+                  className="bg-purple-600 rounded-full w-10 h-10 items-center justify-center ml-2"
+                >
+                  <Ionicons name="cart" size={18} color="white" />
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         )}
@@ -1211,6 +1244,13 @@ const ExerciseScreen = () => {
           )}
         </View>
       </View>
+
+      {/* Buy Review Modal */}
+      <BuyReviewModal
+        visible={isBuyReviewModalOpen}
+        onClose={() => setIsBuyReviewModalOpen(false)}
+        learnerAnswerId={learnerAnswerIds[currentQuestionIndex]}
+      />
     </SafeAreaView>
   );
 };

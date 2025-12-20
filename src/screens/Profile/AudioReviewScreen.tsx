@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Text,
   View,
@@ -11,13 +11,18 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  AppState,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect } from '@react-navigation/native';
 import { useLearnerReviewHistory } from '../../hooks/learner/feedback/feedbackHook';
 import { useLearnerFeedback, useLearnerReportReview } from '../../hooks/learner/feedback/feedbackHook';
 import type { LearnerReviewHistory } from '../../api/learnerFeedback.service';
+import BuyReviewModal from '../../components/BuyReviewModal';
 
 const PAGE_SIZE = 10;
 
@@ -28,21 +33,51 @@ const AudioReviewScreenContent = ({ onGoBack }: { onGoBack?: () => void }) => {
   const [keyword, setKeyword] = useState<string>('');
   const [searchKeyword, setSearchKeyword] = useState<string>('');
   const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
+  const [isBuyReviewModalOpen, setIsBuyReviewModalOpen] = useState(false);
   const [selectedReview, setSelectedReview] = useState<LearnerReviewHistory | null>(null);
   const [activeTab, setActiveTab] = useState<string>('feedback');
   const [feedbackRating, setFeedbackRating] = useState<number>(5);
   const [feedbackContent, setFeedbackContent] = useState('');
   const [reportReason, setReportReason] = useState('');
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const [isAudioLoading, setIsAudioLoading] = useState<string | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
+  const appState = useRef(AppState.currentState);
 
   const apiStatus = status === 'all' ? '' : status;
 
-  const { data, isLoading, isError, error } = useLearnerReviewHistory(
+  const { data, isLoading, isError, error, refetch } = useLearnerReviewHistory(
     pageNumber,
     PAGE_SIZE,
     apiStatus,
     searchKeyword
+  );
+
+  // Refetch dữ liệu và setup audio khi màn hình được focus
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+      
+      // Setup audio mode mỗi khi screen được focus
+      Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      }).catch(console.error);
+
+      // Cleanup khi rời khỏi screen
+      return () => {
+        if (soundRef.current) {
+          soundRef.current.stopAsync().catch(() => {});
+          soundRef.current.unloadAsync().catch(() => {});
+          soundRef.current = null;
+        }
+        setPlayingAudioId(null);
+        setIsAudioLoading(null);
+      };
+    }, [refetch])
   );
 
   const { mutate: submitFeedback, isPending: isSubmittingFeedback } = useLearnerFeedback();
@@ -62,15 +97,31 @@ const AudioReviewScreenContent = ({ onGoBack }: { onGoBack?: () => void }) => {
     setPageNumber(1);
   }, [status]);
 
-  // Setup and cleanup audio
+  // Setup and cleanup audio + AppState listener
   useEffect(() => {
+    // Setup audio mode
     Audio.setAudioModeAsync({
       allowsRecordingIOS: false,
       playsInSilentModeIOS: true,
       staysActiveInBackground: false,
     });
 
+    // AppState listener - stop audio when app goes to background
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (appState.current === 'active' && nextAppState.match(/inactive|background/)) {
+        // App going to background - stop audio
+        if (soundRef.current) {
+          soundRef.current.stopAsync().catch(() => {});
+          soundRef.current.unloadAsync().catch(() => {});
+          soundRef.current = null;
+        }
+        setPlayingAudioId(null);
+      }
+      appState.current = nextAppState;
+    });
+
     return () => {
+      subscription.remove();
       if (soundRef.current) {
         soundRef.current.unloadAsync();
       }
@@ -133,14 +184,17 @@ const AudioReviewScreenContent = ({ onGoBack }: { onGoBack?: () => void }) => {
         content: feedbackContent.trim(),
       },
       {
-        onSuccess: () => {
+        onSuccess: (data) => {
+          Alert.alert('Thành công', data?.message || 'Feedback đã được gửi thành công.');
           setIsRequestDialogOpen(false);
           setFeedbackContent('');
           setFeedbackRating(5);
           setSelectedReview(null);
         },
-        onError: (error) => {
+        onError: (error: any) => {
           console.error('Feedback submission error:', error);
+          const errorMessage = error?.message || 'Không thể gửi feedback. Vui lòng thử lại.';
+          Alert.alert('Lỗi', errorMessage);
         },
       }
     );
@@ -197,36 +251,130 @@ const AudioReviewScreenContent = ({ onGoBack }: { onGoBack?: () => void }) => {
       return;
     }
 
-    try {
-      // Stop current audio if playing
-      if (soundRef.current) {
-        await soundRef.current.unloadAsync();
-        soundRef.current = null;
-      }
+    // Check if app is in foreground
+    if (AppState.currentState !== 'active') {
+      Alert.alert('Lỗi', 'Vui lòng mở app và thử lại.');
+      return;
+    }
 
+    // Prevent double tap
+    if (isAudioLoading) {
+      return;
+    }
+
+    try {
       // If clicking the same audio, stop it
       if (playingAudioId === reviewId) {
+        if (soundRef.current) {
+          try {
+            await soundRef.current.stopAsync();
+            await soundRef.current.unloadAsync();
+          } catch (e) {
+            // Ignore errors when stopping
+          }
+          soundRef.current = null;
+        }
         setPlayingAudioId(null);
         return;
       }
 
-      setPlayingAudioId(reviewId);
-      const { sound } = await Audio.Sound.createAsync({ uri: audioUrl });
+      // Stop current audio if playing
+      if (soundRef.current) {
+        try {
+          await soundRef.current.stopAsync();
+          await soundRef.current.unloadAsync();
+        } catch (e) {
+          // Ignore errors when stopping previous audio
+        }
+        soundRef.current = null;
+        setPlayingAudioId(null);
+      }
+
+      // Set loading state
+      setIsAudioLoading(reviewId);
+
+      // Setup audio mode trước khi phát
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      });
+
+      // Check again if app is still active
+      if (AppState.currentState !== 'active') {
+        setIsAudioLoading(null);
+        return;
+      }
+
+      console.log('Playing audio from URL:', audioUrl);
+      
+      // Load audio trước
+      const { sound, status } = await Audio.Sound.createAsync(
+        { uri: audioUrl },
+        { 
+          shouldPlay: false,
+          volume: 1.0,  // Đảm bảo volume max
+        }
+      );
+      
+      if (!status.isLoaded) {
+        console.error('Audio failed to load');
+        setIsAudioLoading(null);
+        Alert.alert('Lỗi', 'Không thể tải audio. Vui lòng thử lại.');
+        return;
+      }
+
       soundRef.current = sound;
 
-      await sound.playAsync();
-
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded && status.didJustFinish) {
+      // Setup callback trước khi play
+      sound.setOnPlaybackStatusUpdate((playbackStatus) => {
+        if (playbackStatus.isLoaded && playbackStatus.didJustFinish) {
           setPlayingAudioId(null);
-          sound.unloadAsync();
+          sound.unloadAsync().catch(() => {});
           soundRef.current = null;
         }
       });
-    } catch (error) {
-      console.error('Error playing audio:', error);
-      Alert.alert('Lỗi', 'Không thể phát audio. Vui lòng thử lại.');
+
+      // Check one more time before playing
+      if (AppState.currentState !== 'active') {
+        await sound.unloadAsync();
+        soundRef.current = null;
+        setIsAudioLoading(null);
+        return;
+      }
+
+      // Delay nhỏ để đảm bảo audio system sẵn sàng
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Play sau khi đã setup xong
+      await sound.playAsync();
+      setPlayingAudioId(reviewId);
+      setIsAudioLoading(null);
+      
+      console.log('Audio started playing successfully');
+      
+    } catch (error: any) {
+      console.error('Error playing audio:', error, audioUrl);
+      
+      // Cleanup
+      if (soundRef.current) {
+        try {
+          await soundRef.current.unloadAsync();
+        } catch (e) {}
+        soundRef.current = null;
+      }
+      
       setPlayingAudioId(null);
+      setIsAudioLoading(null);
+      
+      // Show user-friendly error
+      if (error?.message?.includes('background') || error?.message?.includes('AudioFocus')) {
+        Alert.alert('Lỗi', 'Vui lòng đợi một chút rồi thử lại.');
+      } else {
+        Alert.alert('Lỗi', 'Không thể phát audio. Vui lòng thử lại.');
+      }
     }
   };
 
@@ -251,8 +399,10 @@ const AudioReviewScreenContent = ({ onGoBack }: { onGoBack?: () => void }) => {
 
     const statusInfo = statusMap[feedbackStatus] || { label: feedbackStatus, bg: 'bg-gray-50', text: 'text-gray-700' };
     return (
-      <View className={`px-3 py-1 rounded-full ${statusInfo.bg}`}>
-        <Text className={`text-xs font-medium ${statusInfo.text}`}>{statusInfo.label}</Text>
+      <View className={`px-3 py-1.5 rounded-full ${statusInfo.bg}`} style={{ flexShrink: 0 }}>
+        <Text className={`text-xs font-medium ${statusInfo.text}`} numberOfLines={1}>
+          {statusInfo.label}
+        </Text>
       </View>
     );
   };
@@ -268,7 +418,7 @@ const AudioReviewScreenContent = ({ onGoBack }: { onGoBack?: () => void }) => {
 
   const renderReviewItem = ({ item }: { item: LearnerReviewHistory }) => (
     <View className="border-b border-gray-200 p-4 bg-white" style={{ borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-      <View className="flex-row items-start justify-between mb-3">
+      <View className="flex-row items-start justify-between mb-3" >
         <View style={{ flex: 1, marginRight: 12 }}>
           <Text className="text-xs text-gray-500 mb-1.5">{formatDate(item.createdAt)}</Text>
           <Text className="text-sm font-semibold text-gray-900 mb-2" numberOfLines={2} style={{ lineHeight: 20 }}>
@@ -311,20 +461,26 @@ const AudioReviewScreenContent = ({ onGoBack }: { onGoBack?: () => void }) => {
           {item.reviewAudioUrl && (
             <TouchableOpacity
               onPress={() => handlePlayAudio(item.reviewAudioUrl, item.reviewId)}
+              disabled={isAudioLoading === item.reviewId}
               style={{
                 width: 36,
                 height: 36,
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: '#DBEAFE',
+                backgroundColor: playingAudioId === item.reviewId ? '#BFDBFE' : '#DBEAFE',
                 borderRadius: 18,
+                opacity: isAudioLoading === item.reviewId ? 0.6 : 1,
               }}
             >
-              <Ionicons
-                name={playingAudioId === item.reviewId ? 'pause' : 'play'}
-                size={18}
-                color="#3B82F6"
-              />
+              {isAudioLoading === item.reviewId ? (
+                <ActivityIndicator size="small" color="#3B82F6" />
+              ) : (
+                <Ionicons
+                  name={playingAudioId === item.reviewId ? 'pause' : 'play'}
+                  size={18}
+                  color="#3B82F6"
+                />
+              )}
             </TouchableOpacity>
           )}
           {item.feedbackStatus === 'NotSent' && (
@@ -345,6 +501,7 @@ const AudioReviewScreenContent = ({ onGoBack }: { onGoBack?: () => void }) => {
               <Text className="text-xs font-medium text-purple-700 ml-1.5">Gửi đơn</Text>
             </TouchableOpacity>
           )}
+        
         </View>
       </View>
     </View>
@@ -650,75 +807,93 @@ const AudioReviewScreenContent = ({ onGoBack }: { onGoBack?: () => void }) => {
                 </Text>
               </View>
 
-              {/* Scrollable Content */}
+              {/* Review Info - Fixed at top */}
+              {selectedReview && (
+                <View className="px-4 pt-4">
+                  <View className="bg-gray-50 rounded-lg p-4 mb-4">
+                    <Text className="text-xs text-gray-500 mb-1">Câu hỏi:</Text>
+                    <Text className="text-sm font-medium text-gray-800 mb-2" numberOfLines={2}>
+                      {selectedReview.questionContent || 'N/A'}
+                    </Text>
+                    <View className="flex-row items-center">
+                      <Ionicons name="person-outline" size={16} color="#6B7280" />
+                      <Text className="text-xs text-gray-600 ml-1">
+                        {selectedReview.reviewerFullName || 'Reviewer ẩn danh'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Tabs - Kiểu Login Screen */}
+                  <View className="flex-row bg-gray-100 mb-4">
+                    <TouchableOpacity
+                      onPress={() => {
+                        console.log('Switching to feedback tab');
+                        setActiveTab('feedback');
+                      }}
+                      className="flex-1"
+                      activeOpacity={0.7}
+                    >
+                      <LinearGradient
+                        colors={activeTab === 'feedback' ? ['#7C3AED', '#8B5CF6'] : ['transparent', 'transparent']}
+                        className="py-3.5 rounded-xl flex-row items-center justify-center"
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                      >
+                        <Ionicons 
+                          name="star" 
+                          size={18} 
+                          color={activeTab === 'feedback' ? '#FFFFFF' : '#9CA3AF'} 
+                        />
+                        <Text 
+                          className="ml-2 font-semibold text-sm"
+                          style={{ color: activeTab === 'feedback' ? '#FFFFFF' : '#9CA3AF' }}
+                        >
+                          Gửi feedback
+                        </Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity
+                      onPress={() => {
+                        console.log('Switching to report tab');
+                        setActiveTab('report');
+                      }}
+                      className="flex-1"
+                      activeOpacity={0.7}
+                    >
+                      <LinearGradient
+                        colors={activeTab === 'report' ? ['#EF4444', '#F87171'] : ['transparent', 'transparent']}
+                        className="py-3.5 rounded-xl flex-row items-center justify-center"
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                      >
+                        <Ionicons 
+                          name="flag" 
+                          size={18} 
+                          color={activeTab === 'report' ? '#FFFFFF' : '#9CA3AF'} 
+                        />
+                        <Text 
+                          className="ml-2 font-semibold text-sm"
+                          style={{ color: activeTab === 'report' ? '#FFFFFF' : '#9CA3AF' }}
+                        >
+                          Gửi report
+                        </Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
+              {/* Scrollable Content - Only form content */}
               {selectedReview && (
                 <ScrollView 
                   showsVerticalScrollIndicator={true}
-                  contentContainerStyle={{ paddingBottom: 20, paddingTop: 16 }}
+                  contentContainerStyle={{ paddingBottom: 20 }}
                   style={{ flex: 1 }}
                   nestedScrollEnabled={true}
+                  keyboardShouldPersistTaps="handled"
                 >
                   <View className="px-4">
-                    {/* Review Info */}
-                    <View className="bg-gray-50 rounded-lg p-4 mb-4">
-                      <Text className="text-xs text-gray-500 mb-1">Câu hỏi:</Text>
-                      <Text className="text-sm font-medium text-gray-800 mb-2" numberOfLines={2}>
-                        {selectedReview.questionContent || 'N/A'}
-                      </Text>
-                      <View className="flex-row items-center">
-                        <Ionicons name="person-outline" size={16} color="#6B7280" />
-                        <Text className="text-xs text-gray-600 ml-1">
-                          {selectedReview.reviewerFullName || 'Reviewer ẩn danh'}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* Tabs */}
-                    <View className="flex-row bg-gray-100 rounded-lg p-1 mb-4">
-                      <TouchableOpacity
-                        onPress={() => setActiveTab('feedback')}
-                        className={`flex-1 py-2 rounded-lg items-center ${
-                          activeTab === 'feedback' ? 'bg-white shadow-sm' : ''
-                        }`}
-                      >
-                        <View className="flex-row items-center">
-                          <Ionicons
-                            name="star"
-                            size={16}
-                            color={activeTab === 'feedback' ? '#7C3AED' : '#6B7280'}
-                          />
-                          <Text
-                            className={`text-sm font-medium ml-1 ${
-                              activeTab === 'feedback' ? 'text-purple-700' : 'text-gray-600'
-                            }`}
-                          >
-                            Gửi feedback
-                          </Text>
-                        </View>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => setActiveTab('report')}
-                        className={`flex-1 py-2 rounded-lg items-center ${
-                          activeTab === 'report' ? 'bg-white shadow-sm' : ''
-                        }`}
-                      >
-                        <View className="flex-row items-center">
-                          <Ionicons
-                            name="chatbubble-outline"
-                            size={16}
-                            color={activeTab === 'report' ? '#7C3AED' : '#6B7280'}
-                          />
-                          <Text
-                            className={`text-sm font-medium ml-1 ${
-                              activeTab === 'report' ? 'text-purple-700' : 'text-gray-600'
-                            }`}
-                          >
-                            Gửi report
-                          </Text>
-                        </View>
-                      </TouchableOpacity>
-                    </View>
-
                     {/* Tab Content */}
                     {activeTab === 'feedback' ? (
                       <View style={{ gap: 16 }}>
@@ -920,6 +1095,16 @@ const AudioReviewScreenContent = ({ onGoBack }: { onGoBack?: () => void }) => {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Buy Review Modal */}
+      <BuyReviewModal
+        visible={isBuyReviewModalOpen}
+        onClose={() => {
+          setIsBuyReviewModalOpen(false);
+          setSelectedReview(null);
+        }}
+        learnerAnswerId={selectedReview?.learnerAnswerId}
+      />
     </SafeAreaView>
   );
 };

@@ -23,6 +23,7 @@ export interface LearnerReviewHistory {
     comment: string;
     status: string;
     recordId: string;
+    learnerAnswerId?: string; // Optional vì có thể có hoặc không
     createdAt: Date;
     questionContent: string;
     reviewerFullName: string;
