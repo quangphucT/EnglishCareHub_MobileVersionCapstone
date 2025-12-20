@@ -1,30 +1,36 @@
 import httpClient from "./httpClient";
 
 // Interfaces
+export type Status = "Draft" | "InProgress" | "Done";
+// Interfaces
 export interface RecordCategory {
-    learnerRecordId: string;
-    name: string;
-    status?: string;
-    createdAt?: Date;
-  }
-  
-  export interface RecordCategoryResponse {
-    data: RecordCategory[];
-    message?: string;
-    isSucess: boolean; // Note: API returns "isSucess" with one 'c'
-    businessCode?: string;
-  }
-  
-  export interface Record {
-      recordId: string;
-      learnerRecordId: string;
-      content: string;
-      audioRecordingURL: string;
-      score: number;
-      aiFeedback: string;
-      status: string;
-      createdAt: Date;
-  }
+  learnerRecordId: string;
+  name: string;
+  status?: Status;
+  createdAt?: Date;
+  numberOfRecord?: number;
+}
+
+export interface RecordCategoryResponse {
+  data: RecordCategory[];
+  message?: string;
+  isSucess: boolean; // Note: API returns "isSucess" with one 'c'
+  businessCode?: string;
+}
+export type StatusRecord = "Draft"  | "Submitted";
+export interface Record {
+    recordContentId: string;
+    content: string;
+    recordId: string;
+    audioRecordingURL: string;
+    transcribedText: string;
+    score: number;
+    aiFeedback: string;
+    status: StatusRecord;
+    createdAt: Date;
+    numberOfReview: number;
+    isNeedReviewed: boolean;
+}
   
   export interface RecordResponse {
     data?: Record[] | Record; // Support both array and single object
@@ -61,7 +67,7 @@ export interface RecordCategory {
     message?: string;
     isSuccess?: boolean;  
   }
-  export const LearnerRecordFolderService = async (): Promise<RecordCategoryResponse> => {
+export const LearnerRecordFolderService = async (): Promise<RecordCategoryResponse> => {
     try {
         const response = await httpClient.get<RecordCategoryResponse>('RecordCategory/mine');
         return response.data;
@@ -109,25 +115,25 @@ export const LearnerRecordCreateService = async (folderId: string, content: stri
         throw new Error(error.response?.data?.message || 'Không thể tạo bản ghi');
     }
 }
-export const LearnerRecordDeleteService = async (recordId: string): Promise<DeleteResponse> => {
+export const LearnerRecordDeleteService = async (recordContentId: string): Promise<DeleteResponse> => {
     try {
-        const response = await httpClient.delete<DeleteResponse>(`Record/${recordId}`);
+        const response = await httpClient.delete<DeleteResponse>(`Record/${recordContentId}`);
         return response.data;
     } catch (error: any) {
         throw new Error(error.response?.data?.message || 'Không thể xóa bản ghi');
     }
 }
-export const LearnerRecordUpdateContentService = async (recordId: string, content: string): Promise<CreateRecordResponse> => {
+export const LearnerRecordUpdateContentService = async (recordContentId: string, content: string): Promise<CreateRecordResponse> => {
     try {
-        const response = await httpClient.put<CreateRecordResponse>(`Record/${recordId}/update-content`, { content });
+        const response = await httpClient.put<CreateRecordResponse>(`Record/content/${recordContentId}`, { content });
         return response.data;
     } catch (error: any) {
         throw new Error(error.response?.data?.message || 'Không thể cập nhật nội dung bản ghi');
     }
 }
-export const LearnerRecordUpdateService = async (recordId: string, reviewData: ReviewRecordRequest): Promise<ReviewRecordResponse> => {
+export const LearnerRecordPostSubmitService = async (recordContentId: string, reviewData: ReviewRecordRequest): Promise<ReviewRecordResponse> => {
     try {
-        const response = await httpClient.put<ReviewRecordResponse>(`Record/${recordId}/submit`, reviewData);
+        const response = await httpClient.post<ReviewRecordResponse>(`Record/${recordContentId}/submit`, reviewData);
         return response.data;
     } catch (error: any) {
         throw new Error(error.response?.data?.message || 'Không thể cập nhật bản ghi');
@@ -155,7 +161,7 @@ export async function getActiveRecordCharge(): Promise<ActiveRecordChargeRespons
 }
 export async function LearnerBuyRecordChargeService(folderId: string, recordChargeId: string): Promise<any> {
     try {
-        const response = await httpClient.post<any>(`RecordCharge/${folderId}/purchase-record`, { recordChargeId });
+        const response = await httpClient.post<any>(`RecordCategory/${folderId}/purchase-record`, { recordChargeId });
         return response.data;
     } catch (error: any) {
         throw new Error(error.response?.data?.message || 'Không thể mua đánh giá record');

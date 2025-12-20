@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Alert } from "react-native";
-import { RecordCategoryResponse, LearnerRecordFolderService, CreateRecordCategoryResponse, LearnerRecordFolderCreateService, DeleteResponse, LearnerRecordFolderDeleteService, LearnerRecordFolderRenameService, RecordResponse, LearnerRecordService, CreateRecordResponse, LearnerRecordCreateService, LearnerRecordDeleteService, ReviewRecordResponse, LearnerRecordUpdateContentService, LearnerRecordUpdateService, ReviewRecordRequest, ActiveRecordChargeResponse, getActiveRecordCharge, LearnerBuyRecordChargeService } from "../../../api/learnerRecord.service";
+import { RecordCategoryResponse, LearnerRecordFolderService, CreateRecordCategoryResponse, LearnerRecordFolderCreateService, DeleteResponse, LearnerRecordFolderDeleteService, LearnerRecordFolderRenameService, RecordResponse, LearnerRecordService, CreateRecordResponse, LearnerRecordCreateService, LearnerRecordDeleteService, ReviewRecordResponse, LearnerRecordUpdateContentService, ReviewRecordRequest, ActiveRecordChargeResponse, getActiveRecordCharge, LearnerBuyRecordChargeService, LearnerRecordPostSubmitService } from "../../../api/learnerRecord.service";
 
 // Folder/Category Hooks
 export const useLearnerRecordFolders = () => {
@@ -118,9 +118,9 @@ export const useLearnerRecordUpdateContent = () => {
 export const useLearnerRecordUpdate= () => {
   const queryClient = useQueryClient();
   return useMutation<ReviewRecordResponse, Error, { recordId: string; reviewData: ReviewRecordRequest }>({
-    mutationFn: ({ recordId, reviewData }) => LearnerRecordUpdateService(recordId, reviewData),
+    mutationFn: ({ recordId, reviewData }) => LearnerRecordPostSubmitService(recordId, reviewData), // recordId here is actually recordContentId from API perspective
     onSuccess: (data) => {
-      Alert.alert(data.message || "Cập nhật nội dung record thành công");
+      // Alert.alert(data.message || "Cập nhật nội dung record thành công");
       queryClient.invalidateQueries({ queryKey: ["learnerRecords"] });
     },
     onError: (error) => {

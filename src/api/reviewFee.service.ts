@@ -63,7 +63,7 @@ export const buyReview = async (data: BuyReviewRequest): Promise<BuyReviewRespon
 // Buy review for record
 export const buyReviewRecord = async (data: BuyReviewRecordRequest): Promise<BuyReviewResponse> => {
   const response = await httpClient.post<BuyReviewResponse>(
-    '/LearnerBuyReview/buyRecord',
+    'LearnerBuyReview/buyRecord',
     data
   );
   return response.data;

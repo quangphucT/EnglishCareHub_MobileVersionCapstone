@@ -22,7 +22,7 @@ import {
   useLearnerRecordDelete,
   useLearnerRecordUpdateContent,
 } from '../../hooks/learner/learnerRecord/learnerRecordHook';
-import type { Record } from '../../api/learnerRecord.service';
+import type { Record, StatusRecord } from '../../api/learnerRecord.service';
 
 const LearnerRecordPage = () => {
   const navigation = useNavigation();
@@ -175,9 +175,15 @@ const LearnerRecordPage = () => {
     }
   };
 
-  const formatDate = (dateString: string | Date) => {
+  const formatDate = (dateString: string | Date | undefined | null) => {
+    if (!dateString) {
+      return 'N/A';
+    }
     try {
       const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+      if (isNaN(date.getTime())) {
+        return 'N/A';
+      }
       return date.toLocaleDateString('vi-VN', {
         year: 'numeric',
         month: '2-digit',
@@ -186,10 +192,21 @@ const LearnerRecordPage = () => {
         minute: '2-digit',
       });
     } catch {
-      return typeof dateString === 'string' ? dateString : dateString.toString();
+      return typeof dateString === 'string' ? dateString : (dateString?.toString() || 'N/A');
     }
   };
-
+  // Map record status to Vietnamese
+  const getRecordStatusLabel = (status: StatusRecord | string | undefined): string => {
+    if (!status) return "";
+    switch (status) {
+      case "Draft":
+        return "Nháp";
+      case "Submitted":
+        return "Đã nộp";
+      default:
+        return status;
+    }
+  };
   const getStatusBadge = (status: string) => {
     const statusMap: { [key: string]: { label: string; bg: string; text: string } } = {
       Completed: { label: 'Hoàn thành', bg: 'bg-green-50', text: 'text-green-700' },
@@ -225,7 +242,9 @@ const LearnerRecordPage = () => {
               {item.content}
             </Text>
             <View className="flex-row items-center gap-2 flex-wrap">
-              {getStatusBadge(item.status)}
+              <View className="px-3 py-1 rounded-full" style={{ backgroundColor: '#DBEAFE' }}>
+                <Text className="text-xs font-medium text-blue-600">{getRecordStatusLabel(item.status)}</Text>
+              </View>
               {hasAiFeedback && (
                 <View className="px-2 py-1 rounded-full" style={{ backgroundColor: '#DBEAFE' }}>
                   <View className="flex-row items-center">
@@ -271,7 +290,7 @@ const LearnerRecordPage = () => {
             <Ionicons name="star" size={16} color="#FBBF24" />
             <Text className="text-sm text-gray-600 ml-1">Điểm số:</Text>
             <Text className="text-sm font-semibold text-gray-900 ml-1">
-              {item.score }
+              {item.score !== undefined && item.score !== null ? item.score : 0}/100
             </Text>
           </View>
         </View>

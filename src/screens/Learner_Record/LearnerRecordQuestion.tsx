@@ -14,12 +14,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Audio } from 'expo-av';
 import * as Speech from 'expo-speech';
-import * as FileSystem from 'expo-file-system';
 import {
   useLearnerRecords,
   useLearnerRecordUpdate,
 } from '../../hooks/learner/learnerRecord/learnerRecordHook';
 import type { Record } from '../../api/learnerRecord.service';
+import { uploadAudioToCloudinary } from '../../api/uploadAudio.service';
 
 const LearnerRecordQuestion = () => {
   const navigation = useNavigation();
@@ -29,7 +29,7 @@ const LearnerRecordQuestion = () => {
   const content = (route.params as any)?.content || '';
 
   // Queries
-  const { data: recordsDataResponse } = useLearnerRecords(folderId);
+  const { data: recordsDataResponse, isLoading: isLoadingRecords, isError: isErrorRecords, error: recordsError } = useLearnerRecords(folderId);
 
   // Parse recordsData từ response
   const recordsList = useMemo<Record[]>(() => {
@@ -58,7 +58,7 @@ const LearnerRecordQuestion = () => {
 
   // Lấy record hiện tại
   const currentRecord = recordsList[currentQuestionIndex] || null;
-  const currentRecordId = currentRecord?.recordId || recordId || '';
+  const currentRecordContentId = currentRecord?.recordContentId ;
   const currentContent = currentRecord?.content || content || '';
 
   const [language, setLanguage] = useState<'en-gb' | 'en'>('en-gb');
@@ -150,33 +150,13 @@ const LearnerRecordQuestion = () => {
     }
   }, [recording, pulseAnim]);
 
-  // Convert audio URI to base64
-  const convertAudioToBase64 = useCallback(async (uri: string): Promise<string> => {
-    try {
-      // First, try using FileSystem (more reliable for local files)
-      try {
-        const base64 = await FileSystem.readAsStringAsync(uri, {
-          encoding: 'base64' as any,
-        });
-        if (base64 && base64.length > 0) {
-          return base64;
-        }
-      } catch (fsError) {
-        console.log('FileSystem method failed, trying fetch method:', fsError);
-      }
-
-      // Fallback: Use fetch to get blob and convert
-      const response = await fetch(uri);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch audio: ${response.status}`);
-      }
-      
-      const blob = await response.blob();
-      
-      // Convert blob to base64
-      return new Promise<string>((resolve, reject) => {
+  // Convert blob to base64 (giống ExerciseScreen)
+  const convertBlobToBase64 = useCallback(
+    async (blob: Blob): Promise<string> => {
+      return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onloadend = () => {
+        reader.readAsDataURL(blob);
+        reader.onload = () => {
           const base64String = reader.result as string;
           // Remove data URL prefix if present
           const base64 = base64String.includes(',') 
@@ -184,14 +164,11 @@ const LearnerRecordQuestion = () => {
             : base64String;
           resolve(base64);
         };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
+        reader.onerror = (error) => reject(error);
       });
-    } catch (error) {
-      console.error('Error converting audio to base64:', error);
-      throw new Error('Failed to convert audio to base64. Please try again.');
-    }
-  }, []);
+    },
+    []
+  );
 
   // Play sample audio using Text-to-Speech
   const playAudio = useCallback(async () => {
@@ -313,8 +290,14 @@ const LearnerRecordQuestion = () => {
           return;
         }
 
-        await recordingRef.current.stopAndUnloadAsync();
-        const uri = recordingRef.current.getURI();
+        try {
+          await recordingRef.current.stopAndUnloadAsync();
+        } catch (stopError) {
+          console.warn('Error stopping recording:', stopError);
+          // Continue even if stop fails
+        }
+        
+        const uri = recordingRef.current?.getURI();
 
         if (!uri) {
           setMainTitle('Lỗi: Không tìm thấy file ghi âm');
@@ -324,10 +307,15 @@ const LearnerRecordQuestion = () => {
 
         recordedAudioUriRef.current = uri;
 
-        // Convert to base64 for API
+        // Convert to blob and base64 for AI processing
         let base64: string;
         try {
-          base64 = await convertAudioToBase64(uri);
+          const response = await fetch(uri);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch audio: ${response.status}`);
+          }
+          const blob = await response.blob();
+          base64 = await convertBlobToBase64(blob);
         } catch (convertError: any) {
           console.error('Error converting audio to base64:', convertError);
           setMainTitle('Lỗi: Không thể chuyển đổi audio');
@@ -385,39 +373,6 @@ const LearnerRecordQuestion = () => {
           const feedbackValue = data?.AIFeedback || data?.aiFeedback || data?.feedback || '';
           setAiFeedback(feedbackValue);
 
-          // Update record with results
-          if (currentRecordId) {
-            setTimeout(async () => {
-              try {
-                // Upload audio file (using FormData)
-                const formData = new FormData();
-                formData.append('file', {
-                  uri: uri,
-                  type: 'audio/m4a',
-                  name: `record-${Date.now()}.m4a`,
-                } as any);
-
-                // For now, we'll use the URI directly or upload to your backend
-                // You may need to create an upload endpoint
-                const audioUrl = uri; // Temporary - should upload to server
-
-                await updateRecord({
-                  recordId: currentRecordId,
-                  reviewData: {
-                    audioRecordingURL: audioUrl,
-                    score: Math.round(acc),
-                    aiFeedback: feedbackValue,
-                    transcribedText: data?.ipa_transcript || '',
-                  },
-                });
-
-                setMainTitle('Đã lưu kết quả!');
-              } catch (error) {
-                console.error('Error updating record:', error);
-              }
-            }, 100);
-          }
-
           // Store word-level data
           const realTranscriptsIpaData = data?.real_transcripts_ipa?.split(' ') || [];
           const matchedTranscriptsIpaData = data?.matched_transcripts_ipa?.split(' ') || [];
@@ -452,6 +407,45 @@ const LearnerRecordQuestion = () => {
           setOriginalScriptHtml(coloredWords.trim());
           setCurrentSoundRecorded(true);
           setMainTitle('An English Speaking Platform with AI');
+
+          // Update record with results
+          if (currentRecordContentId) {
+            try {
+              // Upload audio to Cloudinary before submitting
+              console.log('Uploading audio to Cloudinary...');
+              const cloudinaryUrl = await uploadAudioToCloudinary({
+                uri: uri,
+                name: `record-${Date.now()}.mp3`,
+                type: 'audio/mpeg',
+              });
+
+              if (!cloudinaryUrl) {
+                console.error('Failed to upload audio to Cloudinary');
+                setMainTitle('Lỗi: Không thể tải lên audio');
+                Alert.alert('Lỗi', 'Không thể tải lên audio. Vui lòng thử lại.');
+                setUiBlocked(false);
+                return;
+              }
+
+              console.log('Audio uploaded to Cloudinary:', cloudinaryUrl);
+
+              await updateRecord({
+                recordId: currentRecordContentId,
+                reviewData: {
+                  audioRecordingURL: cloudinaryUrl,
+                  score: Math.round(acc),
+                  aiFeedback: feedbackValue,
+                  transcribedText: data?.ipa_transcript || '',
+                },
+              });
+
+              setMainTitle('Đã lưu kết quả!');
+            } catch (error) {
+              console.error('Error updating record:', error);
+              setMainTitle('Lỗi: Không thể lưu kết quả');
+              Alert.alert('Lỗi', 'Không thể lưu kết quả. Vui lòng thử lại.');
+            }
+          }
         } catch (error) {
           console.error('Error processing audio:', error);
           setMainTitle('Lỗi: Không thể phân tích audio');
@@ -485,7 +479,7 @@ const LearnerRecordQuestion = () => {
         Alert.alert('Lỗi', 'Không thể bắt đầu ghi âm. Vui lòng kiểm tra quyền truy cập microphone.');
       }
     }
-  }, [recording, currentContent, originalScriptHtml, AILanguage, apiMainPathSTS, STScoreAPIKey, currentRecordId, updateRecord, convertAudioToBase64]);
+  }, [recording, currentContent, originalScriptHtml, AILanguage, apiMainPathSTS, STScoreAPIKey, currentRecordContentId, updateRecord, convertBlobToBase64]);
 
   // Initialize server
   const initializeServer = useCallback(async () => {
@@ -638,16 +632,84 @@ const LearnerRecordQuestion = () => {
   }, [shouldFetchNext, getNextSample]);
 
   useEffect(() => {
-    if (currentContent || content) {
+    // Chỉ fetch sample khi có content và không đang loading records
+    if ((currentContent || content) && !isLoadingRecords && recordsList.length > 0) {
       getNextSample();
     }
-  }, [currentContent]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentContent, isLoadingRecords, recordsList.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Format AI feedback HTML (simple version)
   const formatAiFeedback = (feedback: string): string => {
     // Simple formatting - replace newlines with breaks
     return feedback.replace(/\n/g, '<br/>');
   };
+
+  // Kiểm tra lỗi và hiển thị thông báo
+  useEffect(() => {
+    if (isErrorRecords && recordsError) {
+      const errorMessage = (recordsError as any)?.message || 'Không tìm thấy nội dung record hoặc không có quyền.';
+      Alert.alert('Lỗi', errorMessage);
+    }
+  }, [isErrorRecords, recordsError]);
+
+  // Kiểm tra nếu không có records hoặc content
+  if (isLoadingRecords) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-50" edges={['top', 'left', 'right']}>
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#3B82F6" />
+          <Text className="mt-4 text-gray-600">Đang tải dữ liệu...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (isErrorRecords || recordsList.length === 0) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-50" edges={['top', 'left', 'right']}>
+        <View className="flex-1 items-center justify-center px-4">
+          <Ionicons name="alert-circle-outline" size={64} color="#EF4444" />
+          <Text className="text-red-500 font-semibold text-lg mt-4 text-center">
+            {isErrorRecords ? 'Không tìm thấy nội dung record hoặc không có quyền' : 'Chưa có record nào'}
+          </Text>
+          <Text className="text-sm text-gray-500 mt-2 text-center">
+            {isErrorRecords 
+              ? 'Vui lòng kiểm tra lại quyền truy cập hoặc thử lại sau.'
+              : 'Vui lòng tạo record mới để bắt đầu luyện tập.'}
+          </Text>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            className="mt-6 bg-blue-600 rounded-xl px-6 py-3"
+          >
+            <Text className="text-white font-semibold">Quay lại</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Kiểm tra nếu không có content
+  if (!currentContent && !content) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-50" edges={['top', 'left', 'right']}>
+        <View className="flex-1 items-center justify-center px-4">
+          <Ionicons name="document-text-outline" size={64} color="#9CA3AF" />
+          <Text className="text-gray-500 font-semibold text-lg mt-4 text-center">
+            Không có nội dung để luyện tập
+          </Text>
+          <Text className="text-sm text-gray-400 mt-2 text-center">
+            Vui lòng chọn record khác hoặc tạo record mới.
+          </Text>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            className="mt-6 bg-blue-600 rounded-xl px-6 py-3"
+          >
+            <Text className="text-white font-semibold">Quay lại</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" edges={['top', 'left', 'right']}>
@@ -779,31 +841,33 @@ const LearnerRecordQuestion = () => {
 
               {/* Text Content */}
               <ScrollView className="max-h-64 mb-4" showsVerticalScrollIndicator={true}>
-                <View className="mb-4">
-                  <Text className="text-2xl font-semibold text-blue-600 mb-2">
-                    {(originalScriptHtml && typeof originalScriptHtml === 'string' 
-                      ? originalScriptHtml.replace(/<[^>]*>?/gm, '') 
-                      : '') || currentContent}
-                  </Text>
-                  {originalScriptHtml && typeof originalScriptHtml === 'string' && originalScriptHtml.includes('<span') && (
-                    <Text className="text-lg text-gray-700">
-                      {/* Render colored text - simplified for mobile */}
-                      {originalScriptHtml.replace(/<[^>]*>?/gm, '')}
+                <View>
+                  <View className="mb-4">
+                    <Text className="text-2xl font-semibold text-blue-600 mb-2">
+                      {(originalScriptHtml && typeof originalScriptHtml === 'string' 
+                        ? originalScriptHtml.replace(/<[^>]*>?/gm, '') 
+                        : '') || currentContent}
                     </Text>
+                    {originalScriptHtml && typeof originalScriptHtml === 'string' && originalScriptHtml.includes('<span') && (
+                      <Text className="text-lg text-gray-700">
+                        {/* Render colored text - simplified for mobile */}
+                        {originalScriptHtml.replace(/<[^>]*>?/gm, '')}
+                      </Text>
+                    )}
+                  </View>
+
+                  {ipaScript && (
+                    <Text key="ipaScript" className="text-lg text-gray-500 mb-2">{ipaScript}</Text>
+                  )}
+
+                  {recordedIpaScript && (
+                    <Text key="recordedIpaScript" className="text-lg text-blue-600 mb-2">{recordedIpaScript}</Text>
+                  )}
+
+                  {translatedScript && (
+                    <Text key="translatedScript" className="text-base text-gray-500">{translatedScript}</Text>
                   )}
                 </View>
-
-                {ipaScript && (
-                  <Text className="text-lg text-gray-500 mb-2">{ipaScript}</Text>
-                )}
-
-                {recordedIpaScript && (
-                  <Text className="text-lg text-blue-600 mb-2">{recordedIpaScript}</Text>
-                )}
-
-                {translatedScript && (
-                  <Text className="text-base text-gray-500">{translatedScript}</Text>
-                )}
               </ScrollView>
 
               {/* Navigation Buttons */}

@@ -24,7 +24,7 @@ import {
   useAdminRecordChargeActive,
   useLearnerBuyRecordCharge,
 } from '../../hooks/learner/learnerRecord/learnerRecordHook';
-import type { Record, RecordCategory, RecordChargeActiveItem } from '../../api/learnerRecord.service';
+import type { Record, RecordCategory, RecordChargeActiveItem, Status } from '../../api/learnerRecord.service';
 
 const LearnerRecordFolderPage = () => {
   const navigation = useNavigation();
@@ -182,10 +182,50 @@ const LearnerRecordFolderPage = () => {
         break;
     }
   };
+// Map folder status to Vietnamese
+const getFolderStatusLabel = (status: Status | string | undefined): string => {
+  if (!status) return "";
+  switch (status) {
+    case "Draft":
+      return "Nháp";
+    case "InProgress":
+      return "Đang thực hiện";
+    case "Done":
+      return "Hoàn thành";
+    default:
+      return status;
+  }
+};
 
+// Get badge style based on status
+const getFolderStatusStyle = (status: Status | string | undefined) => {
+  if (!status) return { borderColor: '#D1D5DB', backgroundColor: '#F9FAFB', textColor: '#6B7280' };
+  
+  switch (status) {
+    case "Done":
+      return { borderColor: '#86EFAC', backgroundColor: '#F0FDF4', textColor: '#166534' };
+    case "InProgress":
+      return { borderColor: '#FDE047', backgroundColor: '#FEFCE8', textColor: '#854D0E' };
+    case "Draft":
+      return { borderColor: '#D1D5DB', backgroundColor: '#F9FAFB', textColor: '#6B7280' };
+    default:
+      return { borderColor: '#D1D5DB', backgroundColor: '#F9FAFB', textColor: '#6B7280' };
+  }
+};
   const handleBuyRecordCharge = async () => {
-    if (!selectedPackage || !selectedFolderId) {
+    // Validation
+    if (!selectedPackage) {
       Alert.alert('Lỗi', 'Vui lòng chọn gói ghi âm');
+      return;
+    }
+
+    if (!selectedFolderId) {
+      Alert.alert('Lỗi', 'Vui lòng chọn thư mục');
+      return;
+    }
+
+    if (!selectedPackage.recordChargeId) {
+      Alert.alert('Lỗi', 'Gói ghi âm không hợp lệ');
       return;
     }
 
@@ -194,11 +234,14 @@ const LearnerRecordFolderPage = () => {
         folderId: selectedFolderId,
         recordChargeId: selectedPackage.recordChargeId,
       });
+      // Success - dialog sẽ được đóng bởi hook onSuccess
       setShowBuyRecordChargeDialog(false);
       setSelectedPackage(null);
       setSelectedFolderId(null);
-    } catch (error) {
-      // Error handled by hook
+    } catch (error: any) {
+      // Error đã được xử lý bởi hook, nhưng log để debug
+      console.error('Buy record charge error:', error);
+      // Hook sẽ hiển thị Alert với error message
     }
   };
 
@@ -229,16 +272,52 @@ const LearnerRecordFolderPage = () => {
             <Text className="text-base font-semibold text-gray-900" numberOfLines={1}>
               {item.name}
             </Text>
-            {item.status && (
-              <View className="mt-1">
+            <View className="flex-row items-center flex-wrap" style={{ gap: 6, marginTop: 4 }}>
+              {item.numberOfRecord !== undefined && item.numberOfRecord !== null && (
                 <View
-                  className="px-2 py-0.5 rounded"
-                  style={{ backgroundColor: '#F3F4F6', alignSelf: 'flex-start' }}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: '#F3E8FF',
+                    paddingHorizontal: 8,
+                    paddingVertical: 4,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: '#E9D5FF',
+                  }}
                 >
-                  <Text className="text-xs text-gray-600">{item.status}</Text>
+                  <Ionicons name="mic" size={12} color="#7C3AED" style={{ marginRight: 4 }} />
+                  <Text 
+                    className="text-xs font-medium"
+                    style={{ color: '#6B21A8' }}
+                  >
+                    {item.numberOfRecord} lượt còn lại
+                  </Text>
                 </View>
-              </View>
-            )}
+              )}
+              {item.status && (() => {
+                const statusStyle = getFolderStatusStyle(item.status);
+                return (
+                  <View
+                    style={{
+                      borderWidth: 1,
+                      borderColor: statusStyle.borderColor,
+                      backgroundColor: statusStyle.backgroundColor,
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: 12,
+                    }}
+                  >
+                    <Text 
+                      className="text-xs font-medium"
+                      style={{ color: statusStyle.textColor }}
+                    >
+                      {getFolderStatusLabel(item.status)}
+                    </Text>
+                  </View>
+                );
+              })()}
+            </View>
           </View>
         </View>
         <TouchableOpacity
@@ -841,11 +920,54 @@ const LearnerRecordFolderPage = () => {
                         <Text className="text-base font-semibold text-gray-900">
                           {folder.name}
                         </Text>
-                        {folder.status && (
-                          <Text className="text-xs text-gray-500 mt-0.5">
-                            {folder.status}
-                          </Text>
+                        {folder.numberOfRecord !== undefined && folder.numberOfRecord !== null && (
+                          <View className="mt-1" style={{ alignSelf: 'flex-start' }}>
+                            <View
+                              style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                backgroundColor: '#F3E8FF',
+                                paddingHorizontal: 8,
+                                paddingVertical: 4,
+                                borderRadius: 12,
+                                borderWidth: 1,
+                                borderColor: '#E9D5FF',
+                              }}
+                            >
+                              <Ionicons name="mic" size={12} color="#7C3AED" style={{ marginRight: 4 }} />
+                              <Text 
+                                className="text-xs font-medium"
+                                style={{ color: '#6B21A8' }}
+                              >
+                                {folder.numberOfRecord} lượt còn lại
+                              </Text>
+                            </View>
+                          </View>
                         )}
+                        {folder.status && (() => {
+                          const statusStyle = getFolderStatusStyle(folder.status);
+                          return (
+                            <View className="mt-1" style={{ alignSelf: 'flex-start' }}>
+                              <View
+                                style={{
+                                  borderWidth: 1,
+                                  borderColor: statusStyle.borderColor,
+                                  backgroundColor: statusStyle.backgroundColor,
+                                  paddingHorizontal: 8,
+                                  paddingVertical: 4,
+                                  borderRadius: 12,
+                                }}
+                              >
+                                <Text 
+                                  className="text-xs font-medium"
+                                  style={{ color: statusStyle.textColor }}
+                                >
+                                  {getFolderStatusLabel(folder.status)}
+                                </Text>
+                              </View>
+                            </View>
+                          );
+                        })()}
                       </View>
                       <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
                     </TouchableOpacity>

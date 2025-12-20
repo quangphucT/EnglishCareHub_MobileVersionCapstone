@@ -1103,7 +1103,8 @@ const AudioReviewScreenContent = ({ onGoBack }: { onGoBack?: () => void }) => {
           setIsBuyReviewModalOpen(false);
           setSelectedReview(null);
         }}
-        learnerAnswerId={selectedReview?.learnerAnswerId}
+        learnerAnswerId={selectedReview?.reviewType === 'LearnerAnswer' ? selectedReview?.learnerAnswerId : undefined}
+        recordId={selectedReview?.reviewType === 'Record' ? selectedReview?.recordId : undefined}
       />
     </SafeAreaView>
   );
