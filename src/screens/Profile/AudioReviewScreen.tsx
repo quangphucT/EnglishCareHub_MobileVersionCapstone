@@ -14,7 +14,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
 import { Audio } from 'expo-av';
 import { useLearnerReviewHistory } from '../../hooks/learner/feedback/feedbackHook';
 import { useLearnerFeedback, useLearnerReportReview } from '../../hooks/learner/feedback/feedbackHook';
@@ -22,8 +21,8 @@ import type { LearnerReviewHistory } from '../../api/learnerFeedback.service';
 
 const PAGE_SIZE = 10;
 
-const AudioReviewScreen = () => {
-  const navigation = useNavigation();
+// Internal component - không phụ thuộc vào navigation
+const AudioReviewScreenContent = ({ onGoBack }: { onGoBack?: () => void }) => {
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [status, setStatus] = useState<string>('all');
   const [keyword, setKeyword] = useState<string>('');
@@ -148,23 +147,45 @@ const AudioReviewScreen = () => {
   };
 
   const handleSubmitReport = () => {
-    if (!selectedReview || !reportReason.trim() || !selectedReview.reviewId) {
+    // Validation
+    if (!selectedReview) {
+      Alert.alert('Lỗi', 'Không tìm thấy review được chọn.');
       return;
     }
 
+    if (!selectedReview.reviewId) {
+      Alert.alert('Lỗi', 'Review ID không hợp lệ.');
+      return;
+    }
+
+    if (!reportReason.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập lý do báo cáo.');
+      return;
+    }
+
+    if (reportReason.trim().length < 10) {
+      Alert.alert('Lỗi', 'Lý do báo cáo phải có ít nhất 10 ký tự.');
+      return;
+    }
+
+    // Submit report
     submitReport(
       {
         reviewId: selectedReview.reviewId,
         reason: reportReason.trim(),
       },
       {
-        onSuccess: () => {
+        onSuccess: (data) => {
+          Alert.alert('Thành công', data?.message || 'Báo cáo đã được gửi thành công.');
           setIsRequestDialogOpen(false);
           setReportReason('');
           setSelectedReview(null);
+          setActiveTab('feedback'); // Reset về tab feedback
         },
-        onError: (error) => {
+        onError: (error: any) => {
           console.error('Report submission error:', error);
+          const errorMessage = error?.message || error?.response?.data?.message || 'Không thể gửi báo cáo. Vui lòng thử lại.';
+          Alert.alert('Lỗi', errorMessage);
         },
       }
     );
@@ -334,10 +355,12 @@ const AudioReviewScreen = () => {
       <View className="flex-1">
         {/* Header */}
         <View className="flex-row items-center px-4 py-3 border-b border-gray-200 bg-white">
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color="#1F2937" />
-          </TouchableOpacity>
-          <Text className="flex-1 text-xl font-bold text-gray-900 ml-4">
+          {onGoBack && (
+            <TouchableOpacity onPress={onGoBack}>
+              <Ionicons name="arrow-back" size={24} color="#1F2937" />
+            </TouchableOpacity>
+          )}
+          <Text className={`flex-1 text-xl font-bold text-gray-900 ${onGoBack ? 'ml-4' : ''}`}>
             Lịch sử đánh giá
           </Text>
         </View>
@@ -610,7 +633,10 @@ const AudioReviewScreen = () => {
           className="flex-1"
         >
           <View className="flex-1 bg-black/50 justify-end">
-            <View className="bg-white rounded-t-3xl" style={{ maxHeight: '85%', flexDirection: 'column' }}>
+            <View
+              className="bg-white rounded-t-3xl"
+              style={{ maxHeight: '85%', flexDirection: 'column', flex: 1 }}
+            >
               {/* Header */}
               <View className="px-4 pt-4 pb-2 border-b border-gray-200">
                 <View className="flex-row items-center justify-between">
@@ -722,35 +748,7 @@ const AudioReviewScreen = () => {
                               </TouchableOpacity>
                             ))}
                           </View>
-                          <View className="flex-row items-center" style={{ gap: 8 }}>
-                            <Text className="text-xs text-gray-500">Hoặc nhập số:</Text>
-                            <TextInput
-                              keyboardType="numeric"
-                              value={feedbackRating.toString()}
-                              onChangeText={(text) => {
-                                const num = parseInt(text) || 0;
-                                if (num >= 1 && num <= 5) {
-                                  setFeedbackRating(num);
-                                } else if (text === '') {
-                                  setFeedbackRating(1);
-                                }
-                              }}
-                              style={{
-                                width: 60,
-                                height: 36,
-                                borderWidth: 1,
-                                borderColor: '#D1D5DB',
-                                borderRadius: 8,
-                                paddingHorizontal: 8,
-                                textAlign: 'center',
-                                fontSize: 14,
-                                color: '#111827',
-                                backgroundColor: '#FFFFFF',
-                              }}
-                              maxLength={1}
-                            />
-                            <Text className="text-xs text-gray-500">/ 5</Text>
-                          </View>
+                          
                           {feedbackRating < 1 || feedbackRating > 5 ? (
                             <Text className="text-xs text-red-500 mt-1">
                               Vui lòng chọn đánh giá từ 1 đến 5
@@ -817,6 +815,10 @@ const AudioReviewScreen = () => {
                           <Text className="text-xs text-red-500 mt-1">
                             Vui lòng nhập lý do báo cáo
                           </Text>
+                        ) : reportReason.trim().length > 0 && reportReason.trim().length < 10 ? (
+                          <Text className="text-xs text-yellow-600 mt-1">
+                            Lý do báo cáo phải có ít nhất 10 ký tự (hiện tại: {reportReason.trim().length} ký tự)
+                          </Text>
                         ) : null}
                         <View className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
                           <View className="flex-row items-start">
@@ -881,9 +883,17 @@ const AudioReviewScreen = () => {
                 ) : (
                   <TouchableOpacity
                     onPress={handleSubmitReport}
-                    disabled={!selectedReview || !reportReason.trim() || isSubmittingReport}
+                    disabled={
+                      !selectedReview || 
+                      !reportReason.trim() || 
+                      reportReason.trim().length < 10 ||
+                      isSubmittingReport
+                    }
                     className={`flex-1 py-3 rounded-lg items-center flex-row justify-center ${
-                      !selectedReview || !reportReason.trim() || isSubmittingReport
+                      !selectedReview || 
+                      !reportReason.trim() || 
+                      reportReason.trim().length < 10 ||
+                      isSubmittingReport
                         ? 'bg-gray-300'
                         : 'bg-purple-600'
                     }`}
@@ -893,7 +903,10 @@ const AudioReviewScreen = () => {
                     )}
                     <Text
                       className={`text-sm font-medium ${
-                        !selectedReview || !reportReason.trim() || isSubmittingReport
+                        !selectedReview || 
+                        !reportReason.trim() || 
+                        reportReason.trim().length < 10 ||
+                        isSubmittingReport
                           ? 'text-gray-500'
                           : 'text-white'
                       }`}
@@ -909,6 +922,55 @@ const AudioReviewScreen = () => {
       </Modal>
     </SafeAreaView>
   );
+};
+
+// Wrapper component - nhận navigation prop từ React Navigation
+// React Navigation tự động inject navigation, route vào screen components
+const AudioReviewScreen = (props: any) => {
+  // React Navigation inject navigation prop vào screen components
+  // Nếu không có, có thể component được render bên ngoài Stack Navigator
+  const navigation = props?.navigation || props?.route?.params?.navigation;
+  
+  // Debug: log để kiểm tra
+  React.useEffect(() => {
+    if (!navigation) {
+      console.warn('[AudioReviewScreen] Navigation prop not found. Props:', Object.keys(props || {}));
+    }
+  }, [navigation, props]);
+  
+  const handleGoBack = React.useCallback(() => {
+    if (!navigation) {
+      console.warn('[AudioReviewScreen] Cannot go back: navigation not available');
+      return;
+    }
+
+    try {
+      if (typeof navigation.goBack === 'function') {
+        // Kiểm tra canGoBack nếu có
+        if (navigation.canGoBack && typeof navigation.canGoBack === 'function') {
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          } else {
+            // Không thể goBack, thử navigate về Home
+            if (typeof navigation.navigate === 'function') {
+              navigation.navigate('Home');
+            }
+          }
+        } else {
+          // Không có canGoBack, thử goBack trực tiếp
+          navigation.goBack();
+        }
+      } else if (typeof navigation.navigate === 'function') {
+        // Fallback: navigate về Home
+        navigation.navigate('Home');
+      }
+    } catch (error) {
+      console.error('[AudioReviewScreen] Navigation error:', error);
+    }
+  }, [navigation]);
+
+  // Chỉ truyền onGoBack nếu có navigation
+  return <AudioReviewScreenContent onGoBack={navigation ? handleGoBack : undefined} />;
 };
 
 export default AudioReviewScreen;
