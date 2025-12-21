@@ -70,7 +70,7 @@ const UploadingCertificate = ({ navigation }: UploadingCertificateProps) => {
     `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
   const formatFileSize = (size?: number | null) => {
-    if (!size && size !== 0) return "Không rõ dung lượng";
+    if (!size && size !== 0) return "Unknown size";
     if (size >= 1024 * 1024) {
       return `${(size / (1024 * 1024)).toFixed(1)} MB`;
     }
@@ -129,7 +129,7 @@ const UploadingCertificate = ({ navigation }: UploadingCertificateProps) => {
 
       setCertificates((prev) => [...prev, ...mapped]);
     } catch (error) {
-      Alert.alert("Lỗi", "Không thể mở trình chọn tệp. Vui lòng thử lại.");
+      Alert.alert("Error", "Failed to open file picker. Please try again.");
     }
   };
 
@@ -139,8 +139,8 @@ const UploadingCertificate = ({ navigation }: UploadingCertificateProps) => {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
         Alert.alert(
-          "Cần quyền truy cập",
-          "Ứng dụng cần quyền truy cập thư viện ảnh để chọn ảnh."
+          "Permission Required",
+          "The app needs access to your photo library to select images."
         );
         return;
       }
@@ -171,7 +171,7 @@ const UploadingCertificate = ({ navigation }: UploadingCertificateProps) => {
       }
     } catch (error) {
       console.error("Error picking images:", error);
-      Alert.alert("Lỗi", "Không thể mở thư viện ảnh. Vui lòng thử lại.");
+      Alert.alert("Error", "Failed to open photo library. Please try again.");
     }
   };
 
@@ -198,25 +198,25 @@ const UploadingCertificate = ({ navigation }: UploadingCertificateProps) => {
   const validateExperience = () => {
     const trimmed = experienceYears.trim();
     if (!trimmed) {
-      Alert.alert("Lỗi", "Số năm kinh nghiệm không được để trống!");
+      Alert.alert("Error", "Years of experience cannot be empty!");
       return null;
     }
 
     const value = Number(trimmed);
     if (Number.isNaN(value)) {
-      Alert.alert("Lỗi", "Số năm kinh nghiệm phải là số hợp lệ!");
+      Alert.alert("Error", "Years of experience must be a valid number!");
       return null;
     }
     if (value < 0) {
-      Alert.alert("Lỗi", "Số năm kinh nghiệm không được nhỏ hơn 0!");
+      Alert.alert("Error", "Years of experience cannot be less than 0!");
       return null;
     }
     if (value > 100) {
-      Alert.alert("Lỗi", "Số năm kinh nghiệm không được lớn hơn 100!");
+      Alert.alert("Error", "Years of experience cannot be greater than 100!");
       return null;
     }
     if (!Number.isInteger(value)) {
-      Alert.alert("Lỗi", "Số năm kinh nghiệm phải là số nguyên!");
+      Alert.alert("Error", "Years of experience must be an integer!");
       return null;
     }
 
@@ -225,12 +225,12 @@ const UploadingCertificate = ({ navigation }: UploadingCertificateProps) => {
 
   const onSubmit = async () => {
     if (!certificates.length) {
-      Alert.alert("Lỗi", "Chưa chọn file!");
+      Alert.alert("Error", "No files selected!");
       return;
     }
 
     if (!meData?.userId) {
-      Alert.alert("Lỗi", "Không tìm thấy thông tin người dùng!");
+      Alert.alert("Error", "User information not found!");
       return;
     }
 
@@ -285,8 +285,8 @@ const UploadingCertificate = ({ navigation }: UploadingCertificateProps) => {
       });
 
       Alert.alert(
-        "Thành công",
-        "Bằng cấp đã được gửi. Vui lòng chờ hệ thống phê duyệt."
+        "Success",
+        "Certificates have been submitted. Please wait for system approval."
       );
       setCertificates([]);
 
@@ -296,8 +296,8 @@ const UploadingCertificate = ({ navigation }: UploadingCertificateProps) => {
       navigation?.navigate?.("ReviewerWaiting");
     } catch (error: any) {
       const message =
-        error?.message || "Đã xảy ra lỗi trong quá trình tải lên chứng chỉ.";
-      Alert.alert("Lỗi", message);
+        error?.message || "An error occurred while uploading certificates.";
+      Alert.alert("Error", message);
     }
   };
 
@@ -336,26 +336,26 @@ const UploadingCertificate = ({ navigation }: UploadingCertificateProps) => {
           disabled={logoutMutation.isPending}
         >
           <Ionicons name="chevron-back" size={20} color="#94A3B8" />
-          <Text className="text-sm font-medium text-gray-300">Quay lại</Text>
+          <Text className="text-sm font-medium text-gray-300">Go Back</Text>
         </TouchableOpacity>
 
         <View className="bg-[#1d2a33] rounded-3xl p-6 shadow-2xl shadow-black/40 border border-[#243545]">
           <Text className="text-2xl font-extrabold text-white text-center">
-            Upload bằng cấp
+            Upload Certificates
           </Text>
           <Text className="text-sm text-gray-400 text-center mt-2">
-            Tải lên bằng cấp của bạn để hoàn tất hồ sơ reviewer
+            Upload your certificates to complete your reviewer profile
           </Text>
 
           <View className="mt-8 space-y-4">
             <View>
               <Text className="text-sm font-semibold text-gray-200 mb-2">
-                Số năm kinh nghiệm
+                Years of Experience
               </Text>
               <TextInput
                 value={experienceYears}
                 onChangeText={setExperienceYears}
-                placeholder="Nhập số năm kinh nghiệm (ví dụ: 5)"
+                placeholder="Enter years of experience (e.g., 5)"
                 placeholderTextColor="#64748B"
                 keyboardType="numeric"
                 className="bg-[#1a2730] text-white h-12 rounded-2xl px-4 border border-[#2c3e50]"
@@ -365,7 +365,7 @@ const UploadingCertificate = ({ navigation }: UploadingCertificateProps) => {
 
             <View>
               <Text className="text-sm font-semibold text-gray-200 mb-2">
-                Tải lên tệp chứng chỉ
+                Upload Certificate Files
               </Text>
               
               {/* Image Picker Button */}
@@ -379,7 +379,7 @@ const UploadingCertificate = ({ navigation }: UploadingCertificateProps) => {
                 <View className="flex-row items-center">
                   <Feather name="image" size={24} color="#2ed7ff" />
                   <Text className="text-sm text-white font-semibold ml-3">
-                    Chọn ảnh từ thư viện
+                    Select Images from Library
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -394,10 +394,10 @@ const UploadingCertificate = ({ navigation }: UploadingCertificateProps) => {
               >
                 <Feather name="upload-cloud" size={38} color="#2ed7ff" />
                 <Text className="text-base text-white font-semibold mt-4">
-                  Kéo thả hoặc nhấn để chọn tệp
+                  Drag & Drop or Tap to Select Files
                 </Text>
                 <Text className="text-xs text-gray-400 mt-2 text-center px-4">
-                  Hỗ trợ hình ảnh và PDF. Có thể chọn nhiều tệp cùng lúc.
+                  Supports images and PDF. You can select multiple files at once.
                 </Text>
               </TouchableOpacity>
             </View>
@@ -406,7 +406,7 @@ const UploadingCertificate = ({ navigation }: UploadingCertificateProps) => {
               <View className="bg-[#1d2a33] border border-[#243545] rounded-3xl p-4 space-y-4">
                 <View className="flex-row items-center justify-between">
                   <Text className="text-sm font-semibold text-gray-200">
-                    Danh sách chứng chỉ ({certificates.length})
+                    Certificate List ({certificates.length})
                   </Text>
                   <TouchableOpacity
                     onPress={handleReset}
@@ -414,7 +414,7 @@ const UploadingCertificate = ({ navigation }: UploadingCertificateProps) => {
                     className="px-3 py-1 rounded-full bg-[#22313c]"
                   >
                     <Text className="text-xs text-gray-300 font-semibold">
-                      Xoá tất cả
+                      Clear All
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -470,14 +470,14 @@ const UploadingCertificate = ({ navigation }: UploadingCertificateProps) => {
 
                       <View>
                         <Text className="text-xs text-gray-300 mb-2">
-                          Tên hiển thị
+                          Display Name
                         </Text>
                         <TextInput
                           value={certificate.displayName}
                           onChangeText={(value) =>
                             handleNameChange(certificate.id, value)
                           }
-                          placeholder={`Nhập tên chứng chỉ #${index + 1}`}
+                          placeholder={`Enter certificate name #${index + 1}`}
                           placeholderTextColor="#64748B"
                           className="bg-[#1a2730] text-white rounded-2xl px-4 h-12 border border-[#2c3e50]"
                           editable={!isPending}
@@ -505,12 +505,12 @@ const UploadingCertificate = ({ navigation }: UploadingCertificateProps) => {
               <View className="flex-row items-center gap-2">
                 <ActivityIndicator color="#18232a" />
                 <Text className="text-[#18232a] font-semibold">
-                  Đang tải...
+                  Uploading...
                 </Text>
               </View>
             ) : (
               <Text className="text-[#18232a] font-semibold text-base">
-                Tải lên chứng chỉ
+                Upload Certificates
               </Text>
             )}
           </TouchableOpacity>

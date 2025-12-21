@@ -99,7 +99,7 @@ export default function ReviewerReviewScreen() {
   const handlePlayAudio = useCallback(
     async (audioUrl?: string) => {
       if (!audioUrl) {
-        Alert.alert("Không có audio", "Bài này không có file audio đính kèm.");
+        Alert.alert("No Audio", "This review does not have an audio file attached.");
         return;
       }
 
@@ -124,7 +124,7 @@ export default function ReviewerReviewScreen() {
               name: error.name,
               stack: error.stack
             });
-            Alert.alert("Không thể phát audio", `Lỗi: ${error.message}\n\nURL: ${audioUrl}`);
+            Alert.alert("Failed to Play Audio", `Error: ${error.message}\n\nURL: ${audioUrl}`);
             setIsAudioLoading(false);
             return;
           }
@@ -137,7 +137,7 @@ export default function ReviewerReviewScreen() {
           sound.play((success: boolean) => {
             if (!success) {
               console.warn("⚠️ [AUDIO] Playback was interrupted or failed");
-              Alert.alert("Không thể phát audio", "Luồng phát bị gián đoạn.");
+              Alert.alert("Failed to Play Audio", "Playback was interrupted.");
             } else {
               console.log('✅ [AUDIO] Playback completed successfully');
             }
@@ -150,7 +150,7 @@ export default function ReviewerReviewScreen() {
         });
       } catch (error) {
         console.error("❌ [AUDIO] Exception while creating Sound:", error);
-        Alert.alert("Không thể phát audio", "Vui lòng thử lại sau.");
+        Alert.alert("Failed to Play Audio", "Please try again later.");
         setIsAudioLoading(false);
       }
     },
@@ -366,7 +366,7 @@ export default function ReviewerReviewScreen() {
     const parsedScore = Number(score);
 
     if (!trimmedComment) {
-      Alert.alert("Thiếu thông tin", "Vui lòng nhập nhận xét.");
+      Alert.alert("Missing Information", "Please enter a comment.");
       return;
     }
 
@@ -376,12 +376,12 @@ export default function ReviewerReviewScreen() {
       parsedScore > 10 ||
       !Number.isInteger(parsedScore)
     ) {
-      Alert.alert("Điểm không hợp lệ", "Điểm phải là số nguyên từ 1 đến 10.");
+      Alert.alert("Invalid Score", "Score must be an integer from 1 to 10.");
       return;
     }
 
     if (!userData?.reviewerProfile?.reviewerProfileId) {
-      Alert.alert("Thiếu thông tin", "Không tìm thấy tài khoản Reviewer.");
+      Alert.alert("Missing Information", "Reviewer account not found.");
       return;
     }
 
@@ -418,16 +418,16 @@ export default function ReviewerReviewScreen() {
             // Nếu upload thất bại, hỏi người dùng có muốn tiếp tục không
             const shouldContinue = await new Promise<boolean>((resolve) => {
               Alert.alert(
-                "Lỗi upload audio",
-                uploadError?.message || "Không thể upload audio. Bạn có muốn tiếp tục gửi review không có audio không?",
+                "Audio Upload Error",
+                uploadError?.message || "Failed to upload audio. Do you want to continue sending review without audio?",
                 [
                   {
-                    text: "Hủy",
+                    text: "Cancel",
                     style: "cancel",
                     onPress: () => resolve(false),
                   },
                   {
-                    text: "Tiếp tục",
+                    text: "Continue",
                     onPress: () => resolve(true),
                   },
                 ]
@@ -445,9 +445,9 @@ export default function ReviewerReviewScreen() {
         }
       }
       
-      // Gửi review với audio URL (hoặc null nếu không có)
+      // Send review with audio URL (or null if not available)
       if (!userData?.reviewerProfile?.reviewerProfileId) {
-        Alert.alert("Thiếu thông tin", "Không tìm thấy tài khoản Reviewer.");
+        Alert.alert("Missing Information", "Reviewer account not found.");
         setIsSubmittingReview(false);
         return;
       }
@@ -463,14 +463,10 @@ export default function ReviewerReviewScreen() {
       });
 
       setReviewedAnswers((prev) => [...prev, selectedReview.id]);
-      Alert.alert("Thành công", "Bạn đã đánh giá bài làm này.");
-      handleCloseModal();
-
-      setReviewedAnswers((prev) => [...prev, selectedReview.id]);
-      Alert.alert("Thành công", "Bạn đã đánh giá bài làm này.");
+      Alert.alert("Success", "You have reviewed this submission.");
       handleCloseModal();
     } catch (error: any) {
-      Alert.alert("Lỗi", error?.message || "Gửi đánh giá thất bại.");
+      Alert.alert("Error", error?.message || "Failed to submit review.");
     } finally {
       setIsSubmittingReview(false);
     }
@@ -533,7 +529,7 @@ export default function ReviewerReviewScreen() {
                 </View>
               </View>
               <Text className="text-sm font-medium text-blue-600 ml-3">
-                Nhấn để đánh giá
+                Tap to Review
               </Text>
             </View>
           </View>
@@ -561,19 +557,19 @@ export default function ReviewerReviewScreen() {
   const renderListHeader = () => {
     const stats = [
       {
-        label: "Cần đánh giá",
+        label: "Pending Reviews",
         value: pendingReviewsData?.data?.totalItems ?? 0,
         icon: "time-outline" as const,
         color: "#2563EB",
       },
       {
-        label: "Đã hoàn thành",
+        label: "Completed",
         value: statsData?.data?.totalReviews ?? 0,
         icon: "checkmark-done-outline" as const,
         color: "#16A34A",
       },
       {
-        label: "Điểm trung bình",
+        label: "Average Score",
         value: (statsData?.data?.averageRating ?? 0).toFixed(1),
         icon: "star-outline" as const,
         color: "#F59E0B",
@@ -585,10 +581,10 @@ export default function ReviewerReviewScreen() {
         <View className="flex-row items-center justify-between mb-4">
           <View>
             <Text className="text-xl font-semibold text-slate-900">
-              Quản lý bài đánh giá
+              Review Management
             </Text>
             <Text className="text-sm text-slate-500 mt-1">
-              Theo dõi và chấm điểm câu trả lời của học viên
+              Track and score learner responses
             </Text>
           </View>
           
@@ -617,16 +613,16 @@ export default function ReviewerReviewScreen() {
         >
           <View>
             <Text className="text-sm font-semibold text-blue-900">
-              Xem phản hồi của học viên
+              View Learner Feedback
             </Text>
             <Text className="text-xs text-blue-700 mt-1">
-              Tổng cộng {feedbackPagination.totalItems} phản hồi
+              Total {feedbackPagination.totalItems} feedback
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color="#1D4ED8" />
         </TouchableOpacity>
         <Text className="text-base font-semibold text-slate-900 mb-2">
-          Bài cần đánh giá
+          Pending Reviews
         </Text>
       </View>
     );
@@ -641,7 +637,7 @@ export default function ReviewerReviewScreen() {
       <View className="px-5 pb-8">
         <View className="flex-row items-center justify-between mt-4">
           <Text className="text-xs text-slate-500">
-            Hiển thị {pendingStartItem}-{pendingEndItem} /{" "}
+            Showing {pendingStartItem}-{pendingEndItem} /{" "}
             {pendingPagination.totalItems}
           </Text>
           <View className="flex-row">
@@ -660,7 +656,7 @@ export default function ReviewerReviewScreen() {
                     : "text-slate-700"
                 }`}
               >
-                Trước
+                Previous
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -683,7 +679,7 @@ export default function ReviewerReviewScreen() {
                     : "text-slate-700"
                 }`}
               >
-                Tiếp
+                Next
               </Text>
             </TouchableOpacity>
           </View>
@@ -705,16 +701,16 @@ export default function ReviewerReviewScreen() {
           recordedAudioUriRef.current = uri;
       
           setHasRecordedAudio(true);
-          Alert.alert(" Ghi âm thành công", "Đã ghi được audio của bạn");
+          Alert.alert("Recording Successful", "Your audio has been recorded");
         } else {
           setHasRecordedAudio(false);
-          Alert.alert(" Lỗi ghi âm", "Không có dữ liệu audio. Vui lòng thử lại.");
+          Alert.alert("Recording Error", "No audio data. Please try again.");
         }
         
         recordingRef.current = null;
         setRecording(false);
       } catch (error) {
-        Alert.alert('Lỗi', 'Không thể dừng ghi âm');
+        Alert.alert('Error', 'Cannot stop recording');
         setRecording(false);
       }
     } else {
@@ -735,7 +731,7 @@ export default function ReviewerReviewScreen() {
         console.log('⏺ Recording started');
       } catch (error) {
         console.error('Failed to start recording:', error);
-        Alert.alert('Lỗi', 'Không thể bắt đầu ghi âm. Vui lòng cấp quyền microphone.');
+        Alert.alert('Error', 'Cannot start recording. Please grant microphone permission.');
       }
     }
   }, [recording]);
@@ -787,13 +783,13 @@ export default function ReviewerReviewScreen() {
               <ActivityIndicator size="large" color="#2563EB" />
             ) : pendingError ? (
               <Text className="text-sm text-red-500 px-6 text-center">
-                Không thể tải danh sách: {pendingError.message}
+                Failed to load list: {pendingError.message}
               </Text>
             ) : (
               <View className="items-center">
                 <Ionicons name="checkmark-circle" size={48} color="#16A34A" />
                 <Text className="mt-3 text-sm text-slate-500 px-6 text-center">
-                  Bạn đã hoàn thành tất cả bài đánh giá!
+                  You have completed all reviews!
                 </Text>
               </View>
             )}
@@ -848,24 +844,24 @@ export default function ReviewerReviewScreen() {
                 />
                   <View className="ml-3">
                     <Text className="text-sm font-semibold text-blue-900">
-                    {isAudioLoading ? "Đang tải audio..." : "Phát audio của học viên"}
+                    {isAudioLoading ? "Loading audio..." : "Play Learner Audio"}
                     </Text>
                     <Text className="text-xs text-blue-700 mt-0.5">
-                    Nhấn để nghe trực tiếp trong ứng dụng
+                    Tap to listen directly in the app
                     </Text>
                   </View>
                 </TouchableOpacity>
               ) : (
                 <View className="mt-5 bg-slate-100 rounded-2xl px-4 py-3">
                   <Text className="text-sm text-slate-600">
-                    Câu trả lời dạng văn bản. Không có file audio đính kèm.
+                    Text response. No audio file attached.
                   </Text>
                 </View>
               )}
 
               <View className="mt-5">
                 <Text className="text-sm font-medium text-slate-700 mb-2">
-                  Nhận xét
+                  Comment
                 </Text>
                 <TextInput
                   value={comment}
@@ -873,20 +869,20 @@ export default function ReviewerReviewScreen() {
                   multiline
                   numberOfLines={4}
                   textAlignVertical="top"
-                  placeholder="Nhập nhận xét chi tiết cho học viên"
+                  placeholder="Enter detailed comment for learner"
                   className="border border-slate-200 rounded-2xl p-3 text-sm"
                 />
               </View>
 
               <View className="mt-4">
                 <Text className="text-sm font-medium text-slate-700 mb-2">
-                  Điểm số (1 - 10)
+                  Score (1 - 10)
                 </Text>
                 <TextInput
                   value={score}
                   onChangeText={setScore}
                   keyboardType="numeric"
-                  placeholder="Ví dụ: 8"
+                  placeholder="Example: 8"
                   className="border border-slate-200 rounded-2xl p-3 text-sm w-32"
                 />
               </View>
@@ -899,7 +895,7 @@ export default function ReviewerReviewScreen() {
                 >
                   <View className="flex-row items-center justify-between bg-slate-100 rounded-2xl px-4 py-3">
                     <Text className="text-sm font-semibold text-slate-800 text-black">
-                      {showAiFeedback ? "Ẩn" : "Hiện"} phản hồi từ AI
+                      {showAiFeedback ? "Hide" : "Show"} AI Feedback
                     </Text>
                     <Ionicons
                       name={showAiFeedback ? "chevron-up" : "chevron-down"}
@@ -925,13 +921,13 @@ export default function ReviewerReviewScreen() {
                       recording ? 'bg-red-500' : hasRecordedAudio ? 'bg-green-500' : 'bg-gray-300'
                     }`} />
                     <Text className="text-sm font-medium text-slate-700">
-                      {recording ? '🎵 Đang ghi âm...' : hasRecordedAudio ? '✅ Đã ghi audio' : '⏺ Chưa ghi audio'}
+                      {recording ? '🎵 Recording...' : hasRecordedAudio ? '✅ Audio recorded' : '⏺ No audio recorded'}
                     </Text>
                   </View>
                   {hasRecordedAudio && (
                     <View className="flex-row items-center">
                       <Ionicons name="checkmark-circle" size={16} color="#16A34A" />
-                      <Text className="text-xs text-green-600 ml-1">Sẵn sàng gửi</Text>
+                      <Text className="text-xs text-green-600 ml-1">Ready to send</Text>
                     </View>
                   )}
                 </View>
@@ -982,7 +978,7 @@ export default function ReviewerReviewScreen() {
                   disabled={isSubmittingReview || submitReviewMutation.isPending}
                 >
                   <Text className="text-sm font-semibold text-slate-700">
-                    Đóng
+                    Close
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -995,8 +991,8 @@ export default function ReviewerReviewScreen() {
                 >
                   <Text className="text-sm font-semibold text-white">
                     {isSubmittingReview || submitReviewMutation.isPending
-                      ? "Đang gửi..."
-                      : "Hoàn thành"}
+                      ? "Submitting..."
+                      : "Complete"}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -1016,7 +1012,7 @@ export default function ReviewerReviewScreen() {
           <View className="bg-white rounded-3xl p-5 max-h-[85%]">
             <View className="flex-row items-center justify-between mb-3">
               <Text className="text-base font-semibold text-slate-900">
-                Phản hồi của học viên
+                Learner Feedback
               </Text>
               <TouchableOpacity
                 onPress={() => setShowFeedbackModal(false)}
@@ -1034,7 +1030,7 @@ export default function ReviewerReviewScreen() {
               ) : feedbackItems.length === 0 ? (
                 <View className="py-10 items-center">
                   <Text className="text-sm text-slate-500">
-                    Chưa có phản hồi nào.
+                    No feedback yet.
                   </Text>
                 </View>
               ) : (
@@ -1056,7 +1052,7 @@ export default function ReviewerReviewScreen() {
                     </Text>
                     <View className="flex-row items-center justify-between">
                       <Text className="text-xs text-slate-500">
-                        {item.reviewType || "Đánh giá"}
+                        {item.reviewType || "Review"}
                       </Text>
                       <View className="flex-row items-center">
                         <Ionicons name="star" size={14} color="#FBBF24" />
@@ -1087,11 +1083,11 @@ export default function ReviewerReviewScreen() {
                         : "text-slate-700"
                     }`}
                   >
-                    Trang trước
+                    Previous Page
                   </Text>
                 </TouchableOpacity>
                 <Text className="text-xs text-slate-500">
-                  Trang {feedbackPagination.currentPage}/
+                  Page {feedbackPagination.currentPage}/
                   {feedbackPagination.totalPages}
                 </Text>
                 <TouchableOpacity
@@ -1114,7 +1110,7 @@ export default function ReviewerReviewScreen() {
                         : "text-slate-700"
                     }`}
                   >
-                    Trang sau
+                    Next Page
                   </Text>
                 </TouchableOpacity>
               </View>

@@ -25,19 +25,19 @@ const statusDescriptions: Record<
   { title: string; message: string }
 > = {
   pending: {
-    title: "Hồ sơ đang được xem xét",
+    title: "Profile Under Review",
     message:
-      "Cảm ơn bạn đã gửi thông tin. Quá trình duyệt có thể mất tới 24-48 giờ làm việc. Chúng tôi sẽ thông báo ngay khi hoàn tất.",
+      "Thank you for submitting your information. The review process may take up to 24-48 business hours. We will notify you as soon as it's completed.",
   },
   rejected: {
-    title: "Hồ sơ chưa được chấp thuận",
+    title: "Profile Not Approved",
     message:
-      "Vui lòng kiểm tra lại thông tin và bổ sung chứng chỉ hoặc liên hệ hỗ trợ để biết thêm chi tiết.",
+      "Please review your information and add certificates or contact support for more details.",
   },
   default: {
-    title: "Đang xác nhận trạng thái hồ sơ",
+    title: "Confirming Profile Status",
     message:
-      "Chúng tôi đang kiểm tra trạng thái tài khoản của bạn. Nhấn nút làm mới nếu bạn vừa cập nhật thông tin.",
+      "We are checking your account status. Press the refresh button if you just updated your information.",
   },
 };
 
@@ -89,7 +89,7 @@ const ReviewerWaiting = ({ navigation }: ReviewerWaitingProps) => {
     return (
       <SafeAreaView className="flex-1 bg-[#0f1a1f] items-center justify-center">
         <ActivityIndicator size="large" color="#2ed7ff" />
-        <Text className="text-gray-300 mt-4">Đang tải thông tin...</Text>
+        <Text className="text-gray-300 mt-4">Loading information...</Text>
       </SafeAreaView>
     );
   }
@@ -119,10 +119,10 @@ const ReviewerWaiting = ({ navigation }: ReviewerWaitingProps) => {
                 />
               </View>
               <Text className="text-xs text-[#2ed7ff] tracking-widest font-semibold mt-6">
-                TRẠNG THÁI HỒ SƠ:
+                PROFILE STATUS:
               </Text>
               <Text className="text-white text-lg font-bold mt-1">
-                {statusRaw ? statusRaw.toUpperCase() : "CHƯA XÁC ĐỊNH"}
+                {statusRaw ? statusRaw.toUpperCase() : "UNDETERMINED"}
               </Text>
             </View>
 
@@ -148,7 +148,7 @@ const ReviewerWaiting = ({ navigation }: ReviewerWaitingProps) => {
                   <View className="flex-row items-center gap-2">
                     <Feather name="refresh-ccw" size={18} color="#ffffff" />
                     <Text className="text-white font-semibold">
-                      Kiểm tra lại
+                      Check Again
                     </Text>
                   </View>
                 )}
@@ -161,7 +161,7 @@ const ReviewerWaiting = ({ navigation }: ReviewerWaitingProps) => {
               >
                 <Feather name="plus" size={18} color="#ffffff" />
                 <Text className="text-white font-semibold ml-2">
-                  Thêm chứng chỉ
+                  Add Certificate
                 </Text>
               </TouchableOpacity>
             </View>
@@ -179,7 +179,7 @@ const ReviewerWaiting = ({ navigation }: ReviewerWaitingProps) => {
                   <>
                     <Feather name="log-out" size={18} color="#94a3b8" />
                     <Text className="text-gray-400 font-medium ml-2">
-                      Đăng xuất
+                      Logout
                     </Text>
                   </>
                 )}

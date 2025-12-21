@@ -14,6 +14,23 @@ const ProfileScreen = () => {
   const { refreshAuth } = useAuthRefresh();
   const { data: getMe, isLoading } = useGetMeQuery();
 
+  const isReviewer = getMe?.role === "REVIEWER";
+  
+  // Text based on user role
+  const texts = {
+    title: isReviewer ? "My Profile" : "Hồ sơ của tôi",
+    user: isReviewer ? "User" : "Người dùng",
+    myActivity: isReviewer ? "My Activity" : "Hoạt động của tôi",
+    audioReview: isReviewer ? "Audio Review" : "Đánh giá Audio",
+    audioReviewDesc: isReviewer ? "View your pronunciation reviews" : "Xem đánh giá phát âm của bạn",
+    myRecordings: isReviewer ? "My Recordings" : "Thu âm của tôi",
+    recordingsDesc: isReviewer ? "Manage your recordings" : "Quản lý các bản ghi âm",
+    account: isReviewer ? "Account" : "Tài khoản",
+    personalInfo: isReviewer ? "Personal Information" : "Thông tin cá nhân",
+    editProfile: isReviewer ? "Edit your profile" : "Chỉnh sửa hồ sơ của bạn",
+    logout: isReviewer ? "Logout" : "Đăng xuất",
+  };
+
   const handleLogout = async () => {
     logoutMutation.mutate(undefined, {
       onSuccess: async () => {
@@ -37,7 +54,7 @@ const ProfileScreen = () => {
           style={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 40 }}
         >
           <Text className="text-2xl font-bold text-black mb-6">
-            Hồ sơ của tôi
+            {texts.title}
           </Text>
           
           <View className="flex-row items-center">
@@ -64,7 +81,7 @@ const ProfileScreen = () => {
               ) : (
                 <>
                   <Text className="text-xl font-bold text-black">
-                    {getMe?.fullName || 'Người dùng'}
+                    {getMe?.fullName || texts.user}
                   </Text>
                   <Text className="text-sm text-black/80 mt-1">
                     {getMe?.email || ''}
@@ -103,7 +120,7 @@ const ProfileScreen = () => {
               }}
             >
               <Text className="text-base font-bold text-gray-900 mb-4">
-                Hoạt động của tôi
+                {texts.myActivity}
               </Text>
               
               <View style={{ gap: 12 }}>
@@ -125,8 +142,8 @@ const ProfileScreen = () => {
                     <Ionicons name="mic" size={24} color="#7C3AED" />
                   </View>
                   <View className="flex-1 ml-4">
-                    <Text className="text-purple-700 font-bold text-base">Đánh giá Audio</Text>
-                    <Text className="text-purple-500 text-xs mt-0.5">Xem đánh giá phát âm của bạn</Text>
+                    <Text className="text-purple-700 font-bold text-base">{texts.audioReview}</Text>
+                    <Text className="text-purple-500 text-xs mt-0.5">{texts.audioReviewDesc}</Text>
                   </View>
                   <View className="w-8 h-8 bg-purple-200 rounded-full items-center justify-center">
                     <Ionicons name="chevron-forward" size={18} color="#7C3AED" />
@@ -151,8 +168,8 @@ const ProfileScreen = () => {
                     <Ionicons name="recording" size={24} color="#3B82F6" />
                   </View>
                   <View className="flex-1 ml-4">
-                    <Text className="text-blue-700 font-bold text-base">Thu âm của tôi</Text>
-                    <Text className="text-blue-500 text-xs mt-0.5">Quản lý các bản ghi âm</Text>
+                    <Text className="text-blue-700 font-bold text-base">{texts.myRecordings}</Text>
+                    <Text className="text-blue-500 text-xs mt-0.5">{texts.recordingsDesc}</Text>
                   </View>
                   <View className="w-8 h-8 bg-blue-200 rounded-full items-center justify-center">
                     <Ionicons name="chevron-forward" size={18} color="#3B82F6" />
@@ -166,7 +183,7 @@ const ProfileScreen = () => {
         {/* Account Section */}
         <View className="px-4 mt-6">
           <Text className="text-base font-bold text-gray-900 mb-4">
-            Tài khoản
+            {texts.account}
           </Text>
           <View 
             className="bg-white rounded-2xl overflow-hidden"
@@ -203,8 +220,8 @@ const ProfileScreen = () => {
                 <Ionicons name="person" size={22} color="#7C3AED" />
               </View>
               <View className="flex-1 ml-4">
-                <Text className="text-gray-900 font-bold text-base">Thông tin cá nhân</Text>
-                <Text className="text-xs text-gray-500 mt-1">Chỉnh sửa hồ sơ của bạn</Text>
+                <Text className="text-gray-900 font-bold text-base">{texts.personalInfo}</Text>
+                <Text className="text-xs text-gray-500 mt-1">{texts.editProfile}</Text>
               </View>
               <View className="w-8 h-8 bg-gray-100 rounded-full items-center justify-center">
                 <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
@@ -236,7 +253,7 @@ const ProfileScreen = () => {
                     <Ionicons name="log-out-outline" size={20} color="#EF4444" />
                   </View>
                   <Text className="text-red-600 font-bold text-base">
-                    Đăng xuất
+                    {texts.logout}
                   </Text>
                 </>
               )}

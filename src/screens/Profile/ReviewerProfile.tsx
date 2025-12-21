@@ -73,35 +73,35 @@ const ReviewerProfile = () => {
 
   const handleSave = () => {
     if (!meData?.userId) {
-      Alert.alert("Lỗi", "Không tìm thấy thông tin người dùng");
+      Alert.alert("Error", "User information not found");
       return;
     }
 
     // Validate fullname
     if (!formData.fullname || formData.fullname.trim() === "") {
-      Alert.alert("Lỗi", "Vui lòng nhập họ tên");
+      Alert.alert("Error", "Please enter full name");
       return;
     }
 
     if (formData.fullname.trim().length < 2) {
-      Alert.alert("Lỗi", "Họ tên phải có ít nhất 2 ký tự");
+      Alert.alert("Error", "Full name must be at least 2 characters");
       return;
     }
 
     // Validate experience
     if (!formData.experience || formData.experience.trim() === "") {
-      Alert.alert("Lỗi", "Vui lòng nhập số năm kinh nghiệm");
+      Alert.alert("Error", "Please enter years of experience");
       return;
     }
 
     const experienceNum = parseFloat(formData.experience.trim());
     if (isNaN(experienceNum) || experienceNum < 0) {
-      Alert.alert("Lỗi", "Số năm kinh nghiệm phải là số hợp lệ (>= 0)");
+      Alert.alert("Error", "Years of experience must be a valid number (>= 0)");
       return;
     }
 
     if (!Number.isInteger(experienceNum)) {
-      Alert.alert("Lỗi", "Số năm kinh nghiệm phải là số nguyên");
+      Alert.alert("Error", "Years of experience must be an integer");
       return;
     }
 
@@ -109,7 +109,7 @@ const ReviewerProfile = () => {
     if (formData.phoneNumber && formData.phoneNumber.trim() !== "") {
       const phoneRegex = /^[0-9]{10,11}$/;
       if (!phoneRegex.test(formData.phoneNumber.trim())) {
-        Alert.alert("Lỗi", "Số điện thoại phải có 10-11 chữ số");
+        Alert.alert("Error", "Phone number must have 10-11 digits");
         return;
       }
     }
@@ -128,12 +128,12 @@ const ReviewerProfile = () => {
             queryKey: ["reviewerProfile", meData.userId],
           });
           queryClient.invalidateQueries({ queryKey: ["getMe"] });
-          Alert.alert("Thành công", "Đã cập nhật thông tin thành công");
+          Alert.alert("Success", "Profile updated successfully");
         },
         onError: (error: any) => {
           Alert.alert(
-            "Lỗi",
-            error?.message || "Không thể cập nhật thông tin"
+            "Error",
+            error?.message || "Failed to update profile"
           );
         },
       }
@@ -165,8 +165,8 @@ const ReviewerProfile = () => {
         await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
         Alert.alert(
-          "Cần quyền truy cập",
-          "Ứng dụng cần quyền truy cập thư viện ảnh để chọn ảnh."
+          "Permission Required",
+          "The app needs access to your photo library to select images."
         );
         return;
       }
@@ -201,7 +201,7 @@ const ReviewerProfile = () => {
       }
     } catch (error) {
       console.error("Error picking images:", error);
-      Alert.alert("Lỗi", "Không thể mở thư viện ảnh. Vui lòng thử lại.");
+      Alert.alert("Error", "Failed to open photo library. Please try again.");
     }
   };
 
@@ -227,18 +227,18 @@ const ReviewerProfile = () => {
   const handleSaveCert = () => {
     // Validate certificate name
     if (!certFormData.name || certFormData.name.trim() === "") {
-      Alert.alert("Lỗi", "Vui lòng nhập tên chứng chỉ");
+      Alert.alert("Error", "Please enter certificate name");
       return;
     }
 
     if (certFormData.name.trim().length < 2) {
-      Alert.alert("Lỗi", "Tên chứng chỉ phải có ít nhất 2 ký tự");
+      Alert.alert("Error", "Certificate name must be at least 2 characters");
       return;
     }
 
     // Validate image
     if (imageFiles.length === 0) {
-      Alert.alert("Lỗi", "Vui lòng chọn ảnh chứng chỉ");
+      Alert.alert("Error", "Please select certificate image");
       return;
     }
 
@@ -263,12 +263,12 @@ const ReviewerProfile = () => {
               queryKey: ["reviewerProfile", meData.userId],
             });
           }
-          Alert.alert("Thành công", "Đã thêm chứng chỉ thành công");
+          Alert.alert("Success", "Certificate added successfully");
         },
         onError: (error: any) => {
           Alert.alert(
-            "Lỗi",
-            error?.message || "Không thể tải lên chứng chỉ"
+            "Error",
+            error?.message || "Failed to upload certificate"
           );
         },
       }
@@ -352,7 +352,7 @@ const ReviewerProfile = () => {
                 <Ionicons name="arrow-back" size={20} color="#6366F1" />
               </TouchableOpacity>
               <Text className="text-2xl font-black text-indigo-600">
-                Hồ sơ cá nhân
+                Profile
               </Text>
             </View>
           </View>
@@ -467,7 +467,7 @@ const ReviewerProfile = () => {
                   <View className="flex-row items-center gap-2">
                     <Ionicons name="create-outline" size={16} color="white" />
                     <Text className="text-white font-semibold text-xs">
-                      Chỉnh sửa
+                      Edit
                     </Text>
                   </View>
                 </LinearGradient>
@@ -480,7 +480,7 @@ const ReviewerProfile = () => {
         <View className="bg-white rounded-2xl overflow-hidden shadow-md mb-2">
           <View className="p-3">
             <Text className="text-sm font-bold text-gray-900 mb-2">
-              Thông tin liên hệ
+              Contact Information
             </Text>
             <View className="gap-2">
               <View className="flex-row items-center gap-2 p-2 bg-gray-50 rounded-lg">
@@ -492,7 +492,7 @@ const ReviewerProfile = () => {
                     Email
                   </Text>
                   <Text className="font-medium text-gray-900 text-xs" numberOfLines={1}>
-                    {meData?.email || "Chưa cập nhật"}
+                    {meData?.email || "Not updated"}
                   </Text>
                 </View>
               </View>
@@ -506,7 +506,7 @@ const ReviewerProfile = () => {
                     Số điện thoại
                   </Text>
                   <Text className="font-medium text-gray-900 text-xs">
-                    {meData?.phoneNumber || "Chưa cập nhật"}
+                    {meData?.phoneNumber || "Not updated"}
                   </Text>
                 </View>
               </View>
@@ -518,7 +518,7 @@ const ReviewerProfile = () => {
         <View className="bg-white rounded-2xl overflow-hidden shadow-md mb-2">
           <View className="p-3">
             <Text className="text-sm font-bold text-gray-900 mb-2">
-              Thống kê
+              Statistics
             </Text>
             <View className="flex-row gap-2">
               <View className="flex-1 rounded-lg overflow-hidden">
@@ -529,9 +529,9 @@ const ReviewerProfile = () => {
                   className="p-3"
                 >
                   <Ionicons name="trophy" size={18} color="white" />
-                  <Text className="text-white text-[10px] mt-1">Kinh nghiệm</Text>
+                  <Text className="text-white text-[10px] mt-1">Experience</Text>
                   <Text className="text-white text-base font-bold">
-                    {mentorData.yearsExperience} năm
+                    {mentorData.yearsExperience} years
                   </Text>
                 </LinearGradient>
               </View>
@@ -544,7 +544,7 @@ const ReviewerProfile = () => {
                   className="p-3"
                 >
                   <Ionicons name="star" size={18} color="white" />
-                  <Text className="text-white text-[10px] mt-1">Đánh giá</Text>
+                  <Text className="text-white text-[10px] mt-1">Rating</Text>
                   <Text className="text-white text-base font-bold">
                     {mentorData.rating.toFixed(1)}/5
                   </Text>
@@ -563,7 +563,7 @@ const ReviewerProfile = () => {
                   <Ionicons name="trophy" size={14} color="white" />
                 </View>
                 <Text className="text-sm font-bold text-gray-900">
-                  Chứng chỉ ({mentorData.certifications?.length || 0})
+                  Certificates ({mentorData.certifications?.length || 0})
                 </Text>
               </View>
               <TouchableOpacity
@@ -578,7 +578,7 @@ const ReviewerProfile = () => {
                   className="px-3 py-1.5"
                 >
                   <Text className="text-white font-semibold text-[10px]">
-                    + Thêm
+                    + Add
                   </Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -622,7 +622,7 @@ const ReviewerProfile = () => {
             ) : (
               <View className="bg-gray-50 p-3 rounded-xl border border-gray-200">
                 <Text className="text-gray-600 text-center text-xs">
-                  Chưa có chứng chỉ
+                  No certificates
                 </Text>
               </View>
             )}
@@ -645,7 +645,7 @@ const ReviewerProfile = () => {
             <View className="bg-white rounded-t-3xl max-h-[90%]">
               <View className="flex-row items-center justify-between p-6 border-b border-gray-200">
                 <Text className="text-xl font-semibold text-gray-900">
-                  Chỉnh sửa hồ sơ
+                  Edit Profile
                 </Text>
                 <TouchableOpacity onPress={handleCancel}>
                   <Ionicons name="close" size={24} color="#6B7280" />
@@ -660,13 +660,13 @@ const ReviewerProfile = () => {
                 <View className="space-y-6">
                   <View className="space-y-4">
                     <Text className="text-lg font-semibold text-gray-900">
-                      Thông tin cơ bản
+                      Basic Information
                     </Text>
 
                     <View className="space-y-4">
                       <View>
                         <Text className="text-sm font-medium text-gray-700 mb-2">
-                          Họ tên
+                          Full Name
                         </Text>
                         <TextInput
                           value={formData.fullname}
@@ -674,13 +674,13 @@ const ReviewerProfile = () => {
                             handleInputChange("fullname", value)
                           }
                           className="border border-gray-300 rounded-xl px-4 py-3 bg-white"
-                          placeholder="Nhập họ tên"
+                          placeholder="Enter full name"
                         />
                       </View>
 
                       <View>
                         <Text className="text-sm font-medium text-gray-700 mb-2">
-                          Kinh nghiệm
+                          Experience
                         </Text>
                         <TextInput
                           value={formData.experience}
@@ -688,14 +688,14 @@ const ReviewerProfile = () => {
                             handleInputChange("experience", value)
                           }
                           className="border border-gray-300 rounded-xl px-4 py-3 bg-white"
-                          placeholder="Nhập số năm kinh nghiệm..."
+                          placeholder="Enter years of experience..."
                           keyboardType="numeric"
                         />
                       </View>
 
                       <View>
                         <Text className="text-sm font-medium text-gray-700 mb-2">
-                          Số điện thoại
+                          Phone Number
                         </Text>
                         <TextInput
                           value={formData.phoneNumber}
@@ -703,7 +703,7 @@ const ReviewerProfile = () => {
                             handleInputChange("phoneNumber", value)
                           }
                           className="border border-gray-300 rounded-xl px-4 py-3 bg-white"
-                          placeholder="Nhập số điện thoại..."
+                          placeholder="Enter phone number..."
                           keyboardType="phone-pad"
                         />
                       </View>
@@ -718,7 +718,7 @@ const ReviewerProfile = () => {
                   onPress={handleCancel}
                   className="px-6 py-3 rounded-xl border border-gray-300"
                 >
-                  <Text className="text-gray-700 font-medium">Hủy</Text>
+                  <Text className="text-gray-700 font-medium">Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={handleSave}
@@ -739,7 +739,7 @@ const ReviewerProfile = () => {
                       <View className="flex-row items-center gap-2">
                         <Ionicons name="checkmark" size={16} color="white" />
                         <Text className="text-white font-semibold">
-                          Lưu thay đổi
+                          Save Changes
                         </Text>
                       </View>
                     )}
@@ -770,7 +770,7 @@ const ReviewerProfile = () => {
                     <Ionicons name="trophy" size={24} color="white" />
                   </View>
                   <Text className="text-2xl font-bold text-gray-900">
-                    Thêm chứng chỉ mới
+                    Add New Certificate
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -790,7 +790,7 @@ const ReviewerProfile = () => {
                   {/* Certification Name */}
                   <View>
                     <Text className="text-sm font-medium text-gray-700 mb-2">
-                      Tên chứng chỉ *
+                      Certificate Name *
                     </Text>
                     <TextInput
                       value={certFormData.name}
@@ -798,14 +798,14 @@ const ReviewerProfile = () => {
                         handleCertInputChange("name", value)
                       }
                       className="border border-gray-300 rounded-xl px-4 py-3 bg-white"
-                      placeholder="Nhập tên chứng chỉ..."
+                      placeholder="Enter certificate name..."
                     />
                   </View>
 
                   {/* Image Upload Section */}
                   <View>
                     <Text className="text-sm font-medium text-gray-700 mb-3">
-                      Hình ảnh chứng chỉ *
+                      Certificate Image *
                     </Text>
                     <TouchableOpacity
                       onPress={handleImagePick}
@@ -846,10 +846,10 @@ const ReviewerProfile = () => {
                             color="#9CA3AF"
                           />
                           <Text className="text-gray-600 mb-2 mt-4 text-center">
-                            Nhấn để chọn ảnh
+                            Tap to select image
                           </Text>
                           <Text className="text-gray-500 text-sm text-center">
-                            Chọn ảnh chứng chỉ từ thư viện
+                            Select certificate image from library
                           </Text>
                         </View>
                       )}
@@ -865,7 +865,7 @@ const ReviewerProfile = () => {
                   className="px-6 py-2 rounded-xl border border-gray-300"
                   activeOpacity={0.8}
                 >
-                  <Text className="text-gray-700 font-medium">Hủy</Text>
+                  <Text className="text-gray-700 font-medium">Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={handleSaveCert}
@@ -897,7 +897,7 @@ const ReviewerProfile = () => {
                       <>
                         <Ionicons name="checkmark" size={16} color="white" />
                         <Text className="text-white font-semibold">
-                          Lưu chứng chỉ
+                          Save Certificate
                         </Text>
                       </>
                     )}
