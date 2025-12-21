@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { Audio } from 'expo-av';
 import {
   useLearnerRecords,
@@ -40,12 +40,21 @@ const LearnerRecordPage = () => {
   const soundRef = useRef<Audio.Sound | null>(null);
 
   // Queries
-  const { data: recordsData, isLoading: isLoadingRecords } = useLearnerRecords(folderId);
+  const { data: recordsData, isLoading: isLoadingRecords, refetch: refetchRecords } = useLearnerRecords(folderId);
 
   // Mutations
   const { mutateAsync: createRecord, isPending: isCreatingRecord } = useLearnerRecordCreate();
   const { mutateAsync: deleteRecord, isPending: isDeletingRecord } = useLearnerRecordDelete();
   const { mutateAsync: updateRecordContent, isPending: isUpdatingContent } = useLearnerRecordUpdateContent();
+
+  // Refresh data when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      if (folderId) {
+        refetchRecords();
+      }
+    }, [folderId, refetchRecords])
+  );
 
   // Setup and cleanup audio
   useEffect(() => {
@@ -91,7 +100,7 @@ const LearnerRecordPage = () => {
       // Error handled by hook
     }
   };
-
+ console.log("Feedback record:", feedbackRecord)
   const handleDeleteRecord = async (recordId: string) => {
     Alert.alert(
       'Xác nhận xóa',
@@ -271,7 +280,7 @@ const LearnerRecordPage = () => {
         {item.audioRecordingURL && (
           <TouchableOpacity
             onPress={() => handlePlayAudio(item.audioRecordingURL, item.recordId)}
-            className="flex-row items-center bg-blue-50 rounded-lg p-3 mb-3"
+            className="flex-row items-center  rounded-lg p-3 mb-3"
           >
             <Ionicons
               name={playingAudioId === item.recordId ? 'pause' : 'play'}
@@ -346,8 +355,9 @@ const LearnerRecordPage = () => {
           <View className="flex-row gap-3 mb-4">
             <TouchableOpacity
               onPress={() => setShowCreateRecordDialog(true)}
-              className="flex-1 bg-green-600 rounded-xl p-4 flex-row items-center justify-center"
+              className="flex-1 rounded-xl p-4 flex-row items-center justify-center"
               style={{
+                backgroundColor: '#ECFDF5',
                 shadowColor: '#000',
                 shadowOffset: { width: 0, height: 2 },
                 shadowOpacity: 0.1,
@@ -355,8 +365,8 @@ const LearnerRecordPage = () => {
                 elevation: 3,
               }}
             >
-              <Ionicons name="add-circle-outline" size={20} color="#FFFFFF" />
-              <Text className="text-white font-semibold text-base ml-2">Tạo record</Text>
+              <Ionicons name="add-circle-outline" size={22} color="#059669" />
+              <Text className="font-bold text-base ml-2" style={{ color: '#059669' }}>Tạo record</Text>
             </TouchableOpacity>
             {selectedRecords.length > 0 && (
               <TouchableOpacity
@@ -364,8 +374,9 @@ const LearnerRecordPage = () => {
                   // Navigate to practice page
                   navigation.navigate('LearnerRecordQuestion', { folderId });
                 }}
-                className="flex-1 bg-blue-600 rounded-xl p-4 flex-row items-center justify-center"
+                className="flex-1 rounded-xl p-4 flex-row items-center justify-center"
                 style={{
+                  backgroundColor: '#EFF6FF',
                   shadowColor: '#000',
                   shadowOffset: { width: 0, height: 2 },
                   shadowOpacity: 0.1,
@@ -373,8 +384,8 @@ const LearnerRecordPage = () => {
                   elevation: 3,
                 }}
               >
-                <Ionicons name="play" size={20} color="#FFFFFF" />
-                <Text className="text-white font-semibold text-base ml-2">Học record</Text>
+                <Ionicons name="play" size={22} color="#2563EB" />
+                <Text className="font-bold text-base ml-2" style={{ color: '#2563EB' }}>Học record</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -519,7 +530,7 @@ const LearnerRecordPage = () => {
                 backgroundColor: 'white',
                 borderTopLeftRadius: 24,
                 borderTopRightRadius: 24,
-                maxHeight: '85%',
+                minHeight: '75%',
                 shadowColor: '#000',
                 shadowOffset: { width: 0, height: -4 },
                 shadowOpacity: 0.25,
@@ -559,7 +570,7 @@ const LearnerRecordPage = () => {
               {/* Content */}
               <ScrollView
                 className="flex-1"
-                style={{ maxHeight: 400 }}
+                style={{ maxHeight: 500 }}
                 showsVerticalScrollIndicator={true}
                 contentContainerStyle={{ padding: 16 }}
               >
@@ -591,7 +602,7 @@ const LearnerRecordPage = () => {
               </ScrollView>
 
               {/* Footer */}
-              <View className="px-4 py-4 border-t border-gray-200 bg-gray-50">
+              {/* <View className="px-4 py-4 border-t border-gray-200 bg-gray-50">
                 <TouchableOpacity
                   onPress={() => setFeedbackRecord(null)}
                   className="py-3 bg-purple-600 rounded-xl items-center"
@@ -606,7 +617,7 @@ const LearnerRecordPage = () => {
                 >
                   <Text className="text-white font-semibold text-base">Đóng</Text>
                 </TouchableOpacity>
-              </View>
+              </View> */}
             </TouchableOpacity>
           </TouchableOpacity>
         </KeyboardAvoidingView>
@@ -698,7 +709,7 @@ const LearnerRecordPage = () => {
       {/* Action Menu Modal */}
       <Modal
         visible={showActionMenu}
-        animationType="fade"
+        animationType="slide"
         transparent={true}
         onRequestClose={() => {
           setShowActionMenu(false);
@@ -724,26 +735,38 @@ const LearnerRecordPage = () => {
               backgroundColor: 'white',
               borderTopLeftRadius: 24,
               borderTopRightRadius: 24,
-              paddingTop: 20,
               paddingBottom: Platform.OS === 'ios' ? 34 : 20,
-              paddingHorizontal: 20,
               shadowColor: '#000',
               shadowOffset: { width: 0, height: -4 },
-              shadowOpacity: 0.25,
-              shadowRadius: 12,
-              elevation: 16,
+              shadowOpacity: 0.1,
+              shadowRadius: 16,
+              elevation: 20,
             }}
           >
             {selectedRecord && (
               <>
-                <View className="mb-4">
-                  <Text className="text-lg font-bold text-gray-900 mb-1" numberOfLines={2}>
-                    {selectedRecord.content}
-                  </Text>
-                  <Text className="text-sm text-gray-500">Chọn hành động</Text>
+                {/* Drag Handle */}
+                <View className="items-center pt-3 pb-2">
+                  <View
+                    style={{
+                      width: 40,
+                      height: 4,
+                      backgroundColor: '#D1D5DB',
+                      borderRadius: 2,
+                    }}
+                  />
                 </View>
 
-                <View>
+                {/* Header */}
+                <View className="px-5 pt-2 pb-4 border-b border-gray-100">
+                  <Text className="text-xl font-bold text-gray-900 mb-1" numberOfLines={2}>
+                    {selectedRecord.content}
+                  </Text>
+                  <Text className="text-sm text-gray-500">Chọn hành động cho record này</Text>
+                </View>
+
+                {/* Actions */}
+                <View className="px-5 py-4">
                   <TouchableOpacity
                     onPress={() => {
                       setShowActionMenu(false);
@@ -752,14 +775,20 @@ const LearnerRecordPage = () => {
                       }
                       setSelectedRecord(null);
                     }}
-                    className="flex-row items-center p-4 rounded-xl bg-blue-50"
-                    style={{ marginBottom: 8 }}
+                    className="flex-row items-center py-4 px-4 rounded-2xl mb-3"
+                    style={{ backgroundColor: '#EFF6FF' }}
                     activeOpacity={0.7}
                   >
-                    <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center mr-3">
-                      <Ionicons name="create-outline" size={20} color="#2563EB" />
+                    <View
+                      className="w-12 h-12 rounded-full items-center justify-center mr-4"
+                      style={{ backgroundColor: '#DBEAFE' }}
+                    >
+                      <Ionicons name="create-outline" size={22} color="#2563EB" />
                     </View>
-                    <Text className="text-base font-semibold text-gray-900 flex-1">Chỉnh sửa</Text>
+                    <View className="flex-1">
+                      <Text className="text-base font-bold text-gray-900 mb-0.5">Chỉnh sửa</Text>
+                      <Text className="text-xs text-gray-500">Thay đổi nội dung record</Text>
+                    </View>
                     <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
                   </TouchableOpacity>
 
@@ -772,14 +801,22 @@ const LearnerRecordPage = () => {
                         }
                         setSelectedRecord(null);
                       }}
-                      className="flex-row items-center p-4 rounded-xl bg-purple-50"
-                      style={{ marginBottom: 8 }}
+                      className="flex-row items-center py-4 px-4 rounded-2xl mb-3"
+                      style={{ backgroundColor: '#FAF5FF' }}
                       activeOpacity={0.7}
                     >
-                      <View className="w-10 h-10 bg-purple-100 rounded-full items-center justify-center mr-3">
-                        <Ionicons name="sparkles" size={20} color="#9333EA" />
+                      <View
+                        className="w-12 h-12 rounded-full items-center justify-center mr-4"
+                        style={{ backgroundColor: '#F3E8FF' }}
+                      >
+                        <Ionicons name="sparkles" size={22} color="#9333EA" />
                       </View>
-                      <Text className="text-base font-semibold text-gray-900 flex-1">Xem phản hồi AI</Text>
+                      <View className="flex-1">
+                        <Text className="text-base font-bold text-gray-900 mb-0.5">
+                          Xem phản hồi AI
+                        </Text>
+                        <Text className="text-xs text-gray-500">Đánh giá và gợi ý cải thiện</Text>
+                      </View>
                       <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
                     </TouchableOpacity>
                   )}
@@ -792,27 +829,39 @@ const LearnerRecordPage = () => {
                       }
                       setSelectedRecord(null);
                     }}
-                    className="flex-row items-center p-4 rounded-xl bg-red-50"
+                    className="flex-row items-center py-4 px-4 rounded-2xl mb-3"
+                    style={{ backgroundColor: '#FEF2F2' }}
                     activeOpacity={0.7}
                   >
-                    <View className="w-10 h-10 bg-red-100 rounded-full items-center justify-center mr-3">
-                      <Ionicons name="trash-outline" size={20} color="#DC2626" />
+                    <View
+                      className="w-12 h-12 rounded-full items-center justify-center mr-4"
+                      style={{ backgroundColor: '#FEE2E2' }}
+                    >
+                      <Ionicons name="trash-outline" size={22} color="#DC2626" />
                     </View>
-                    <Text className="text-base font-semibold text-red-600 flex-1">Xóa</Text>
+                    <View className="flex-1">
+                      <Text className="text-base font-bold text-red-600 mb-0.5">Xóa record</Text>
+                      <Text className="text-xs text-gray-500">Xóa vĩnh viễn record này</Text>
+                    </View>
                     <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
                   </TouchableOpacity>
-                </View>
 
-                <TouchableOpacity
-                  onPress={() => {
-                    setShowActionMenu(false);
-                    setSelectedRecord(null);
-                  }}
-                  className="mt-4 py-3 bg-gray-100 rounded-xl items-center"
-                  activeOpacity={0.7}
-                >
-                  <Text className="text-gray-700 font-semibold">Hủy</Text>
-                </TouchableOpacity>
+                  {/* Cancel Button */}
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowActionMenu(false);
+                      setSelectedRecord(null);
+                    }}
+                    className="py-4 bg-gray-100 rounded-2xl items-center mt-2"
+                    activeOpacity={0.7}
+                    style={{
+                      borderWidth: 1,
+                      borderColor: '#E5E7EB',
+                    }}
+                  >
+                    <Text className="text-gray-700 font-bold text-base">Hủy</Text>
+                  </TouchableOpacity>
+                </View>
               </>
             )}
           </TouchableOpacity>

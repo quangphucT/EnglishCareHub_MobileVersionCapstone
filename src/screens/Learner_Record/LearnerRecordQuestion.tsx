@@ -20,6 +20,7 @@ import {
 } from '../../hooks/learner/learnerRecord/learnerRecordHook';
 import type { Record } from '../../api/learnerRecord.service';
 import { uploadAudioToCloudinary } from '../../api/uploadAudio.service';
+import BuyReviewModal from '../../components/BuyReviewModal';
 
 const LearnerRecordQuestion = () => {
   const navigation = useNavigation();
@@ -45,23 +46,36 @@ const LearnerRecordQuestion = () => {
 
   // State để quản lý câu hỏi hiện tại
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
+  const [initialIndexSet, setInitialIndexSet] = useState<boolean>(false);
 
-  // Tìm index của record hiện tại nếu có recordId từ route
+  // Tìm index của record hiện tại nếu có recordId từ route (chỉ chạy 1 lần khi mount)
   useEffect(() => {
-    if (recordId && recordsList.length > 0) {
+    if (recordId && recordsList.length > 0 && !initialIndexSet) {
       const index = recordsList.findIndex((r: Record) => r.recordId === recordId);
       if (index !== -1) {
         setCurrentQuestionIndex(index);
       }
+      setInitialIndexSet(true);
     }
-  }, [recordId, recordsList]);
+  }, [recordId, recordsList, initialIndexSet]);
 
   // Lấy record hiện tại
   const currentRecord = recordsList[currentQuestionIndex] || null;
   const currentRecordContentId = currentRecord?.recordContentId ;
+  const currentRecordId = currentRecord?.recordId; // ID để mua review
   const currentContent = currentRecord?.content || content || '';
 
-  const [language, setLanguage] = useState<'en-gb' | 'en'>('en-gb');
+  // Debug: Log current record info
+  useEffect(() => {
+    console.log('🔍 Current Record Info:', {
+      currentRecord,
+      currentRecordContentId,
+      currentRecordId,
+      currentQuestionIndex,
+    });
+  }, [currentRecord, currentRecordContentId, currentRecordId, currentQuestionIndex]);
+
+  const [language, setLanguage] = useState<'en-gb' | 'en'>('en');
   const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
   const [recording, setRecording] = useState<boolean>(false);
   const [uiBlocked, setUiBlocked] = useState<boolean>(false);
@@ -79,6 +93,8 @@ const LearnerRecordQuestion = () => {
   const [openAiFeedbackModal, setOpenAiFeedbackModal] = useState(false);
   const [isPlayingSample, setIsPlayingSample] = useState<boolean>(false);
   const [isPlayingRecorded, setIsPlayingRecorded] = useState<boolean>(false);
+  const [isBuyReviewModalOpen, setIsBuyReviewModalOpen] = useState(false);
+  const [initialSampleFetched, setInitialSampleFetched] = useState<boolean>(false);
 
   // Word-level analysis data
   const [realTranscriptsIpa, setRealTranscriptsIpa] = useState<string[]>([]);
@@ -104,6 +120,52 @@ const LearnerRecordQuestion = () => {
   const apiMainPathSTS = 'https://ai.aespwithai.com';
 
   const languageLabel = useMemo(() => (language === 'en-gb' ? 'English-UK' : 'English-USA'), [language]);
+
+  // Parse HTML và render text với màu sắc
+  const renderColoredText = (html: string) => {
+    if (!html || !html.includes('<span')) {
+      return null;
+    }
+
+    // Parse HTML to extract colored letters
+    const regex = /<span style="color: (#[0-9A-Fa-f]+)">([^<]+)<\/span>/g;
+    const parts: { text: string; color: string }[] = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = regex.exec(html)) !== null) {
+      // Add text before match if any (giữ nguyên khoảng trắng)
+      if (match.index > lastIndex) {
+        const textBefore = html.substring(lastIndex, match.index);
+        const cleanText = textBefore.replace(/<[^>]*>/g, '');
+        if (cleanText) {
+          parts.push({ text: cleanText, color: '#000000' });
+        }
+      }
+      
+      parts.push({ text: match[2], color: match[1] });
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text (giữ nguyên khoảng trắng)
+    if (lastIndex < html.length) {
+      const textAfter = html.substring(lastIndex);
+      const cleanText = textAfter.replace(/<[^>]*>/g, '');
+      if (cleanText) {
+        parts.push({ text: cleanText, color: '#000000' });
+      }
+    }
+
+    return (
+      <Text className="text-2xl font-bold leading-relaxed">
+        {parts.map((part, index) => (
+          <Text key={index} style={{ color: part.color }}>
+            {part.text}
+          </Text>
+        ))}
+      </Text>
+    );
+  };
 
   // Setup audio mode
   useEffect(() => {
@@ -401,10 +463,15 @@ const LearnerRecordQuestion = () => {
               const color = ok ? '#10B981' : '#EF4444';
               wordTemp += `<span style="color: ${color}">${word[letterIdx]}</span>`;
             }
-            coloredWords += ` ${wordTemp}`;
+            
+            // Thêm từ vào chuỗi, giữ khoảng trắng giữa các từ
+            if (wordIdx > 0) {
+              coloredWords += ' ';
+            }
+            coloredWords += wordTemp;
           }
 
-          setOriginalScriptHtml(coloredWords.trim());
+          setOriginalScriptHtml(coloredWords);
           setCurrentSoundRecorded(true);
           setMainTitle('An English Speaking Platform with AI');
 
@@ -559,6 +626,52 @@ const LearnerRecordQuestion = () => {
     }
   }, [AILanguage, STScoreAPIKey, apiMainPathSample, serverIsInitialized, serverWorking, initializeServer, currentContent, content]);
 
+  // Fetch sample for specific content
+  const fetchSampleForContent = useCallback(async (contentText: string) => {
+    setUiBlocked(true);
+    if (!serverIsInitialized) {
+      await initializeServer();
+    }
+    if (!serverWorking) {
+      setMainTitle('Lỗi Server');
+      setRecordedIpaScript('');
+      setIpaScript('Error');
+      setUiBlocked(false);
+      return;
+    }
+
+    setMainTitle('Đang tải mẫu...');
+
+    try {
+      const res = await fetch(apiMainPathSample + '/getSample', {
+        method: 'POST',
+        body: JSON.stringify({
+          category: 1,
+          language: AILanguage,
+          question: contentText,
+        }),
+        headers: { 'X-Api-Key': STScoreAPIKey },
+      });
+
+      const data = await res.json();
+
+      setOriginalScriptHtml(data.real_transcript || '');
+      setIpaScript(`/ ${data.ipa_transcript || ''} /`);
+      setRecordedIpaScript('');
+      setPronunciationAccuracy('');
+      setTranslatedScript(data.transcript_translation || '');
+      setCurrentSoundRecorded(false);
+      setMainTitle('An English Speaking Platform with AI');
+    } catch (error) {
+      console.error('Error fetching sample:', error);
+      setMainTitle('Lỗi Server');
+      setRecordedIpaScript('');
+      setIpaScript('Error');
+    } finally {
+      setUiBlocked(false);
+    }
+  }, [AILanguage, STScoreAPIKey, apiMainPathSample, serverIsInitialized, serverWorking, initializeServer]);
+
   // Handle Next Question
   const handleNextQuestion = useCallback(() => {
     if (currentQuestionIndex < recordsList.length - 1) {
@@ -566,7 +679,7 @@ const LearnerRecordQuestion = () => {
       setCurrentQuestionIndex(nextIndex);
       const nextRecord = recordsList[nextIndex];
       if (nextRecord) {
-        // Reset states
+        // Reset states immediately
         setRecordedIpaScript('');
         setPronunciationAccuracy('');
         setAiFeedback('');
@@ -575,14 +688,20 @@ const LearnerRecordQuestion = () => {
         setIpaScript('');
         setTranslatedScript('');
         recordedAudioUriRef.current = null;
+        
+        // Reset word-level IPA data
+        setRealTranscriptsIpa([]);
+        setMatchedTranscriptsIpa([]);
+        setWordCategories([]);
+        setStartTime([]);
+        setEndTime([]);
 
-        // Fetch new sample
-        setTimeout(() => {
-          getNextSample();
-        }, 100);
+        // Fetch new sample with the new content
+        const newContent = nextRecord.content || content;
+        fetchSampleForContent(newContent);
       }
     }
-  }, [currentQuestionIndex, recordsList, getNextSample]);
+  }, [currentQuestionIndex, recordsList, content]);
 
   // Handle Previous Question
   const handlePreviousQuestion = useCallback(() => {
@@ -591,7 +710,7 @@ const LearnerRecordQuestion = () => {
       setCurrentQuestionIndex(prevIndex);
       const prevRecord = recordsList[prevIndex];
       if (prevRecord) {
-        // Reset states
+        // Reset states immediately
         setRecordedIpaScript('');
         setPronunciationAccuracy('');
         setAiFeedback('');
@@ -600,14 +719,20 @@ const LearnerRecordQuestion = () => {
         setIpaScript('');
         setTranslatedScript('');
         recordedAudioUriRef.current = null;
+        
+        // Reset word-level IPA data
+        setRealTranscriptsIpa([]);
+        setMatchedTranscriptsIpa([]);
+        setWordCategories([]);
+        setStartTime([]);
+        setEndTime([]);
 
-        // Fetch new sample
-        setTimeout(() => {
-          getNextSample();
-        }, 100);
+        // Fetch new sample with the new content
+        const newContent = prevRecord.content || content;
+        fetchSampleForContent(newContent);
       }
     }
-  }, [currentQuestionIndex, recordsList, getNextSample]);
+  }, [currentQuestionIndex, recordsList, content]);
 
   // Handle go back
   const handleGoBack = useCallback(() => {
@@ -632,11 +757,12 @@ const LearnerRecordQuestion = () => {
   }, [shouldFetchNext, getNextSample]);
 
   useEffect(() => {
-    // Chỉ fetch sample khi có content và không đang loading records
-    if ((currentContent || content) && !isLoadingRecords && recordsList.length > 0) {
+    // Chỉ fetch sample khi có content và không đang loading records (chỉ chạy 1 lần đầu)
+    if ((currentContent || content) && !isLoadingRecords && recordsList.length > 0 && !initialSampleFetched) {
       getNextSample();
+      setInitialSampleFetched(true);
     }
-  }, [currentContent, isLoadingRecords, recordsList.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentContent, isLoadingRecords, recordsList.length, initialSampleFetched]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Format AI feedback HTML (simple version)
   const formatAiFeedback = (feedback: string): string => {
@@ -735,37 +861,6 @@ const LearnerRecordQuestion = () => {
             </View>
 
             <View className="flex-row items-center gap-2">
-              {/* Language Selector */}
-              <View className="relative">
-                <TouchableOpacity
-                  onPress={() => setDropdownOpen(!dropdownOpen)}
-                  disabled={uiBlocked}
-                  className="px-3 py-2 bg-white border border-gray-300 rounded-lg"
-                >
-                  <Text className="text-sm font-medium text-gray-700">
-                    {languageLabel} ▼
-                  </Text>
-                </TouchableOpacity>
-                {dropdownOpen && (
-                  <View className="absolute top-full mt-2 w-40 bg-white rounded-lg shadow-lg z-20 border border-gray-200">
-                    <TouchableOpacity
-                      onPress={() => changeLanguage('en-gb')}
-                      disabled={uiBlocked}
-                      className="px-4 py-2.5 border-b border-gray-100"
-                    >
-                      <Text className="text-sm font-medium text-gray-700">English-UK</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => changeLanguage('en')}
-                      disabled={uiBlocked}
-                      className="px-4 py-2.5"
-                    >
-                      <Text className="text-sm font-medium text-gray-700">English-USA</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-
               {/* Question Counter */}
               {recordsList.length > 0 && (
                 <View className="px-3 py-2 bg-blue-100 rounded-lg">
@@ -822,11 +917,24 @@ const LearnerRecordQuestion = () => {
 
                 {/* Score Display */}
                 <View className="bg-emerald-50 rounded-xl px-4 py-3 border border-emerald-200">
-                  <Text className="text-xs text-gray-600 mb-1 font-medium text-center">Điểm số</Text>
+                  <Text className="text-xs text-gray-600 mb-1 font-medium text-center" numberOfLines={1}>Điểm số</Text>
                   <Text className="text-2xl font-bold text-emerald-600 text-center">
                     {pronunciationAccuracy || '-'}
                   </Text>
                 </View>
+
+                {/* Buy Review Button - Only show if recordId exists */}
+                {currentRecordId && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      console.log('🛒 Opening Buy Review Modal with recordId:', currentRecordId);
+                      setIsBuyReviewModalOpen(true);
+                    }}
+                    className="w-14 h-14 rounded-full bg-orange-500 items-center justify-center"
+                  >
+                    <Ionicons name="cart" size={24} color="#FFFFFF" />
+                  </TouchableOpacity>
+                )}
 
                 {/* AI Feedback Button */}
                 {aiFeedback && aiFeedback.trim() && (
@@ -842,30 +950,110 @@ const LearnerRecordQuestion = () => {
               {/* Text Content */}
               <ScrollView className="max-h-64 mb-4" showsVerticalScrollIndicator={true}>
                 <View>
-                  <View className="mb-4">
-                    <Text className="text-2xl font-semibold text-blue-600 mb-2">
-                      {(originalScriptHtml && typeof originalScriptHtml === 'string' 
-                        ? originalScriptHtml.replace(/<[^>]*>?/gm, '') 
-                        : '') || currentContent}
-                    </Text>
-                    {originalScriptHtml && typeof originalScriptHtml === 'string' && originalScriptHtml.includes('<span') && (
-                      <Text className="text-lg text-gray-700">
-                        {/* Render colored text - simplified for mobile */}
-                        {originalScriptHtml.replace(/<[^>]*>?/gm, '')}
-                      </Text>
-                    )}
-                  </View>
+                  {/* Display words with their IPA transcriptions */}
+                  {originalScriptHtml && typeof originalScriptHtml === 'string' && originalScriptHtml.includes('<span') && realTranscriptsIpa.length > 0 ? (
+                    <View className="mb-4">
+                      {(() => {
+                        const text = originalScriptHtml.replace(/<[^>]*>?/gm, '');
+                        const words = text.split(' ');
+                        
+                        return (
+                          <View className="flex-row flex-wrap justify-center">
+                            {words.map((word, idx) => (
+                              <View key={idx} className="items-center mx-2 mb-4">
+                                {/* Colored word */}
+                                <View className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl px-3 py-2 mb-1 border border-blue-200">
+                                  {(() => {
+                                    const regex = /<span style="color: (#[0-9A-Fa-f]+)">([^<]+)<\/span>/g;
+                                    const wordParts: { text: string; color: string }[] = [];
+                                    let searchText = originalScriptHtml;
+                                    
+                                    // Find this word's colored version
+                                    const wordsProcessed = originalScriptHtml.replace(/<[^>]*>?/gm, '').split(' ');
+                                    let startIdx = 0;
+                                    for (let i = 0; i < idx; i++) {
+                                      const wordLen = wordsProcessed[i].length;
+                                      startIdx += wordLen + 1; // +1 for space
+                                    }
+                                    
+                                    let tempHtml = originalScriptHtml;
+                                    let currentPos = 0;
+                                    let match;
+                                    let letterCount = 0;
+                                    
+                                    while ((match = regex.exec(originalScriptHtml)) !== null) {
+                                      const letter = match[2];
+                                      const color = match[1];
+                                      
+                                      if (letterCount >= startIdx && letterCount < startIdx + word.length) {
+                                        wordParts.push({ text: letter, color });
+                                      }
+                                      
+                                      letterCount += letter.length;
+                                      if (letterCount >= startIdx + word.length) break;
+                                    }
+                                    
+                                    if (wordParts.length === 0) {
+                                      wordParts.push({ text: word, color: '#1F2937' });
+                                    }
+                                    
+                                    return (
+                                      <Text className="text-xl font-bold">
+                                        {wordParts.map((part, pIdx) => (
+                                          <Text key={pIdx} style={{ color: part.color }}>
+                                            {part.text}
+                                          </Text>
+                                        ))}
+                                      </Text>
+                                    );
+                                  })()}
+                                </View>
+                                
+                                {/* Standard IPA */}
+                                {matchedTranscriptsIpa[idx] && (
+                                  <Text className="text-sm text-gray-600 mb-0.5">
+                                    /{matchedTranscriptsIpa[idx]}/
+                                  </Text>
+                                )}
+                                
+                                {/* Recorded IPA */}
+                                {realTranscriptsIpa[idx] && (
+                                  <Text className="text-sm text-blue-600 font-medium">
+                                    /{realTranscriptsIpa[idx]}/
+                                  </Text>
+                                )}
+                              </View>
+                            ))}
+                          </View>
+                        );
+                      })()}
+                    </View>
+                  ) : (
+                    <View>
+                      <View className="mb-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-5 border border-blue-200">
+                        {originalScriptHtml && typeof originalScriptHtml === 'string' && originalScriptHtml.includes('<span') ? (
+                          <View>
+                            {renderColoredText(originalScriptHtml)}
+                          </View>
+                        ) : (
+                          <Text className="text-2xl font-bold text-blue-900 leading-relaxed text-center">
+                            {currentContent}
+                          </Text>
+                        )}
+                      </View>
 
-                  {ipaScript && (
-                    <Text key="ipaScript" className="text-lg text-gray-500 mb-2">{ipaScript}</Text>
-                  )}
+                      {ipaScript && (
+                        <Text key="ipaScript" className="text-lg text-gray-500 mb-2">{ipaScript}</Text>
+                      )}
 
-                  {recordedIpaScript && (
-                    <Text key="recordedIpaScript" className="text-lg text-blue-600 mb-2">{recordedIpaScript}</Text>
+                      {recordedIpaScript && (
+                        <Text key="recordedIpaScript" className="text-lg text-blue-600 mb-2">{recordedIpaScript}</Text>
+                      )}
+                    </View>
                   )}
 
                   {translatedScript && (
-                    <Text key="translatedScript" className="text-base text-gray-500">{translatedScript}</Text>
+                    <Text key="translatedScript" className="text-base text-gray-500 text-center mt-2">{translatedScript}</Text>
                   )}
                 </View>
               </ScrollView>
@@ -927,6 +1115,13 @@ const LearnerRecordQuestion = () => {
           </View>
         </ScrollView>
       </View>
+
+      {/* Buy Review Modal */}
+      <BuyReviewModal
+        visible={isBuyReviewModalOpen}
+        onClose={() => setIsBuyReviewModalOpen(false)}
+        recordId={currentRecordId}
+      />
 
       {/* AI Feedback Modal */}
       <Modal

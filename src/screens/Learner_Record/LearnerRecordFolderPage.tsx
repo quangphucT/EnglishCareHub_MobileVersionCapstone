@@ -37,6 +37,8 @@ const LearnerRecordFolderPage = () => {
   const [showSelectFolderDialog, setShowSelectFolderDialog] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [selectedPackage, setSelectedPackage] = useState<RecordChargeActiveItem | null>(null);
+  const [showActionMenu, setShowActionMenu] = useState(false);
+  const [selectedFolder, setSelectedFolder] = useState<RecordCategory | null>(null);
   // Queries
   const { data: foldersData, isLoading: isLoadingFolders } = useLearnerRecordFolders();
 
@@ -323,32 +325,11 @@ const getFolderStatusStyle = (status: Status | string | undefined) => {
         <TouchableOpacity
           onPress={(e) => {
             e.stopPropagation();
-            // Show action menu
-            Alert.alert(
-              item.name,
-              'Chọn hành động',
-              [
-                {
-                  text: 'Mua lượt ghi âm',
-                  onPress: () => openBuyRecordChargeDialog(item),
-                },
-                {
-                  text: 'Đổi tên',
-                  onPress: () => openRenameDialog(item),
-                },
-                {
-                  text: 'Xóa',
-                  style: 'destructive',
-                  onPress: () => handleDeleteFolder(item.learnerRecordId),
-                },
-                {
-                  text: 'Hủy',
-                  style: 'cancel',
-                },
-              ]
-            );
+            setSelectedFolder(item);
+            setShowActionMenu(true);
           }}
-          className="p-2"
+          className="p-2 rounded-full active:bg-gray-100"
+          activeOpacity={0.7}
         >
           <Ionicons name="ellipsis-vertical" size={20} color="#6B7280" />
         </TouchableOpacity>
@@ -381,8 +362,9 @@ const getFolderStatusStyle = (status: Status | string | undefined) => {
           {/* Create Folder Button */}
           <TouchableOpacity
             onPress={() => setShowCreateFolderDialog(true)}
-            className="bg-blue-600 rounded-xl p-4 flex-row items-center justify-center mb-4"
+            className="rounded-xl p-4 flex-row items-center justify-center mb-4"
             style={{
+              backgroundColor: '#DBEAFE',
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.1,
@@ -390,14 +372,15 @@ const getFolderStatusStyle = (status: Status | string | undefined) => {
               elevation: 3,
             }}
           >
-            <Ionicons name="add-circle-outline" size={24} color="#FFFFFF" />
-            <Text className="text-white font-semibold text-base ml-2">Tạo thư mục mới</Text>
+            <Ionicons name="add-circle-outline" size={22} color="#2563EB" />
+            <Text className="font-bold text-base ml-2" style={{ color: '#2563EB' }}>Tạo thư mục mới</Text>
           </TouchableOpacity>
         {/* Buy Record Charge Button */}
           <TouchableOpacity
             onPress={() => openBuyRecordChargeDialog()}
-            className="bg-blue-600 rounded-xl p-4 flex-row items-center justify-center mb-4"
+            className="rounded-xl p-4 flex-row items-center justify-center mb-4"
             style={{
+              backgroundColor: '#FAF5FF',
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.1,
@@ -405,8 +388,8 @@ const getFolderStatusStyle = (status: Status | string | undefined) => {
               elevation: 3,
             }}
           >
-            <Ionicons name="cash-outline" size={24} color="#FFFFFF" />
-            <Text className="text-white font-semibold text-base ml-2">Mua lượt ghi âm</Text>
+            <Ionicons name="mic" size={22} color="#9333EA" />
+            <Text className="font-bold text-base ml-2" style={{ color: '#9333EA' }}>Mua lượt ghi âm</Text>
           </TouchableOpacity>
 
           {/* Folders List */}
@@ -719,7 +702,7 @@ const getFolderStatusStyle = (status: Status | string | undefined) => {
                                       {pkg.allowedRecordCount} lượt ghi âm
                                     </Text>
                                     <Text className="text-xs text-gray-500 mt-0.5">
-                                      {pricePerRecord.toFixed(1)} Coin / lượt ghi âm
+                                      {pricePerRecord} Coin / lượt ghi âm
                                     </Text>
                                   </View>
                                 </View>
@@ -984,6 +967,164 @@ const getFolderStatusStyle = (status: Status | string | undefined) => {
             </TouchableOpacity>
           </TouchableOpacity>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Action Menu Modal */}
+      <Modal
+        visible={showActionMenu}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          setShowActionMenu(false);
+          setSelectedFolder(null);
+        }}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => {
+            setShowActionMenu(false);
+            setSelectedFolder(null);
+          }}
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'flex-end',
+          }}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: 'white',
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: -4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 16,
+              elevation: 20,
+            }}
+          >
+            {selectedFolder && (
+              <>
+                {/* Drag Handle */}
+                <View className="items-center pt-3 pb-2">
+                  <View
+                    style={{
+                      width: 40,
+                      height: 4,
+                      backgroundColor: '#D1D5DB',
+                      borderRadius: 2,
+                    }}
+                  />
+                </View>
+
+                {/* Header */}
+                <View className="px-5 pt-2 pb-4 border-b border-gray-100">
+                  <Text className="text-xl font-bold text-gray-900 mb-1" numberOfLines={2}>
+                    {selectedFolder.name}
+                  </Text>
+                  <Text className="text-sm text-gray-500">Chọn hành động cho thư mục này</Text>
+                </View>
+
+                {/* Actions */}
+                <View className="px-5 py-4">
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowActionMenu(false);
+                      if (selectedFolder) {
+                        openBuyRecordChargeDialog(selectedFolder);
+                      }
+                      setSelectedFolder(null);
+                    }}
+                    className="flex-row items-center py-4 px-4 rounded-2xl mb-3"
+                    style={{ backgroundColor: '#FAF5FF' }}
+                    activeOpacity={0.7}
+                  >
+                    <View
+                      className="w-12 h-12 rounded-full items-center justify-center mr-4"
+                      style={{ backgroundColor: '#F3E8FF' }}
+                    >
+                      <Ionicons name="mic" size={22} color="#9333EA" />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-base font-bold text-gray-900 mb-0.5">Mua lượt ghi âm</Text>
+                      <Text className="text-xs text-gray-500">Thêm lượt ghi âm cho thư mục</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowActionMenu(false);
+                      if (selectedFolder) {
+                        openRenameDialog(selectedFolder);
+                      }
+                      setSelectedFolder(null);
+                    }}
+                    className="flex-row items-center py-4 px-4 rounded-2xl mb-3"
+                    style={{ backgroundColor: '#EFF6FF' }}
+                    activeOpacity={0.7}
+                  >
+                    <View
+                      className="w-12 h-12 rounded-full items-center justify-center mr-4"
+                      style={{ backgroundColor: '#DBEAFE' }}
+                    >
+                      <Ionicons name="create-outline" size={22} color="#2563EB" />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-base font-bold text-gray-900 mb-0.5">Đổi tên</Text>
+                      <Text className="text-xs text-gray-500">Thay đổi tên thư mục</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowActionMenu(false);
+                      if (selectedFolder) {
+                        handleDeleteFolder(selectedFolder.learnerRecordId);
+                      }
+                      setSelectedFolder(null);
+                    }}
+                    className="flex-row items-center py-4 px-4 rounded-2xl mb-3"
+                    style={{ backgroundColor: '#FEF2F2' }}
+                    activeOpacity={0.7}
+                  >
+                    <View
+                      className="w-12 h-12 rounded-full items-center justify-center mr-4"
+                      style={{ backgroundColor: '#FEE2E2' }}
+                    >
+                      <Ionicons name="trash-outline" size={22} color="#DC2626" />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-base font-bold text-red-600 mb-0.5">Xóa thư mục</Text>
+                      <Text className="text-xs text-gray-500">Xóa vĩnh viễn thư mục này</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                  </TouchableOpacity>
+
+                  {/* Cancel Button */}
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowActionMenu(false);
+                      setSelectedFolder(null);
+                    }}
+                    className="py-4 bg-gray-100 rounded-2xl items-center mt-2"
+                    activeOpacity={0.7}
+                    style={{
+                      borderWidth: 1,
+                      borderColor: '#E5E7EB',
+                    }}
+                  >
+                    <Text className="text-gray-700 font-bold text-base">Hủy</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </SafeAreaView>
   );
