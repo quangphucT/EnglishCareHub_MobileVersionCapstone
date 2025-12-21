@@ -1,8 +1,8 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { Platform, View, Text } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import ReviewerMainScreen from '../screens/Reviewer/ReviewerMainScreen';
 import ProfileScreen from '../screens/Profile/ProfileScreen';
 import ReviewerReviewScreen from '../screens/Reviewer/ReviewerReview';
@@ -57,32 +57,30 @@ export type ReviewerTabsParamList = {
 const Tab = createBottomTabNavigator<ReviewerTabsParamList>();
 
 const ReviewerTabs = () => {
-  const insets = useSafeAreaInsets();
-
   return (
-    <Tab.Navigator
-      screenOptions={({ route }: { route: { name: keyof ReviewerTabsParamList } }) => ({
-        headerShown: false,
-        tabBarActiveTintColor: '#059669', // Emerald color for reviewer
-        tabBarInactiveTintColor: '#9CA3AF',
-        tabBarStyle: {
-          paddingBottom: Platform.OS === 'ios' ? insets.bottom : 8,
-          paddingTop: 8,
-          height: Platform.OS === 'ios' ? 65 + insets.bottom : 65,
-          borderTopWidth: 1,
-          borderTopColor: '#E5E7EB',
-          backgroundColor: '#FFFFFF',
-          elevation: 8,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-        },
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
-          marginBottom: Platform.OS === 'android' ? 4 : 0,
-        },
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['bottom']}>
+      <Tab.Navigator
+        screenOptions={({ route }: { route: { name: keyof ReviewerTabsParamList } }) => ({
+          headerShown: false,
+          tabBarActiveTintColor: '#059669', // Emerald color for reviewer
+          tabBarInactiveTintColor: '#9CA3AF',
+          tabBarStyle: {
+            paddingTop: 8,
+            paddingBottom: 8,
+            height: 60,
+            borderTopWidth: 1,
+            borderTopColor: '#E5E7EB',
+            backgroundColor: '#FFFFFF',
+            elevation: 8,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: -2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+          },
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontWeight: '600',
+          },
         tabBarIcon: ({ focused, color, size }: { focused: boolean; color: string; size: number }) => {
           let iconName: keyof typeof Ionicons.glyphMap = 'home';
 
@@ -135,7 +133,8 @@ const ReviewerTabs = () => {
           tabBarLabel: 'Hồ sơ',
         }}
       />
-    </Tab.Navigator>
+      </Tab.Navigator>
+    </SafeAreaView>
   );
 };
 
