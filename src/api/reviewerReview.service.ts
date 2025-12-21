@@ -11,15 +11,17 @@ export interface ReviewerReviewPendingResponse {
     };
   }
   export interface ReviewerReviewPending {
-    aiFeedback: string;
     type: string;
     id: string;
     submittedAt: Date;
-    content: string;
+    questionText: string;
+    transcribedText: string;
+    aiFeedback: string;
+    aiScore: number;
     audioUrl: string;
     numberOfReview: number;
     learnerFullName: string;
-    questionText: string;
+    expectedReviewerCoin: number;
   }
   export interface SubmitReviewerReviewRequest {
       learnerAnswerId: string | null;

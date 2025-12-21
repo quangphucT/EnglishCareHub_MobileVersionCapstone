@@ -41,10 +41,10 @@ const statusConfig: Record<
   "Approved" | "Rejected" | "Pending" | "Other",
   { label: string; color: string; bg: string }
 > = {
-  Approved: { label: "Đã duyệt", color: "text-green-700", bg: "bg-green-50" },
-  Rejected: { label: "Bị từ chối", color: "text-red-700", bg: "bg-red-50" },
-  Pending: { label: "Đang chờ", color: "text-amber-600", bg: "bg-amber-50" },
-  Other: { label: "Đang xử lý", color: "text-slate-600", bg: "bg-slate-100" },
+  Approved: { label: "Approved", color: "text-green-700", bg: "bg-green-50" },
+  Rejected: { label: "Rejected", color: "text-red-700", bg: "bg-red-50" },
+  Pending: { label: "Pending", color: "text-amber-600", bg: "bg-amber-50" },
+  Other: { label: "Processing", color: "text-slate-600", bg: "bg-slate-100" },
 };
 
 const CompletedReviewsScreen: React.FC = () => {
@@ -95,7 +95,7 @@ const CompletedReviewsScreen: React.FC = () => {
 
   const handlePlayAudio = useCallback((audioUrl?: string, reviewId?: string) => {
     if (!audioUrl || !reviewId) {
-      Alert.alert("Không có audio", "Bài này không có file âm thanh.");
+      Alert.alert("No Audio", "This review does not have an audio file.");
       return;
     }
     if (audioPlayerRef.current) {
@@ -108,14 +108,14 @@ const CompletedReviewsScreen: React.FC = () => {
     const sound = new Sound(audioUrl, undefined, error => {
       if (error) {
         console.error("❌ [AUDIO] Failed to load audio:", error);
-        Alert.alert("Không thể phát audio", "Vui lòng thử lại sau.");
+        Alert.alert("Failed to Play Audio", "Please try again later.");
         return;
       }
       audioPlayerRef.current = sound;
       setPlayingReviewId(reviewId);
       sound.play(success => {
         if (!success) {
-          Alert.alert("Không thể phát audio", "Luồng phát bị gián đoạn.");
+          Alert.alert("Failed to Play Audio", "Playback was interrupted.");
         }
         sound.release();
         if (audioPlayerRef.current === sound) {
@@ -142,19 +142,19 @@ const CompletedReviewsScreen: React.FC = () => {
 
   const handleSubmitTip = useCallback(async () => {
     if (!selectedReviewId) {
-      Alert.alert("Thiếu thông tin", "Không xác định được bài review.");
+      Alert.alert("Missing Information", "Review not identified.");
       return;
     }
     const amount = Number(tipAmount);
     if (!amount || Number.isNaN(amount) || amount <= 0) {
-      Alert.alert("Số coin không hợp lệ", "Vui lòng nhập số coin lớn hơn 0.");
+      Alert.alert("Invalid Amount", "Please enter a coin amount greater than 0.");
       return;
     }
     try {
       await tipMutation.mutateAsync({
         reviewId: selectedReviewId,
         amountCoin: amount,
-        message: tipMessage.trim() || "Cảm ơn bạn vì bài làm!",
+        message: tipMessage.trim() || "Thank you for your work!",
       });
       closeTipModal();
     } catch (mutationError) {
@@ -192,7 +192,7 @@ const CompletedReviewsScreen: React.FC = () => {
         <View className="flex-row items-center mt-3">
           <View className="px-3 py-1 rounded-full bg-slate-100">
             <Text className="text-xs font-semibold text-slate-700">
-              Điểm: {review.score}/10
+              Score: {review.score}/10
             </Text>
           </View>
           <Text className="text-xs text-slate-500 ml-3">
@@ -201,7 +201,7 @@ const CompletedReviewsScreen: React.FC = () => {
         </View>
 
         <Text className="text-sm text-slate-600 mt-3">
-          {review.comment || "Không có nhận xét thêm."}
+          {review.comment || "No additional comments."}
         </Text>
 
         <View className="flex-row items-center justify-between mt-4">
@@ -224,10 +224,10 @@ const CompletedReviewsScreen: React.FC = () => {
             />
             <Text className="ml-2 text-sm font-semibold text-slate-800">
               {playingReviewId === review.id
-                ? "Đang phát..."
+                ? "Playing..."
                 : review.audioUrl
-                ? "Nghe audio"
-                : "Không có audio"}
+                ? "Play Audio"
+                : "No Audio"}
             </Text>
           </TouchableOpacity>
 
@@ -249,38 +249,37 @@ const CompletedReviewsScreen: React.FC = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50">
+      <View className="px-4 pt-4 pb-3 bg-slate-50 border-b border-slate-200">
+        <Text className="text-2xl font-bold text-slate-900">
+          Completed Reviews
+        </Text>
+        <Text className="text-sm text-slate-500 mt-1">
+          Track your reviewed items and send tips to learners
+        </Text>
+      </View>
       <ScrollView
         className="flex-1 px-4"
         contentContainerStyle={{ paddingBottom: 32 }}
       >
-        <View className="pt-4">
-          <Text className="text-2xl font-bold text-slate-900">
-            Bài đã đánh giá
-          </Text>
-          <Text className="text-sm text-slate-500 mt-1">
-            Theo dõi các bài bạn đã review và gửi thưởng cho học viên
-          </Text>
-        </View>
-
         {isLoading ? (
           <View className="py-16 items-center">
             <ActivityIndicator size="large" color="#2563EB" />
             <Text className="mt-3 text-sm text-slate-500">
-              Đang tải dữ liệu...
+              Loading data...
             </Text>
           </View>
         ) : error ? (
           <View className="py-16 items-center">
             <Ionicons name="alert-circle" size={40} color="#ef4444" />
             <Text className="mt-3 text-sm text-red-500 text-center">
-              Không thể tải dữ liệu: {error.message}
+              Failed to load data: {error.message}
             </Text>
             <TouchableOpacity
               onPress={() => refetch()}
               className="mt-4 px-4 py-2 rounded-full border border-slate-200"
             >
               <Text className="text-sm font-semibold text-slate-700">
-                Thử lại
+                Try Again
               </Text>
             </TouchableOpacity>
           </View>
@@ -288,7 +287,7 @@ const CompletedReviewsScreen: React.FC = () => {
           <View className="py-16 items-center">
             <Ionicons name="document-text" size={40} color="#94a3b8" />
             <Text className="mt-3 text-sm text-slate-500">
-              Bạn chưa đánh giá bài nào.
+              You haven't reviewed any items yet.
             </Text>
           </View>
         ) : (
@@ -312,7 +311,7 @@ const CompletedReviewsScreen: React.FC = () => {
                   pageNumber === 1 ? "text-slate-300" : "text-slate-700"
                 }`}
               >
-                Trước
+                Previous
               </Text>
             </TouchableOpacity>
 
@@ -341,7 +340,7 @@ const CompletedReviewsScreen: React.FC = () => {
                     : "text-slate-700"
                 }`}
               >
-                Tiếp
+                Next
               </Text>
             </TouchableOpacity>
           </View>
@@ -358,7 +357,7 @@ const CompletedReviewsScreen: React.FC = () => {
           <View className="bg-white rounded-3xl p-6">
             <View className="flex-row items-center justify-between mb-4">
               <Text className="text-lg font-semibold text-slate-900">
-                Gửi tip cho học viên
+                Send Tip to Learner
               </Text>
               <TouchableOpacity
                 onPress={closeTipModal}
@@ -371,24 +370,24 @@ const CompletedReviewsScreen: React.FC = () => {
             <View className="space-y-4">
               <View>
                 <Text className="text-sm font-medium text-slate-700 mb-1">
-                  Số coin muốn tip
+                  Tip Amount (Coins)
                 </Text>
                 <TextInput
                   value={tipAmount}
                   onChangeText={setTipAmount}
                   keyboardType="numeric"
-                  placeholder="Ví dụ: 20"
+                  placeholder="Example: 20"
                   className="border border-slate-200 rounded-2xl px-4 py-3 text-base"
                 />
               </View>
               <View>
                 <Text className="text-sm font-medium text-slate-700 mb-1">
-                  Lời nhắn (không bắt buộc)
+                  Message (Optional)
                 </Text>
                 <TextInput
                   value={tipMessage}
                   onChangeText={setTipMessage}
-                  placeholder="Ví dụ: Bài làm rất tốt!"
+                  placeholder="Example: Great work!"
                   className="border border-slate-200 rounded-2xl px-4 py-3 text-base"
                 />
               </View>
@@ -408,7 +407,7 @@ const CompletedReviewsScreen: React.FC = () => {
                 <ActivityIndicator color="#0f172a" />
               ) : (
                 <Text className="text-black font-semibold text-base border border-slate-200 rounded-2xl px-4 py-2 hover:bg-slate-200 transition-colors duration-200 active:bg-slate-200">
-                  Gửi tip
+                  Send Tip
                 </Text>
               )}
             </TouchableOpacity>

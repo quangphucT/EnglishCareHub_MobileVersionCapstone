@@ -42,6 +42,9 @@ type PendingReview = {
   type: string;
   aiFeedback: string;
   numberOfReview: number;
+  transcribedText?: string;
+  expectedReviewerCoin?: number;
+  aiScore?: number;
 };
 
 const PENDING_PAGE_SIZE = 5;
@@ -96,7 +99,7 @@ export default function ReviewerReviewScreen() {
   const handlePlayAudio = useCallback(
     async (audioUrl?: string) => {
       if (!audioUrl) {
-        Alert.alert("Không có audio", "Bài này không có file audio đính kèm.");
+        Alert.alert("No Audio", "This review does not have an audio file attached.");
         return;
       }
 
@@ -121,7 +124,7 @@ export default function ReviewerReviewScreen() {
               name: error.name,
               stack: error.stack
             });
-            Alert.alert("Không thể phát audio", `Lỗi: ${error.message}\n\nURL: ${audioUrl}`);
+            Alert.alert("Failed to Play Audio", `Error: ${error.message}\n\nURL: ${audioUrl}`);
             setIsAudioLoading(false);
             return;
           }
@@ -134,7 +137,7 @@ export default function ReviewerReviewScreen() {
           sound.play((success: boolean) => {
             if (!success) {
               console.warn("⚠️ [AUDIO] Playback was interrupted or failed");
-              Alert.alert("Không thể phát audio", "Luồng phát bị gián đoạn.");
+              Alert.alert("Failed to Play Audio", "Playback was interrupted.");
             } else {
               console.log('✅ [AUDIO] Playback completed successfully');
             }
@@ -147,7 +150,7 @@ export default function ReviewerReviewScreen() {
         });
       } catch (error) {
         console.error("❌ [AUDIO] Exception while creating Sound:", error);
-        Alert.alert("Không thể phát audio", "Vui lòng thử lại sau.");
+        Alert.alert("Failed to Play Audio", "Please try again later.");
         setIsAudioLoading(false);
       }
     },
@@ -169,12 +172,17 @@ export default function ReviewerReviewScreen() {
         id: item.id,
         question: item.questionText,
         audioUrl: item.audioUrl,
-        submittedAt: dayjs(item.submittedAt).format("DD/MM/YYYY"),
+        submittedAt: dayjs(item.submittedAt).format("DD/MM/YYYY HH:mm:ss"),
         learnerFullName: item.learnerFullName,
         type: item.type,
         aiFeedback: item.aiFeedback,
-        numberOfReview:
-          numberOfReviewUpdates[item.id] ?? item.numberOfReview ?? 0,
+        numberOfReview: Math.max(
+          0,
+          numberOfReviewUpdates[item.id] ?? item.numberOfReview ?? 0
+        ),
+        transcribedText: item.transcribedText,
+        expectedReviewerCoin: item.expectedReviewerCoin,
+        aiScore: item.aiScore,
       };
     });
   }, [pendingReviewsData, numberOfReviewUpdates]);
@@ -245,33 +253,111 @@ export default function ReviewerReviewScreen() {
     setIsSubmittingReview(false);
   }, []);
 
-  const handleReviewCompleted = useCallback(
-    (review: ReviewCompleted) => {
-      if (!review.learnerAnswerId) return;
-      if (review.remaining === 0) {
-        setReviewedAnswers((prev) =>
-          prev.includes(review.learnerAnswerId)
-            ? prev
-            : [...prev, review.learnerAnswerId]
-        );
-      } else {
-        setNumberOfReviewUpdates((prev) => ({
-          ...prev,
-          [review.learnerAnswerId]: review.remaining,
-        }));
-      }
-    },
-    []
-  );
+ // Setup SignalR listener for reviewCompleted events
+ useEffect(() => {
+  // Only setup handler when connection is established
+  if (!isConnected) {
+    return;
+  }
 
-  useEffect(() => {
-    if (!isConnected) {
+  const handleReviewCompleted = (review: ReviewCompleted) => {
+    console.log('🔔 SignalR: Review completed event received', review);
+    
+    // Get both IDs from the event
+    const learnerAnswerId = review.learnerAnswerId;
+    const recordId = review.recordId;
+    
+    if (!learnerAnswerId && !recordId) {
+      console.warn('⚠️ SignalR: Review completed event missing both learnerAnswerId and recordId');
       return;
     }
 
-    signalRService.setReviewCompletedHandler(handleReviewCompleted);
-    return () => signalRService.setReviewCompletedHandler(null);
-  }, [isConnected, handleReviewCompleted]);
+    // Normalize IDs for comparison (convert to lowercase string)
+    const normalizeId = (id: string | null) => id ? String(id).toLowerCase().trim() : null;
+    const normalizedLearnerAnswerId = normalizeId(learnerAnswerId);
+    const normalizedRecordId = normalizeId(recordId);
+
+    // Find the actual review ID in pending reviews data
+    // This handles the case where backend sends one ID but review uses the other
+    let actualReviewId: string | null = null;
+    
+    if (pendingReviewsData?.data?.items) {
+      console.log('🔍 Searching in pending reviews, total items:', pendingReviewsData.data.items.length);
+      
+      // Try to find review by either ID (case-insensitive comparison)
+      const foundReview = pendingReviewsData.data.items.find(
+        (item) => {
+          const normalizedItemId = normalizeId(item.id);
+          return (
+            (normalizedLearnerAnswerId && normalizedItemId === normalizedLearnerAnswerId) ||
+            (normalizedRecordId && normalizedItemId === normalizedRecordId)
+          );
+        }
+      );
+      
+      if (foundReview) {
+        actualReviewId = foundReview.id;
+        console.log('✅ Found review in pending list:', actualReviewId, 'Current numberOfReview:', foundReview.numberOfReview);
+      } else {
+        console.warn('⚠️ Review not found in pending list. LearnerAnswerId:', learnerAnswerId, 'RecordId:', recordId);
+        console.log('Available IDs:', pendingReviewsData.data.items.map(item => item.id).slice(0, 5));
+      }
+    }
+    
+    // Fallback to the ID from event if not found in pending reviews
+    if (!actualReviewId) {
+      actualReviewId = learnerAnswerId || recordId;
+      console.log('📝 Using fallback ID:', actualReviewId);
+    }
+
+    // Early return if we still don't have a valid ID
+    if (!actualReviewId) {
+      console.warn('⚠️ Cannot update: no valid review ID found');
+      return;
+    }
+
+    console.log('📊 Updating review remaining:', {
+      actualReviewId,
+      remaining: review.remaining,
+      currentState: actualReviewId ? numberOfReviewUpdates[actualReviewId] : undefined
+    });
+
+    // Case 1: If remaining = 0, remove from all reviewers' lists
+    if (review.remaining === 0) {
+      console.log('🗑️ Removing review (remaining = 0):', actualReviewId);
+      setReviewedAnswers((prev) => {
+        if (prev.includes(actualReviewId!)) {
+          return prev;
+        }
+        return [...prev, actualReviewId!];
+      });
+    } 
+    // Case 2: If remaining > 0, only update numberOfReview for other reviewers
+    else {
+      // Ensure remaining is not negative
+      const safeRemaining = Math.max(0, review.remaining);
+      console.log('🔄 Updating numberOfReview:', actualReviewId, '→', safeRemaining);
+      setNumberOfReviewUpdates((prev) => {
+        const updated = {
+          ...prev,
+          [actualReviewId!]: safeRemaining,
+        };
+        console.log('✅ Updated numberOfReviewUpdates:', updated);
+        return updated;
+      });
+    }
+  };
+
+  // Register handler
+  signalRService.setReviewCompletedHandler(handleReviewCompleted);
+
+  // Cleanup when component unmounts or connection changes
+  return () => {
+    signalRService.setReviewCompletedHandler(null);
+  };
+}, [isConnected, pendingReviewsData]);
+
+
 
   const handleSubmitReview = useCallback(async () => {
     if (!selectedReview) return;
@@ -280,7 +366,7 @@ export default function ReviewerReviewScreen() {
     const parsedScore = Number(score);
 
     if (!trimmedComment) {
-      Alert.alert("Thiếu thông tin", "Vui lòng nhập nhận xét.");
+      Alert.alert("Missing Information", "Please enter a comment.");
       return;
     }
 
@@ -290,12 +376,12 @@ export default function ReviewerReviewScreen() {
       parsedScore > 10 ||
       !Number.isInteger(parsedScore)
     ) {
-      Alert.alert("Điểm không hợp lệ", "Điểm phải là số nguyên từ 1 đến 10.");
+      Alert.alert("Invalid Score", "Score must be an integer from 1 to 10.");
       return;
     }
 
     if (!userData?.reviewerProfile?.reviewerProfileId) {
-      Alert.alert("Thiếu thông tin", "Không tìm thấy tài khoản Reviewer.");
+      Alert.alert("Missing Information", "Reviewer account not found.");
       return;
     }
 
@@ -332,16 +418,16 @@ export default function ReviewerReviewScreen() {
             // Nếu upload thất bại, hỏi người dùng có muốn tiếp tục không
             const shouldContinue = await new Promise<boolean>((resolve) => {
               Alert.alert(
-                "Lỗi upload audio",
-                uploadError?.message || "Không thể upload audio. Bạn có muốn tiếp tục gửi review không có audio không?",
+                "Audio Upload Error",
+                uploadError?.message || "Failed to upload audio. Do you want to continue sending review without audio?",
                 [
                   {
-                    text: "Hủy",
+                    text: "Cancel",
                     style: "cancel",
                     onPress: () => resolve(false),
                   },
                   {
-                    text: "Tiếp tục",
+                    text: "Continue",
                     onPress: () => resolve(true),
                   },
                 ]
@@ -359,9 +445,9 @@ export default function ReviewerReviewScreen() {
         }
       }
       
-      // Gửi review với audio URL (hoặc null nếu không có)
+      // Send review with audio URL (or null if not available)
       if (!userData?.reviewerProfile?.reviewerProfileId) {
-        Alert.alert("Thiếu thông tin", "Không tìm thấy tài khoản Reviewer.");
+        Alert.alert("Missing Information", "Reviewer account not found.");
         setIsSubmittingReview(false);
         return;
       }
@@ -377,14 +463,10 @@ export default function ReviewerReviewScreen() {
       });
 
       setReviewedAnswers((prev) => [...prev, selectedReview.id]);
-      Alert.alert("Thành công", "Bạn đã đánh giá bài làm này.");
-      handleCloseModal();
-
-      setReviewedAnswers((prev) => [...prev, selectedReview.id]);
-      Alert.alert("Thành công", "Bạn đã đánh giá bài làm này.");
+      Alert.alert("Success", "You have reviewed this submission.");
       handleCloseModal();
     } catch (error: any) {
-      Alert.alert("Lỗi", error?.message || "Gửi đánh giá thất bại.");
+      Alert.alert("Error", error?.message || "Failed to submit review.");
     } finally {
       setIsSubmittingReview(false);
     }
@@ -399,39 +481,75 @@ export default function ReviewerReviewScreen() {
 
   const renderPendingItem = ({ item }: { item: PendingReview }) => (
     <TouchableOpacity
-      className="bg-white rounded-2xl p-4 mb-4 border border-slate-100 shadow-sm"
+      className="p-5 rounded-xl border-2 border-gray-200 bg-white mb-4 shadow-sm"
       activeOpacity={0.9}
       onPress={() => handleOpenReviewModal(item)}
     >
-      <View className="flex-row items-center justify-between mb-3">
-        <View>
-          <Text className="text-base font-semibold text-slate-900">
-            {item.learnerFullName}
-          </Text>
-          <Text className="text-xs text-slate-500 mt-0.5">
-            Gửi ngày {item.submittedAt}
-          </Text>
+      <View className="flex-1">
+        {/* Question & Expected Reward */}
+        <View className="mb-3">
+          <View className="flex-row items-start mb-2">
+            <Ionicons name="document-text" size={16} color="#2563EB" style={{ marginTop: 2, marginRight: 8 }} />
+            <View className="flex-1 flex-row items-center justify-between">
+              <View className="flex-1">
+                <Text className="text-sm font-semibold text-gray-900 mr-2">
+                  Question:
+                </Text>
+                <Text className="text-sm text-gray-700 leading-relaxed">
+                  {item.question}
+                </Text>
+              </View>
+              {item.expectedReviewerCoin && item.expectedReviewerCoin > 0 && (
+                <View className="flex-row items-center bg-yellow-100 px-2 py-1 rounded-full ml-2">
+                  <Ionicons name="logo-bitcoin" size={12} color="#92400E" />
+                  <Text className="text-xs font-semibold text-yellow-800 ml-1">
+                    Expected Reward: {item.expectedReviewerCoin}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
         </View>
-        <View className="flex-row items-center">
-          <Ionicons name="people" size={16} color="#64748B" />
-          <Text className="text-xs text-slate-500 ml-1">
-            {item.numberOfReview} reviewer
-          </Text>
+
+        {/* Transcribed Text */}
+        
+          <View className="mb-3">
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-start flex-1">
+                <Ionicons name="chatbubble" size={14} color="#16A34A" style={{ marginTop: 2, marginRight: 8 }} />
+                <View className="flex-1 flex-row items-start">
+                  <Text className="text-xs font-medium text-gray-600 mr-2">
+                    Transcribed:
+                  </Text>
+                  {item.transcribedText && (
+                    <Text className="text-xs text-gray-600 italic flex-1">
+                      {item.transcribedText}
+                    </Text>
+                  )}
+                </View>
+              </View>
+              <Text className="text-sm font-medium text-blue-600 ml-3">
+                Tap to Review
+              </Text>
+            </View>
+          </View>
+        
+        
+        {/* Meta Info */}
+        <View className="flex-row items-center justify-between pt-2">
+          <View className="flex-row items-center">
+            <Ionicons name="calendar" size={14} color="#64748B" />
+            <Text className="text-xs text-gray-500 ml-2">
+              {item.submittedAt}
+            </Text>
+          </View>
+          <View className="flex-row items-center bg-blue-100 px-2 py-1 rounded-full">
+            <Ionicons name="time-outline" size={12} color="#1E40AF" />
+            <Text className="text-xs font-semibold text-blue-700 ml-1">
+              Reviews remaining: {item.numberOfReview || 0}
+            </Text>
+          </View>
         </View>
-      </View>
-      <Text className="text-sm text-slate-700 mb-3" numberOfLines={3}>
-        {item.question}
-      </Text>
-      <View className="flex-row items-center justify-between">
-        <View className="flex-row items-center">
-          <Ionicons name="mic" size={16} color="#2563EB" />
-          <Text className="text-xs text-slate-500 ml-2">
-            {item.type === "Record" ? "Thu âm" : "Câu trả lời"}
-          </Text>
-        </View>
-        <Text className="text-sm font-medium text-blue-600">
-          Nhấn để đánh giá
-        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -439,19 +557,19 @@ export default function ReviewerReviewScreen() {
   const renderListHeader = () => {
     const stats = [
       {
-        label: "Cần đánh giá",
+        label: "Pending Reviews",
         value: pendingReviewsData?.data?.totalItems ?? 0,
         icon: "time-outline" as const,
         color: "#2563EB",
       },
       {
-        label: "Đã hoàn thành",
+        label: "Completed",
         value: statsData?.data?.totalReviews ?? 0,
         icon: "checkmark-done-outline" as const,
         color: "#16A34A",
       },
       {
-        label: "Điểm trung bình",
+        label: "Average Score",
         value: (statsData?.data?.averageRating ?? 0).toFixed(1),
         icon: "star-outline" as const,
         color: "#F59E0B",
@@ -463,10 +581,10 @@ export default function ReviewerReviewScreen() {
         <View className="flex-row items-center justify-between mb-4">
           <View>
             <Text className="text-xl font-semibold text-slate-900">
-              Quản lý bài đánh giá
+              Review Management
             </Text>
             <Text className="text-sm text-slate-500 mt-1">
-              Theo dõi và chấm điểm câu trả lời của học viên
+              Track and score learner responses
             </Text>
           </View>
           
@@ -495,16 +613,16 @@ export default function ReviewerReviewScreen() {
         >
           <View>
             <Text className="text-sm font-semibold text-blue-900">
-              Xem phản hồi của học viên
+              View Learner Feedback
             </Text>
             <Text className="text-xs text-blue-700 mt-1">
-              Tổng cộng {feedbackPagination.totalItems} phản hồi
+              Total {feedbackPagination.totalItems} feedback
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color="#1D4ED8" />
         </TouchableOpacity>
         <Text className="text-base font-semibold text-slate-900 mb-2">
-          Bài cần đánh giá
+          Pending Reviews
         </Text>
       </View>
     );
@@ -519,7 +637,7 @@ export default function ReviewerReviewScreen() {
       <View className="px-5 pb-8">
         <View className="flex-row items-center justify-between mt-4">
           <Text className="text-xs text-slate-500">
-            Hiển thị {pendingStartItem}-{pendingEndItem} /{" "}
+            Showing {pendingStartItem}-{pendingEndItem} /{" "}
             {pendingPagination.totalItems}
           </Text>
           <View className="flex-row">
@@ -538,7 +656,7 @@ export default function ReviewerReviewScreen() {
                     : "text-slate-700"
                 }`}
               >
-                Trước
+                Previous
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -561,7 +679,7 @@ export default function ReviewerReviewScreen() {
                     : "text-slate-700"
                 }`}
               >
-                Tiếp
+                Next
               </Text>
             </TouchableOpacity>
           </View>
@@ -583,16 +701,16 @@ export default function ReviewerReviewScreen() {
           recordedAudioUriRef.current = uri;
       
           setHasRecordedAudio(true);
-          Alert.alert(" Ghi âm thành công", "Đã ghi được audio của bạn");
+          Alert.alert("Recording Successful", "Your audio has been recorded");
         } else {
           setHasRecordedAudio(false);
-          Alert.alert(" Lỗi ghi âm", "Không có dữ liệu audio. Vui lòng thử lại.");
+          Alert.alert("Recording Error", "No audio data. Please try again.");
         }
         
         recordingRef.current = null;
         setRecording(false);
       } catch (error) {
-        Alert.alert('Lỗi', 'Không thể dừng ghi âm');
+        Alert.alert('Error', 'Cannot stop recording');
         setRecording(false);
       }
     } else {
@@ -613,7 +731,7 @@ export default function ReviewerReviewScreen() {
         console.log('⏺ Recording started');
       } catch (error) {
         console.error('Failed to start recording:', error);
-        Alert.alert('Lỗi', 'Không thể bắt đầu ghi âm. Vui lòng cấp quyền microphone.');
+        Alert.alert('Error', 'Cannot start recording. Please grant microphone permission.');
       }
     }
   }, [recording]);
@@ -651,13 +769,80 @@ export default function ReviewerReviewScreen() {
     };
   }, []);
 
+  const stats = [
+    {
+      label: "Pending Reviews",
+      value: pendingReviewsData?.data?.totalItems ?? 0,
+      icon: "time-outline" as const,
+      color: "#2563EB",
+    },
+    {
+      label: "Completed",
+      value: statsData?.data?.totalReviews ?? 0,
+      icon: "checkmark-done-outline" as const,
+      color: "#16A34A",
+    },
+    {
+      label: "Average Score",
+      value: (statsData?.data?.averageRating ?? 0).toFixed(1),
+      icon: "star-outline" as const,
+      color: "#F59E0B",
+    },
+  ];
+
   return (
     <SafeAreaView className="flex-1 bg-slate-50">
+      <View className="px-5 pt-5 pb-3 bg-slate-50 border-b border-slate-200">
+        <View className="flex-row items-center justify-between mb-4">
+          <View>
+            <Text className="text-xl font-semibold text-slate-900">
+              Review Management
+            </Text>
+            <Text className="text-sm text-slate-500 mt-1">
+              Track and score learner responses
+            </Text>
+          </View>
+        </View>
+        <View className="flex-row -mx-1 mb-4">
+          {stats.map((stat) => (
+            <View key={stat.label} className="flex-1 mx-1">
+              <View className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+                <View className="w-10 h-10 rounded-full items-center justify-center mb-3" style={{ backgroundColor: `${stat.color}1A` }}>
+                  <Ionicons name={stat.icon} size={18} color={stat.color} />
+                </View>
+                <Text className="text-2xl font-bold text-slate-900">
+                  {stat.value}
+                </Text>
+                <Text className="text-xs text-slate-500 mt-1">
+                  {stat.label}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </View>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          className="flex-row items-center justify-between bg-blue-50 rounded-2xl px-4 py-3 mb-2"
+          onPress={() => setShowFeedbackModal(true)}
+        >
+          <View>
+            <Text className="text-sm font-semibold text-blue-900">
+              View Learner Feedback
+            </Text>
+            <Text className="text-xs text-blue-700 mt-1">
+              Total {feedbackPagination.totalItems} feedback
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#1D4ED8" />
+        </TouchableOpacity>
+        <Text className="text-base font-semibold text-slate-900 mb-2">
+          Pending Reviews
+        </Text>
+      </View>
       <FlatList
         data={availableReviews}
         keyExtractor={(item) => item.id}
         renderItem={renderPendingItem}
-        ListHeaderComponent={renderListHeader}
         ListFooterComponent={renderListFooter}
         ListEmptyComponent={() => (
           <View className="items-center justify-center py-24">
@@ -665,13 +850,13 @@ export default function ReviewerReviewScreen() {
               <ActivityIndicator size="large" color="#2563EB" />
             ) : pendingError ? (
               <Text className="text-sm text-red-500 px-6 text-center">
-                Không thể tải danh sách: {pendingError.message}
+                Failed to load list: {pendingError.message}
               </Text>
             ) : (
               <View className="items-center">
                 <Ionicons name="checkmark-circle" size={48} color="#16A34A" />
                 <Text className="mt-3 text-sm text-slate-500 px-6 text-center">
-                  Bạn đã hoàn thành tất cả bài đánh giá!
+                  You have completed all reviews!
                 </Text>
               </View>
             )}
@@ -726,24 +911,24 @@ export default function ReviewerReviewScreen() {
                 />
                   <View className="ml-3">
                     <Text className="text-sm font-semibold text-blue-900">
-                    {isAudioLoading ? "Đang tải audio..." : "Phát audio của học viên"}
+                    {isAudioLoading ? "Loading audio..." : "Play Learner Audio"}
                     </Text>
                     <Text className="text-xs text-blue-700 mt-0.5">
-                    Nhấn để nghe trực tiếp trong ứng dụng
+                    Tap to listen directly in the app
                     </Text>
                   </View>
                 </TouchableOpacity>
               ) : (
                 <View className="mt-5 bg-slate-100 rounded-2xl px-4 py-3">
                   <Text className="text-sm text-slate-600">
-                    Câu trả lời dạng văn bản. Không có file audio đính kèm.
+                    Text response. No audio file attached.
                   </Text>
                 </View>
               )}
 
               <View className="mt-5">
                 <Text className="text-sm font-medium text-slate-700 mb-2">
-                  Nhận xét
+                  Comment
                 </Text>
                 <TextInput
                   value={comment}
@@ -751,20 +936,20 @@ export default function ReviewerReviewScreen() {
                   multiline
                   numberOfLines={4}
                   textAlignVertical="top"
-                  placeholder="Nhập nhận xét chi tiết cho học viên"
+                  placeholder="Enter detailed comment for learner"
                   className="border border-slate-200 rounded-2xl p-3 text-sm"
                 />
               </View>
 
               <View className="mt-4">
                 <Text className="text-sm font-medium text-slate-700 mb-2">
-                  Điểm số (1 - 10)
+                  Score (1 - 10)
                 </Text>
                 <TextInput
                   value={score}
                   onChangeText={setScore}
                   keyboardType="numeric"
-                  placeholder="Ví dụ: 8"
+                  placeholder="Example: 8"
                   className="border border-slate-200 rounded-2xl p-3 text-sm w-32"
                 />
               </View>
@@ -777,7 +962,7 @@ export default function ReviewerReviewScreen() {
                 >
                   <View className="flex-row items-center justify-between bg-slate-100 rounded-2xl px-4 py-3">
                     <Text className="text-sm font-semibold text-slate-800 text-black">
-                      {showAiFeedback ? "Ẩn" : "Hiện"} phản hồi từ AI
+                      {showAiFeedback ? "Hide" : "Show"} AI Feedback
                     </Text>
                     <Ionicons
                       name={showAiFeedback ? "chevron-up" : "chevron-down"}
@@ -803,13 +988,13 @@ export default function ReviewerReviewScreen() {
                       recording ? 'bg-red-500' : hasRecordedAudio ? 'bg-green-500' : 'bg-gray-300'
                     }`} />
                     <Text className="text-sm font-medium text-slate-700">
-                      {recording ? '🎵 Đang ghi âm...' : hasRecordedAudio ? '✅ Đã ghi audio' : '⏺ Chưa ghi audio'}
+                      {recording ? '🎵 Recording...' : hasRecordedAudio ? '✅ Audio recorded' : '⏺ No audio recorded'}
                     </Text>
                   </View>
                   {hasRecordedAudio && (
                     <View className="flex-row items-center">
                       <Ionicons name="checkmark-circle" size={16} color="#16A34A" />
-                      <Text className="text-xs text-green-600 ml-1">Sẵn sàng gửi</Text>
+                      <Text className="text-xs text-green-600 ml-1">Ready to send</Text>
                     </View>
                   )}
                 </View>
@@ -860,7 +1045,7 @@ export default function ReviewerReviewScreen() {
                   disabled={isSubmittingReview || submitReviewMutation.isPending}
                 >
                   <Text className="text-sm font-semibold text-slate-700">
-                    Đóng
+                    Close
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -873,8 +1058,8 @@ export default function ReviewerReviewScreen() {
                 >
                   <Text className="text-sm font-semibold text-white">
                     {isSubmittingReview || submitReviewMutation.isPending
-                      ? "Đang gửi..."
-                      : "Hoàn thành"}
+                      ? "Submitting..."
+                      : "Complete"}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -894,7 +1079,7 @@ export default function ReviewerReviewScreen() {
           <View className="bg-white rounded-3xl p-5 max-h-[85%]">
             <View className="flex-row items-center justify-between mb-3">
               <Text className="text-base font-semibold text-slate-900">
-                Phản hồi của học viên
+                Learner Feedback
               </Text>
               <TouchableOpacity
                 onPress={() => setShowFeedbackModal(false)}
@@ -912,7 +1097,7 @@ export default function ReviewerReviewScreen() {
               ) : feedbackItems.length === 0 ? (
                 <View className="py-10 items-center">
                   <Text className="text-sm text-slate-500">
-                    Chưa có phản hồi nào.
+                    No feedback yet.
                   </Text>
                 </View>
               ) : (
@@ -934,7 +1119,7 @@ export default function ReviewerReviewScreen() {
                     </Text>
                     <View className="flex-row items-center justify-between">
                       <Text className="text-xs text-slate-500">
-                        {item.reviewType || "Đánh giá"}
+                        {item.reviewType || "Review"}
                       </Text>
                       <View className="flex-row items-center">
                         <Ionicons name="star" size={14} color="#FBBF24" />
@@ -965,11 +1150,11 @@ export default function ReviewerReviewScreen() {
                         : "text-slate-700"
                     }`}
                   >
-                    Trang trước
+                    Previous Page
                   </Text>
                 </TouchableOpacity>
                 <Text className="text-xs text-slate-500">
-                  Trang {feedbackPagination.currentPage}/
+                  Page {feedbackPagination.currentPage}/
                   {feedbackPagination.totalPages}
                 </Text>
                 <TouchableOpacity
@@ -992,7 +1177,7 @@ export default function ReviewerReviewScreen() {
                         : "text-slate-700"
                     }`}
                   >
-                    Trang sau
+                    Next Page
                   </Text>
                 </TouchableOpacity>
               </View>

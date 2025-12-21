@@ -42,17 +42,17 @@ const statusConfig: Record<
   Withdraw: {
     bg: "bg-green-50 border border-green-200",
     text: "text-green-600",
-    label: "Đã duyệt",
+    label: "Approved",
   },
   Reject: {
     bg: "bg-red-50 border border-red-200",
     text: "text-red-600",
-    label: "Từ chối",
+    label: "Rejected",
   },
   Pending: {
     bg: "bg-amber-50 border border-amber-200",
     text: "text-amber-600",
-    label: "Đang xử lý",
+    label: "Pending",
   },
 };
 
@@ -124,12 +124,12 @@ const ReviewerWalletScreen: React.FC = () => {
 
     const coinValue = Number(coinInput);
     if (!coinInput || Number.isNaN(coinValue) || coinValue <= 0) {
-      Alert.alert("Thiếu thông tin", "Vui lòng nhập số coin hợp lệ.");
+      Alert.alert("Missing Information", "Please enter a valid coin amount.");
       return;
     }
 
     if (!bankName.trim() || !accountNumber.trim()) {
-      Alert.alert("Thiếu thông tin", "Vui lòng nhập đầy đủ ngân hàng và số tài khoản.");
+      Alert.alert("Missing Information", "Please enter bank name and account number.");
       return;
     }
 
@@ -182,13 +182,13 @@ const ReviewerWalletScreen: React.FC = () => {
         <View className="flex-row items-center mb-1">
           <Ionicons name="business" size={16} color="#475569" />
           <Text className="text-sm text-slate-600 ml-2">
-            {tx.bankName || "Chưa cung cấp"}
+            {tx.bankName || "Not provided"}
           </Text>
         </View>
         <View className="flex-row items-center mb-1">
           <Ionicons name="card" size={16} color="#475569" />
           <Text className="text-sm text-slate-600 ml-2">
-            {tx.accountNumber || "Chưa cung cấp"}
+            {tx.accountNumber || "Not provided"}
           </Text>
         </View>
         <View className="flex-row items-center">
@@ -201,7 +201,7 @@ const ReviewerWalletScreen: React.FC = () => {
         {tx.description && tx.status === "Reject" ? (
           <View className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl">
             <Text className="text-xs text-red-700 font-semibold">
-              Lý do: {tx.description}
+              Reason: {tx.description}
             </Text>
           </View>
         ) : null}
@@ -211,22 +211,17 @@ const ReviewerWalletScreen: React.FC = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50">
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 32 }}
-        className="flex-1 px-4"
-      >
-      <View className="mb-3">
-      <View className="flex-row items-center mb-2"> 
-        <Text className="text-2xl font-black text-slate-900">
-          Ví của tôi
-        </Text>
-      </View>
-    </View>
+      <View className="px-4 pt-4 pb-3 bg-slate-50 border-b border-slate-200">
+        <View className="flex-row items-center mb-2"> 
+          <Text className="text-2xl font-black text-slate-900">
+            My Wallet
+          </Text>
+        </View>
         <View className="mt-4 flex-row gap-3">
           <View className="flex-1 bg-white rounded-3xl p-4 border border-purple-100 shadow-md">
             <View className="flex-row justify-between items-center mb-3">
               <Text className="text-sm font-medium text-slate-600">
-                Tổng thu nhập
+                Total Earnings
               </Text>
               <Ionicons name="trending-up" size={18} color="#7c3aed" />
             </View>
@@ -241,7 +236,7 @@ const ReviewerWalletScreen: React.FC = () => {
           <View className="flex-1 bg-white rounded-3xl p-4 border border-emerald-100 shadow-md">
             <View className="flex-row justify-between items-center mb-3">
               <Text className="text-sm font-medium text-slate-600">
-                Số dư hiện tại
+                Current Balance
               </Text>
               <Ionicons name="wallet" size={18} color="#059669" />
             </View>
@@ -251,22 +246,22 @@ const ReviewerWalletScreen: React.FC = () => {
             <Text className="text-xs text-slate-500 mt-1">
               {totals.currentBalanceCoin.toLocaleString("vi-VN")} coin
             </Text>
-            {statsData?.data?.coinBalance ? (
-              <Text className="text-xs text-emerald-600 mt-2">
-                + {statsData.data.coinBalance.toLocaleString("vi-VN")} coin trong tuần này
-              </Text>
-            ) : null}
+            
           </View>
         </View>
-
+      </View>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 32 }}
+        className="flex-1 px-4"
+      >
         <View className="mt-6 bg-white rounded-3xl p-5 border border-slate-100 shadow-md">
           <View className="flex-row items-center justify-between mb-4">
             <View>
               <Text className="text-xl font-semibold text-slate-900">
-                Lịch sử rút coin
+                Withdrawal History
               </Text>
               <Text className="text-xs text-slate-500 mt-1">
-                Theo dõi trạng thái yêu cầu rút coin của bạn
+                Track your coin withdrawal requests
               </Text>
             </View>
             <TouchableOpacity
@@ -275,7 +270,7 @@ const ReviewerWalletScreen: React.FC = () => {
               activeOpacity={0.9}
             >
               <Text className="text-black text-sm font-semibold ">
-                Rút coin
+                Withdraw
               </Text>
             </TouchableOpacity>
           </View>
@@ -284,21 +279,21 @@ const ReviewerWalletScreen: React.FC = () => {
             <View className="py-10 items-center">
               <ActivityIndicator size="large" color="#2563EB" />
               <Text className="mt-3 text-sm text-slate-500">
-                Đang tải lịch sử...
+                Loading history...
               </Text>
             </View>
           ) : error ? (
             <View className="py-10 items-center">
               <Ionicons name="alert-circle" size={36} color="#ef4444" />
               <Text className="mt-3 text-sm text-red-500 text-center">
-                Không thể tải dữ liệu: {error.message}
+                Failed to load data: {error.message}
               </Text>
               <TouchableOpacity
                 onPress={() => refetch()}
                 className="mt-4 px-4 py-2 rounded-full border border-slate-200"
               >
                 <Text className="text-sm font-semibold text-slate-700">
-                  Thử lại
+                  Try Again
                 </Text>
               </TouchableOpacity>
             </View>
@@ -306,7 +301,7 @@ const ReviewerWalletScreen: React.FC = () => {
             <View className="py-10 items-center">
               <Ionicons name="document-text" size={40} color="#94a3b8" />
               <Text className="mt-3 text-sm text-slate-500">
-                Chưa có giao dịch nào
+                No transactions yet
               </Text>
             </View>
           ) : (
@@ -330,12 +325,12 @@ const ReviewerWalletScreen: React.FC = () => {
                       pageNumber === 1 ? "text-slate-300" : "text-slate-700"
                     }`}
                   >
-                    Trước
+                    Previous
                   </Text>
                 </TouchableOpacity>
 
                 <Text className="text-xs text-slate-500">
-                  Trang {pageNumber}/{pagination.totalPages}
+                  Page {pageNumber}/{pagination.totalPages}
                 </Text>
 
                 <TouchableOpacity
@@ -359,7 +354,7 @@ const ReviewerWalletScreen: React.FC = () => {
                         : "text-slate-700"
                     }`}
                   >
-                    Tiếp
+                    Next
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -383,10 +378,10 @@ const ReviewerWalletScreen: React.FC = () => {
               <View className="flex-row justify-between items-center mb-4">
                 <View>
                   <Text className="text-lg font-semibold text-slate-900">
-                    Yêu cầu rút coin
+                    Withdraw Coins
                   </Text>
                   <Text className="text-xs text-slate-500 mt-1">
-                    1 coin = 1.000 VND
+                    1 coin = 1,000 VND
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -400,38 +395,38 @@ const ReviewerWalletScreen: React.FC = () => {
               <View className="space-y-4">
                 <View>
                   <Text className="text-sm font-medium text-slate-700 mb-1">
-                    Số coin muốn rút
+                    Coin Amount
                   </Text>
                   <TextInput
                     value={coinInput}
                     onChangeText={setCoinInput}
                     keyboardType="numeric"
-                    placeholder="Ví dụ: 100"
+                    placeholder="Example: 100"
                     className="border border-slate-200 rounded-2xl px-4 py-3 text-base"
                   />
                 </View>
 
                 <View>
                   <Text className="text-sm font-medium text-slate-700 mb-1">
-                    Tên ngân hàng
+                    Bank Name
                   </Text>
                   <TextInput
                     value={bankName}
                     onChangeText={setBankName}
-                    placeholder="Ví dụ: Vietcombank"
+                    placeholder="Example: Vietcombank"
                     className="border border-slate-200 rounded-2xl px-4 py-3 text-base"
                   />
                 </View>
 
                 <View>
                   <Text className="text-sm font-medium text-slate-700 mb-1">
-                    Số tài khoản
+                    Account Number
                   </Text>
                   <TextInput
                     value={accountNumber}
                     onChangeText={setAccountNumber}
                     keyboardType="number-pad"
-                    placeholder="Nhập số tài khoản"
+                    placeholder="Enter account number"
                     className="border border-slate-200 rounded-2xl px-4 py-3 text-base"
                   />
                 </View>
@@ -451,7 +446,7 @@ const ReviewerWalletScreen: React.FC = () => {
                   <ActivityIndicator color="#0f172a" />
                 ) : (
                   <Text className="text-black font-semibold text-base border border-slate-200 rounded-2xl px-4 py-2 hover:bg-slate-200 transition-colors duration-200 active:bg-slate-200">
-                    Xác nhận rút coin
+                    Confirm Withdrawal
                   </Text>
                 )}
               </TouchableOpacity>

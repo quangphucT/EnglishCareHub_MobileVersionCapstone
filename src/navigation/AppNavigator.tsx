@@ -1,9 +1,9 @@
 import React, { useEffect, useState, createContext, useContext, useRef } from "react";
 import {
   NavigationContainer,
+  NavigationContainerRef,
   LinkingOptions,
   ParamListBase,
-  useNavigationContainerRef,
 } from "@react-navigation/native";
 import { View, Text, ActivityIndicator } from "react-native";
 import authMiddleware, { AuthState } from "../middleware/authMiddleware";
@@ -27,7 +27,7 @@ export const useAuthRefresh = () => {
 };
 
 export default function AppNavigator() {
-  const navigationRef = useNavigationContainerRef();
+  const navigationRef = useRef<NavigationContainerRef<ParamListBase>>(null);
   const pendingRouteRef = useRef<string | null>(null);
   // const loadLearnerDataFromStorage = useLearnerStore((state) => state.loadLearnerDataFromStorage);
   const [authState, setAuthState] = useState<AuthState>({
@@ -67,8 +67,8 @@ export default function AppNavigator() {
   };
   
   const navigateToRoute = (routeName: string) => {
-    if (navigationRef.isReady()) {
-      navigationRef.reset({
+    if (navigationRef.current?.isReady()) {
+      navigationRef.current.reset({
         index: 0,
         routes: [{ name: routeName }],
       });
@@ -141,7 +141,7 @@ export default function AppNavigator() {
   return (
     <AuthContext.Provider value={{ refreshAuth }}>
       <NavigationContainer
-        ref={navigationRef}
+        ref={navigationRef as any}
         linking={linking}
         onReady={handleNavigationReady}
       >

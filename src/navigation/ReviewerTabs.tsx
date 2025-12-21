@@ -9,15 +9,15 @@ import ReviewerReviewScreen from '../screens/Reviewer/ReviewerReview';
 import ReviewerWalletScreen from '../screens/Reviewer/ReviewerWallet';
 import CompletedReviewsScreen from '../screens/Reviewer/CompletedReviewsScreen';
 
-// Placeholder screens - bạn có thể tạo riêng cho reviewer
+// Placeholder screens - you can create separate ones for reviewer
 const PendingReviewsScreen = () => (
   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB' }}>
     <Ionicons name="document-text-outline" size={64} color="#F59E0B" />
     <Text style={{ fontSize: 20, fontWeight: 'bold', marginTop: 16, color: '#1F2937' }}>
-      Bài chờ đánh giá
+      Pending Reviews
     </Text>
     <Text style={{ fontSize: 14, color: '#6B7280', marginTop: 8 }}>
-      Danh sách bài nói của học viên cần đánh giá
+      List of student speaking exercises that need review
     </Text>
   </View>
 );
@@ -26,10 +26,10 @@ const PendingReviewsScreen = () => (
 //   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB' }}>
 //     <Ionicons name="checkmark-circle-outline" size={64} color="#10B981" />
 //     <Text style={{ fontSize: 20, fontWeight: 'bold', marginTop: 16, color: '#1F2937' }}>
-//       Đã đánh giá
+//       Completed Reviews
 //     </Text>
 //     <Text style={{ fontSize: 14, color: '#6B7280', marginTop: 8 }}>
-//       Lịch sử các bài đã đánh giá
+//       History of reviewed exercises
 //     </Text>
 //   </View>
 // );
@@ -38,10 +38,10 @@ const StatisticsScreen = () => (
   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB' }}>
     <Ionicons name="bar-chart-outline" size={64} color="#8B5CF6" />
     <Text style={{ fontSize: 20, fontWeight: 'bold', marginTop: 16, color: '#1F2937' }}>
-      Thống kê
+      Statistics
     </Text>
     <Text style={{ fontSize: 14, color: '#6B7280', marginTop: 8 }}>
-      Xem thống kê đánh giá của bạn
+      View your review statistics
     </Text>
   </View>
 );
@@ -102,35 +102,35 @@ const ReviewerTabs = () => {
         name="Dashboard" 
         component={ReviewerMainScreen}
         options={{
-          tabBarLabel: 'Trang chủ',
+          tabBarLabel: 'Home',
         }}
       /> */}
       <Tab.Screen 
         name="PendingReviews" 
         component={ReviewerReviewScreen}
         options={{
-          tabBarLabel: 'Chờ đánh giá',
+          tabBarLabel: 'Pending Reviews',
         }}
       />
       <Tab.Screen 
         name="CompletedReviewsScreen" 
         component={CompletedReviewsScreen}
         options={{
-          tabBarLabel: 'Đã đánh giá',
+          tabBarLabel: 'Completed Reviews',
         }}
       />
       <Tab.Screen 
         name="ReviewerWallet" 
         component={ReviewerWalletScreen}
         options={{
-          tabBarLabel: 'Ví Coin',
+          tabBarLabel: 'Coin Wallet',
         }}
       />
       <Tab.Screen 
         name="ReviewerProfile" 
         component={ProfileScreen}
         options={{
-          tabBarLabel: 'Hồ sơ',
+          tabBarLabel: 'Profile',
         }}
       />
       </Tab.Navigator>

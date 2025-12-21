@@ -15,15 +15,18 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useGetMeQuery } from "../../hooks/useGetMe";
-import { useEditLearnerProfile } from "../../hooks/learner/profile/profileHook";
+import { useEditLearnerProfile, useGetMyProgressAnalytics } from "../../hooks/learner/profile/profileHook";
 import httpClient from "../../api/httpClient";
 import { useNavigation } from "@react-navigation/native";
 
 const LearnerProfile = () => {
   const navigation = useNavigation();
   const { data: userData, isLoading, refetch } = useGetMeQuery();
+  const { data: progressData } = useGetMyProgressAnalytics();
   const updateProfileMutation = useEditLearnerProfile();
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  
+  const analytics = progressData?.data;
 
   const [openEdit, setOpenEdit] = useState(false);
   const [fullName, setFullName] = useState("");
@@ -37,14 +40,21 @@ const LearnerProfile = () => {
     }
   }, [userData]);
 
-  const formatDate = (dateString?: string | null) => {
+  const formatDate = (dateString?: string | null, includeTime: boolean = false) => {
     if (!dateString) return "Chưa cập nhật";
+    if (includeTime) {
+      return new Date(dateString).toLocaleDateString("vi-VN", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
     return new Date(dateString).toLocaleDateString("vi-VN", {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
     });
   };
 
@@ -85,6 +95,40 @@ const LearnerProfile = () => {
 
   const handleSubmitEdit = async () => {
     try {
+      // ✅ VALIDATION
+      const trimmedFullName = fullName.trim();
+      const trimmedPhoneNumber = phoneNumber.trim();
+
+      if (!trimmedFullName || trimmedFullName.length === 0) {
+        Alert.alert("Lỗi", "Vui lòng nhập họ tên.");
+        return;
+      }
+
+      if (trimmedFullName.length < 2) {
+        Alert.alert("Lỗi", "Họ tên phải có ít nhất 2 ký tự.");
+        return;
+      }
+
+      // Kiểm tra fullName không được chứa số
+      if (/\d/.test(trimmedFullName)) {
+        Alert.alert("Lỗi", "Họ tên không được chứa số.");
+        return;
+      }
+
+      if (trimmedPhoneNumber && trimmedPhoneNumber.length > 0) {
+        // Remove spaces, dashes, and parentheses for validation
+        const cleanedPhone = trimmedPhoneNumber.replace(/[\s\-\(\)]/g, "");
+        
+        // Check if phone number contains only digits and optional + at start
+        if (!/^(\+84|0)?[0-9]{9,10}$/.test(cleanedPhone)) {
+          Alert.alert(
+            "Lỗi",
+            "Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại Việt Nam (10 số)."
+          );
+          return;
+        }
+      }
+
       let avatarUrl = userData?.avatarUrl; // mặc định giữ ảnh cũ
 
       // ✅ NẾU CÓ CHỌN ẢNH → UPLOAD TRƯỚC
@@ -129,8 +173,8 @@ const LearnerProfile = () => {
 
       // ✅ SAU ĐÓ MỚI UPDATE PROFILE
       const res = await updateProfileMutation.mutateAsync({
-        fullName,
-        phoneNumber,
+        fullName: trimmedFullName,
+        phoneNumber: trimmedPhoneNumber || "",
         avatarUrl, // ✅ GỬI LINK ẢNH LÊN BE
       });
 
@@ -151,7 +195,7 @@ const LearnerProfile = () => {
 
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50" edges={["top", "left", "right"]}>
+      <SafeAreaView className="flex-1 bg-slate-50" edges={["top", "left", "right"]}>
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#6366F1" />
           <Text className="text-gray-600 font-medium mt-4">
@@ -163,221 +207,169 @@ const LearnerProfile = () => {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={["top", "left", "right"]}>
+    <SafeAreaView className="flex-1 bg-slate-50" edges={["top", "left", "right"]}>
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 20 }}
       >
-        <View className="px-3 pt-2">
+        <View className="px-6 py-8">
           {/* HEADER */}
-          <View className="mb-3">
-            <View className="flex-row items-center mb-2">
+          <View className="mb-10">
+            <View className="flex-row items-center">
               <TouchableOpacity
                 onPress={() => navigation.goBack()}
-                className="mr-2"
+                className="mr-3"
                 activeOpacity={0.7}
               >
-                <Ionicons name="arrow-back" size={20} color="#6366F1" />
+                <Ionicons name="arrow-back" size={24} color="#475569" />
               </TouchableOpacity>
-              <Text className="text-2xl font-black text-indigo-600">
+              
+              <Text className="text-2xl font-semibold  text-indigo-600">
                 Hồ sơ cá nhân
               </Text>
             </View>
           </View>
 
-        {/* MAIN PROFILE CARD */}
-        <View className="mb-3 bg-white rounded-2xl overflow-hidden shadow-md">
-          {/* Gradient Header */}
-          <LinearGradient
-            colors={["#6366F1", "#9333EA", "#EC4899"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={{ height: 100 }}
-          >
-            <View className="absolute inset-0 bg-black/10" />
-          </LinearGradient>
-
-          <View className="px-4 pb-4 -mt-12">
-            <View className="flex-col gap-3">
-              {/* Avatar + Name + Edit */}
-              <View className="flex-row items-center gap-3">
-                <View className="w-20 h-20 rounded-full border-3 border-white overflow-hidden bg-white shadow-lg">
-                  {userData?.avatarUrl ? (
-                    <Image
-                      source={{ uri: userData.avatarUrl }}
-                      className="w-full h-full"
-                      style={{ resizeMode: "cover" }}
-                    />
-                  ) : (
-                    <View className="w-full h-full bg-indigo-100 items-center justify-center">
-                      <Text className="text-indigo-600 text-2xl font-bold">
-                        {userData?.fullName?.charAt(0).toUpperCase() || "U"}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-                <View className="flex-1 ">
-                  <Text className="text-lg font-bold text-gray-900" numberOfLines={1}>
+          {/* PROFILE CARD */}
+          <View className="mb-10 bg-white border border-slate-200 rounded-lg overflow-hidden">
+            <View className="p-6 flex-row gap-6">
+              <View className="w-28 h-28 rounded-full border-2 border-indigo-500 overflow-hidden">
+                {userData?.avatarUrl ? (
+                  <Image
+                    source={{ uri: userData.avatarUrl }}
+                    className="w-full h-full"
+                    style={{ resizeMode: "cover" }}
+                  />
+                ) : (
+                  <View className="w-full h-full bg-indigo-100 items-center justify-center">
+                    <Text className="text-indigo-600 text-2xl font-bold">
+                      {userData?.fullName?.charAt(0).toUpperCase() || "U"}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <View className="flex-1 flex-col justify-between items-start">
+                <View className="flex-1">
+                  <Text className="text-xl font-semibold text-slate-900 mb-1">
                     {userData?.fullName}
                   </Text>
-                  <TouchableOpacity
-                    onPress={openEditModal}
-                    disabled={updateProfileMutation.isPending}
-                    className="mt-1 self-start rounded-full"
-                    activeOpacity={0.8}
-                  >
-                    <LinearGradient
-                      colors={["#6366F1", "#9333EA"]}
-                      start={{ x: 0.5, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      className="px-3 py-1.5 rounded-full"
-                    >
-                      <Text className="text-white font-semibold text-xs">
-                        Chỉnh sửa
-                      </Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
+                  <Text className="text-sm text-slate-500">
+                    {userData?.email}
+                  </Text>
                 </View>
+                <TouchableOpacity
+                  onPress={openEditModal}
+                  disabled={updateProfileMutation.isPending}
+                  activeOpacity={0.8}
+                  className="bg-indigo-600 px-4 py-2 rounded-lg"
+                >
+                  <Text className="text-white font-medium">
+                    Chỉnh sửa
+                  </Text>
+                </TouchableOpacity>
               </View>
-
-              {/* CONTACT - Compact */}
-              <View className="mt-2 gap-2">
-                <View className="flex-row items-center gap-2 p-2.5 bg-gray-50 rounded-xl">
-                  <View className="w-8 h-8 bg-indigo-100 rounded-lg items-center justify-center">
-                    <Ionicons name="mail" size={16} color="#6366F1" />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-[10px] font-semibold text-gray-500">
-                      Email
-                    </Text>
-                    <Text className="font-medium text-gray-900 text-xs" numberOfLines={1}>
-                      {userData?.email}
-                    </Text>
-                  </View>
+            </View>
+            <View className="border-t border-slate-200 px-6 py-4">
+              <View className="flex-row gap-4">
+                <View className="flex-1 flex-row items-center gap-3">
+                  <Ionicons name="mail" size={20} color="#6366F1" />
+                  <Text className="text-slate-700">{userData?.email}</Text>
                 </View>
-
-                <View className="flex-row items-center gap-2 p-2.5 bg-gray-50 rounded-xl">
-                  <View className="w-8 h-8 bg-purple-100 rounded-lg items-center justify-center">
-                    <Ionicons name="call" size={16} color="#9333EA" />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-[10px] font-semibold text-gray-500">
-                      Số điện thoại
-                    </Text>
-                    <Text className="font-medium text-gray-900 text-xs">
-                      {userData?.phoneNumber || "Chưa cập nhật"}
-                    </Text>
-                  </View>
+                <View className="flex-1 flex-row items-center gap-3">
+                  <Ionicons name="call" size={20} color="#6366F1" />
+                  <Text className="text-slate-700">
+                    {userData?.phoneNumber || "Chưa cập nhật"}
+                  </Text>
                 </View>
               </View>
             </View>
           </View>
-        </View>
 
-        {/* STATS - Compact */}
-        <View className="gap-2 mb-3">
-          <View className="flex-row gap-2">
-            <View className="flex-1 rounded-xl overflow-hidden">
-              <LinearGradient
-                colors={["#3B82F6", "#6366F1"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                className="p-3"
-              >
-                <Ionicons name="trending-up" size={20} color="white" />
-                <Text className="text-white text-[10px] mt-1">Trình độ</Text>
-                <Text className="text-white text-lg font-bold">
+          {/* PROGRESS HEADER */}
+          <View className="mb-6">
+            <View className="flex-row items-center">
+              <View className="w-1 h-6 bg-indigo-600 rounded-full mr-2" />
+              <Text className="text-2xl font-semibold text-slate-900">
+                Tiến độ học tập
+              </Text>
+            </View>
+          </View>
+
+          {/* STATS CARDS */}
+          <View className="mb-10">
+            <View className="flex-row flex-wrap gap-4">
+              {/* Trình độ */}
+              <View className="flex-1 min-w-[45%] bg-white border border-slate-200 rounded-lg p-5">
+                <Text className="text-sm text-slate-500 mb-1">Trình độ</Text>
+                <Text className="text-2xl font-semibold text-rose-600 mb-1">
                   {userData?.learnerProfile?.level || "N/A"}
                 </Text>
-              </LinearGradient>
-            </View>
-
-            <View className="flex-1 rounded-xl overflow-hidden">
-              <LinearGradient
-                colors={["#9333EA", "#EC4899"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                className="p-3"
-              >
-                <Ionicons name="trophy" size={20} color="white" />
-                <Text className="text-white text-[10px] mt-1">Điểm phát âm</Text>
-                <Text className="text-white text-lg font-bold">
-                  {userData?.learnerProfile?.pronunciationScore?.toFixed(1) ?? "0.0"}
-                </Text>
-              </LinearGradient>
-            </View>
-          </View>
-
-          <View className="flex-row gap-2">
-            <View className="flex-1 rounded-xl overflow-hidden">
-              <LinearGradient
-                colors={["#F97316", "#EF4444"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                className="p-3"
-              >
-                <Ionicons name="time" size={20} color="white" />
-                <Text className="text-white text-[10px] mt-1">Học hôm nay</Text>
-                <Text className="text-white text-lg font-bold">
-                  {(userData?.learnerProfile as any)?.dailyMinutes ?? 0} phút
-                </Text>
-              </LinearGradient>
-            </View>
-
-            <View className="flex-1 rounded-xl overflow-hidden">
-              <LinearGradient
-                colors={["#14B8A6", "#10B981"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                className="p-3"
-              >
-                <Ionicons name="calendar" size={20} color="white" />
-                <Text className="text-white text-[10px] mt-1">Tham gia</Text>
-                <Text className="text-white text-lg font-bold" numberOfLines={1}>
-                  {formatDate(userData?.learnerProfile?.createdAt).split(" ")[0]}
-                </Text>
-              </LinearGradient>
-            </View>
-          </View>
-        </View>
-
-        {/* ADDITIONAL INFO - Compact */}
-        <View className="px-3 mb-3">
-          <View className="bg-white rounded-xl shadow-md p-4">
-            <Text className="text-sm font-bold text-gray-900 mb-3">
-              Thông tin chi tiết
-            </Text>
-            <View className="gap-2">
-              <View className="flex-row justify-between items-center py-2 border-b border-gray-100">
-                <Text className="text-gray-600 font-medium text-xs">
-                  Cập nhật lần cuối
-                </Text>
-                <Text className="text-gray-900 font-semibold text-xs">
-                  {formatDate(userData?.learnerProfile?.updatedAt)}
+                <Text className="text-xs text-slate-400">
+                  Cấp độ hiện tại theo đánh giá của hệ thống
                 </Text>
               </View>
-              <View className="flex-row justify-between items-center py-2">
-                <Text className="text-gray-600 font-medium text-xs">
-                  Trạng thái tài khoản
+
+              {/* Thời gian luyện nói */}
+              <View className="flex-1 min-w-[45%] bg-white border border-slate-200 rounded-lg p-5">
+                <Text className="text-sm text-slate-500 mb-1 flex-row items-center">
+                  <Text>🎤 </Text>
+                  <Text>Thời gian luyện nói</Text>
                 </Text>
-                <View className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full overflow-hidden">
-                  <LinearGradient
-                    colors={["#10B981", "#059669"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    className="px-3 py-1.5 rounded-full flex-row items-center gap-1.5"
-                  >
-                    <View className="w-1.5 h-1.5 bg-white rounded-full" />
-                    <Text className="text-white font-semibold text-[10px]">
-                      Đang hoạt động
-                    </Text>
-                  </LinearGradient>
-                </View>
+                <Text className="text-2xl font-semibold text-blue-600 mb-1">
+                  {analytics?.speakingTime ?? 0} phút
+                </Text>
+                <Text className="text-xs text-slate-400">
+                  Tổng thời gian bạn đã luyện nói với hệ thống
+                </Text>
+              </View>
+
+              {/* Số buổi hoàn thành */}
+              <View className="flex-1 min-w-[45%] bg-white border border-slate-200 rounded-lg p-5">
+                <Text className="text-sm text-slate-500 mb-1 flex-row items-center">
+                  <Text>📘 </Text>
+                  <Text>Số buổi hoàn thành</Text>
+                </Text>
+                <Text className="text-2xl font-semibold text-emerald-600 mb-1">
+                  {analytics?.sessionsCompleted ?? 0} buổi
+                </Text>
+                <Text className="text-xs text-slate-400">
+                  Số lần luyện nói đã hoàn thành
+                </Text>
+              </View>
+
+              {/* Điểm phát âm trung bình */}
+              <View className="flex-1 min-w-[45%] bg-white border border-slate-200 rounded-lg p-5">
+                <Text className="text-sm text-slate-500 mb-1 flex-row items-center">
+                  <Text>⭐ </Text>
+                  <Text>Điểm phát âm trung bình</Text>
+                </Text>
+                <Text className="text-2xl font-semibold text-amber-600 mb-1">
+                  {analytics?.pronunciationScoreAvg?.toFixed(1) ?? "0.0"}
+                </Text>
+                <Text className="text-xs text-slate-400">
+                  Trung bình điểm phát âm các bài luyện
+                </Text>
               </View>
             </View>
           </View>
-        </View>
+
+          {/* DETAIL CARD */}
+          <View className="bg-white border border-slate-200 rounded-lg p-6">
+            <View className="flex-row justify-between items-center py-3 border-b border-slate-200">
+              <Text className="text-slate-700">Tham gia từ</Text>
+              <Text className="text-slate-900 font-medium">
+                {formatDate(userData?.learnerProfile?.createdAt, false)}
+              </Text>
+            </View>
+            <View className="flex-row justify-between items-center py-3">
+              <Text className="text-slate-700">Trạng thái</Text>
+              <View className="flex-row items-center gap-2">
+                <View className="w-2 h-2 bg-emerald-500 rounded-full" />
+                <Text className="text-emerald-600 font-medium">Đang hoạt động</Text>
+              </View>
+            </View>
+          </View>
         </View>
       </ScrollView>
 

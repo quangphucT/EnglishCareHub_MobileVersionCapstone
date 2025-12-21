@@ -8,8 +8,15 @@ import {
 import * as SecureStore from 'expo-secure-store';
 
 export interface ReviewCompleted {
-  learnerAnswerId: string;
+  learnerAnswerId: string | null;
+  recordId: string | null;
   remaining: number;
+}
+// Interface for the event sent from backend
+export interface ReviewItemUpdated {
+  itemType: string;
+  itemId: string;
+  remainingReviews: number;
 }
 // ===== EVENT HANDLERS =====
 export type ReviewCompletedHandler = (review: ReviewCompleted) => void;
@@ -76,10 +83,35 @@ public initializeConnection(): void {
 }
 
 private setupHubEventHandlers(): void {
-  //backend :await _hubContext.Clients.Group("Reviewers").SendAsync("reviewCompleted", new{learnerAnswerId, remainin  });
   if (!this.hubConnection) return;
+  
+  // Listen for reviewItemUpdated event from backend
+  // Backend sends: { itemType, itemId, remainingReviews }
+  this.hubConnection.on('reviewItemUpdated', (data: ReviewItemUpdated) => {
+    console.log('📨 [SIGNALR] Received reviewItemUpdated event:', data);
+    
+    // Ensure itemId is converted to string (backend may send Guid object or string)
+    const itemIdString = String(data.itemId || '').trim();
+    
+    if (!itemIdString) {
+      console.warn('⚠️ [SIGNALR] reviewItemUpdated event missing itemId');
+      return;
+    }
+    
+    // Convert to ReviewCompleted format that the handler expects
+    const review: ReviewCompleted = {
+      learnerAnswerId: data.itemType === "LearnerAnswer" ? itemIdString : null,
+      recordId: data.itemType === "Record" ? itemIdString : null,
+      remaining: data.remainingReviews
+    };
+    
+    console.log('✅ [SIGNALR] Converted to ReviewCompleted format:', review);
+    this.reviewCompletedHandler?.(review);
+  });
+  
+  // Keep backward compatibility with reviewCompleted event (if backend changes in future)
   this.hubConnection.on('reviewCompleted', (review: ReviewCompleted) => {
-    console.log('Received review:', review);
+    console.log('Received reviewCompleted:', review);
     this.reviewCompletedHandler?.(review);
   });
 }
