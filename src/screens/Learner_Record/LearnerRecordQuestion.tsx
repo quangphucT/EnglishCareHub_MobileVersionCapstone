@@ -212,7 +212,7 @@ const LearnerRecordQuestion = () => {
     }
   }, [recording, pulseAnim]);
 
-  // Convert blob to base64 (giống ExerciseScreen)
+  // Convert blob to base64 (giữ nguyên data URL prefix như web version)
   const convertBlobToBase64 = useCallback(
     async (blob: Blob): Promise<string> => {
       return new Promise((resolve, reject) => {
@@ -220,11 +220,9 @@ const LearnerRecordQuestion = () => {
         reader.readAsDataURL(blob);
         reader.onload = () => {
           const base64String = reader.result as string;
-          // Remove data URL prefix if present
-          const base64 = base64String.includes(',') 
-            ? base64String.split(',')[1] 
-            : base64String;
-          resolve(base64);
+          // Giữ nguyên full data URL với prefix (giống web version)
+          // Web gửi: "data:audio/ogg;;base64,GkXfo59..."
+          resolve(base64String);
         };
         reader.onerror = (error) => reject(error);
       });
@@ -411,7 +409,7 @@ const LearnerRecordQuestion = () => {
             base64Audio: base64,
             language: AILanguage,
           };
-
+ 
           const res = await fetch(apiMainPathSTS + '/GetAccuracyFromRecordedAudio', {
             method: 'POST',
             body: JSON.stringify(payload),
@@ -420,19 +418,22 @@ const LearnerRecordQuestion = () => {
               'X-Api-Key': STScoreAPIKey,
             },
           });
-
+           console.log("Ress:", res)
           if (!res.ok) {
             throw new Error(`API Error: ${res.status}`);
           }
 
           const data = await res.json();
 
+          console.log('🎯 AI Response Data:', data);
+
           const pronunciationAccuracyValue = data?.pronunciation_accuracy || '0';
           const acc = parseFloat(pronunciationAccuracyValue);
 
           setRecordedIpaScript(`/ ${data?.ipa_transcript || ''} /`);
           setPronunciationAccuracy(`${pronunciationAccuracyValue}%`);
-          const feedbackValue = data?.AIFeedback || data?.aiFeedback || data?.feedback || '';
+          const feedbackValue = data?.AIFeedback || data?.aiFeedback || data?.feedback || data?.ai_feedback || '';
+          console.log('💬 AI Feedback Value:', feedbackValue);
           setAiFeedback(feedbackValue);
 
           // Store word-level data
@@ -950,105 +951,31 @@ const LearnerRecordQuestion = () => {
               {/* Text Content */}
               <ScrollView className="max-h-64 mb-4" showsVerticalScrollIndicator={true}>
                 <View>
-                  {/* Display words with their IPA transcriptions */}
-                  {originalScriptHtml && typeof originalScriptHtml === 'string' && originalScriptHtml.includes('<span') && realTranscriptsIpa.length > 0 ? (
-                    <View className="mb-4">
-                      {(() => {
-                        const text = originalScriptHtml.replace(/<[^>]*>?/gm, '');
-                        const words = text.split(' ');
-                        
-                        return (
-                          <View className="flex-row flex-wrap justify-center">
-                            {words.map((word, idx) => (
-                              <View key={idx} className="items-center mx-2 mb-4">
-                                {/* Colored word */}
-                                <View className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl px-3 py-2 mb-1 border border-blue-200">
-                                  {(() => {
-                                    const regex = /<span style="color: (#[0-9A-Fa-f]+)">([^<]+)<\/span>/g;
-                                    const wordParts: { text: string; color: string }[] = [];
-                                    let searchText = originalScriptHtml;
-                                    
-                                    // Find this word's colored version
-                                    const wordsProcessed = originalScriptHtml.replace(/<[^>]*>?/gm, '').split(' ');
-                                    let startIdx = 0;
-                                    for (let i = 0; i < idx; i++) {
-                                      const wordLen = wordsProcessed[i].length;
-                                      startIdx += wordLen + 1; // +1 for space
-                                    }
-                                    
-                                    let tempHtml = originalScriptHtml;
-                                    let currentPos = 0;
-                                    let match;
-                                    let letterCount = 0;
-                                    
-                                    while ((match = regex.exec(originalScriptHtml)) !== null) {
-                                      const letter = match[2];
-                                      const color = match[1];
-                                      
-                                      if (letterCount >= startIdx && letterCount < startIdx + word.length) {
-                                        wordParts.push({ text: letter, color });
-                                      }
-                                      
-                                      letterCount += letter.length;
-                                      if (letterCount >= startIdx + word.length) break;
-                                    }
-                                    
-                                    if (wordParts.length === 0) {
-                                      wordParts.push({ text: word, color: '#1F2937' });
-                                    }
-                                    
-                                    return (
-                                      <Text className="text-xl font-bold">
-                                        {wordParts.map((part, pIdx) => (
-                                          <Text key={pIdx} style={{ color: part.color }}>
-                                            {part.text}
-                                          </Text>
-                                        ))}
-                                      </Text>
-                                    );
-                                  })()}
-                                </View>
-                                
-                                {/* Standard IPA */}
-                                {matchedTranscriptsIpa[idx] && (
-                                  <Text className="text-sm text-gray-600 mb-0.5">
-                                    /{matchedTranscriptsIpa[idx]}/
-                                  </Text>
-                                )}
-                                
-                                {/* Recorded IPA */}
-                                {realTranscriptsIpa[idx] && (
-                                  <Text className="text-sm text-blue-600 font-medium">
-                                    /{realTranscriptsIpa[idx]}/
-                                  </Text>
-                                )}
-                              </View>
-                            ))}
-                          </View>
-                        );
-                      })()}
-                    </View>
-                  ) : (
-                    <View>
-                      <View className="mb-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-5 border border-blue-200">
-                        {originalScriptHtml && typeof originalScriptHtml === 'string' && originalScriptHtml.includes('<span') ? (
-                          <View>
-                            {renderColoredText(originalScriptHtml)}
-                          </View>
-                        ) : (
-                          <Text className="text-2xl font-bold text-blue-900 leading-relaxed text-center">
-                            {currentContent}
-                          </Text>
-                        )}
+                  {/* Display text with colored letters */}
+                  <View className="mb-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-5 border border-blue-200">
+                    {originalScriptHtml && typeof originalScriptHtml === 'string' && originalScriptHtml.includes('<span') ? (
+                      <View className="items-center">
+                        {renderColoredText(originalScriptHtml)}
                       </View>
+                    ) : (
+                      <Text className="text-2xl font-bold text-blue-900 leading-relaxed text-center">
+                        {currentContent}
+                      </Text>
+                    )}
+                  </View>
 
-                      {ipaScript && (
-                        <Text key="ipaScript" className="text-lg text-gray-500 mb-2">{ipaScript}</Text>
-                      )}
+                  {/* IPA Transcriptions */}
+                  {ipaScript && (
+                    <View className="mb-2">
+                      <Text className="text-xs text-gray-500 mb-1">Phiên âm chuẩn:</Text>
+                      <Text className="text-lg text-gray-700 font-medium">{ipaScript}</Text>
+                    </View>
+                  )}
 
-                      {recordedIpaScript && (
-                        <Text key="recordedIpaScript" className="text-lg text-blue-600 mb-2">{recordedIpaScript}</Text>
-                      )}
+                  {recordedIpaScript && recordedIpaScript !== '/ /' && (
+                    <View className="mb-2">
+                      <Text className="text-xs text-blue-500 mb-1">Phát âm của bạn:</Text>
+                      <Text className="text-lg text-blue-600 font-medium">{recordedIpaScript}</Text>
                     </View>
                   )}
 
@@ -1131,7 +1058,7 @@ const LearnerRecordQuestion = () => {
         onRequestClose={() => setOpenAiFeedbackModal(false)}
       >
         <View className="flex-1 bg-black/60 justify-end">
-          <View className="bg-white rounded-t-3xl max-h-[85%]">
+          <View className="bg-white rounded-t-3xl" style={{ minHeight: '70%', maxHeight: '95%' }}>
             <View className="px-4 pt-4 pb-2 border-b border-gray-200">
               <View className="flex-row items-center justify-between">
                 <View className="flex-row items-center">
@@ -1161,14 +1088,14 @@ const LearnerRecordQuestion = () => {
               )}
             </ScrollView>
 
-            <View className="px-4 py-4 border-t border-gray-200">
+            {/* <View className="px-4 py-4 border-t border-gray-200">
               <TouchableOpacity
                 onPress={() => setOpenAiFeedbackModal(false)}
                 className="py-3 bg-blue-600 rounded-xl items-center"
               >
                 <Text className="text-white font-semibold">Đóng</Text>
               </TouchableOpacity>
-            </View>
+            </View> */}
           </View>
         </View>
       </Modal>

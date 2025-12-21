@@ -35,11 +35,11 @@ const BuyReviewModal = ({
   const { data: packagesData, isLoading: isLoadingPackages } = useReviewFeePackages();
   
   // Debug: Log API response
-  React.useEffect(() => {
-    if (packagesData) {
-      console.log(' Review Packages API Response:', JSON.stringify(packagesData, null, 2));
-    }
-  }, [packagesData]);
+  // React.useEffect(() => {
+  //   if (packagesData) {
+  //     console.log(' Review Packages API Response:', JSON.stringify(packagesData, null, 2));
+  //   }
+  // }, [packagesData]);
   
   // Extract packages from response
   const reviewPackages: ReviewFeePackage[] = packagesData?.data?.items?.filter(
@@ -47,9 +47,9 @@ const BuyReviewModal = ({
   ) || [];
 
   // Debug: Log filtered packages
-  React.useEffect(() => {
-    console.log(' Filtered Review Packages:', reviewPackages.length, reviewPackages);
-  }, [reviewPackages]);
+  // React.useEffect(() => {
+  //   console.log(' Filtered Review Packages:', reviewPackages.length, reviewPackages);
+  // }, [reviewPackages]);
 
   // Check if current action type is valid
   const canBuy = actionType === 'buy' ? !!learnerAnswerId : !!recordId;

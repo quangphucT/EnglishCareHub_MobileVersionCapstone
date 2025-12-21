@@ -1,12 +1,18 @@
-import React from 'react';
-import { Text, View, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useLogout } from '../../hooks/useAuth';
-import { useAuthRefresh } from '../../navigation/AppNavigator';
-import { useGetMeQuery } from '../../hooks/useGetMe';
+import React from "react";
+import {
+  Text,
+  View,
+  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import { useLogout } from "../../hooks/useAuth";
+import { useAuthRefresh } from "../../navigation/AppNavigator";
+import { useGetMeQuery } from "../../hooks/useGetMe";
 
 const ProfileScreen = () => {
   const navigation = useNavigation<any>();
@@ -15,16 +21,20 @@ const ProfileScreen = () => {
   const { data: getMe, isLoading } = useGetMeQuery();
 
   const isReviewer = getMe?.role === "REVIEWER";
-  
+
   // Text based on user role
   const texts = {
     title: isReviewer ? "My Profile" : "Hồ sơ của tôi",
     user: isReviewer ? "User" : "Người dùng",
     myActivity: isReviewer ? "My Activity" : "Hoạt động của tôi",
     audioReview: isReviewer ? "Audio Review" : "Đánh giá Audio",
-    audioReviewDesc: isReviewer ? "View your pronunciation reviews" : "Xem đánh giá phát âm của bạn",
+    audioReviewDesc: isReviewer
+      ? "View your pronunciation reviews"
+      : "Xem đánh giá phát âm của bạn",
     myRecordings: isReviewer ? "My Recordings" : "Thu âm của tôi",
-    recordingsDesc: isReviewer ? "Manage your recordings" : "Quản lý các bản ghi âm",
+    recordingsDesc: isReviewer
+      ? "Manage your recordings"
+      : "Quản lý các bản ghi âm",
     account: isReviewer ? "Account" : "Tài khoản",
     personalInfo: isReviewer ? "Personal Information" : "Thông tin cá nhân",
     editProfile: isReviewer ? "Edit your profile" : "Chỉnh sửa hồ sơ của bạn",
@@ -40,15 +50,18 @@ const ProfileScreen = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={['top', 'left', 'right']}>
-      <ScrollView 
+    <SafeAreaView
+      className="flex-1 bg-gray-50"
+      edges={["top", "left", "right"]}
+    >
+      <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
       >
         {/* Header with Gradient Background */}
         <LinearGradient
-         colors={['#EEF2FF', '#E0E7FF']}
+          colors={["#EEF2FF", "#E0E7FF"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 40 }}
@@ -56,13 +69,13 @@ const ProfileScreen = () => {
           <Text className="text-2xl font-bold text-black mb-6">
             {texts.title}
           </Text>
-          
+
           <View className="flex-row items-center">
             {/* Avatar */}
-            <View 
+            <View
               className="w-20 h-20 bg-white rounded-full items-center justify-center"
-              style={{ 
-                shadowColor: '#000',
+              style={{
+                shadowColor: "#000",
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.2,
                 shadowRadius: 8,
@@ -70,10 +83,12 @@ const ProfileScreen = () => {
               }}
             >
               <Text className="text-purple-600 text-2xl font-bold">
-                {isLoading ? '...' : (getMe?.fullName?.charAt(0).toUpperCase() || 'U')}
+                {isLoading
+                  ? "..."
+                  : getMe?.fullName?.charAt(0).toUpperCase() || "U"}
               </Text>
             </View>
-            
+
             {/* User Info */}
             <View className="flex-1 ml-4">
               {isLoading ? (
@@ -84,18 +99,27 @@ const ProfileScreen = () => {
                     {getMe?.fullName || texts.user}
                   </Text>
                   <Text className="text-sm text-black/80 mt-1">
-                    {getMe?.email || ''}
+                    {getMe?.email || ""}
                   </Text>
                   {getMe?.learnerProfile?.level && (
-                    <View className="flex-row items-center mt-3" style={{ gap: 8 }}>
-                      <View className="bg-black/20 rounded-full px-3 py-1.5">
-                        <Text className="text-black font-semibold text-xs">
-                           {getMe.learnerProfile.level}
+                    <View className="flex-row items-center mt-3 gap-3">
+                      {/* Level */}
+                      <View className="flex-row items-center bg-indigo-50 border border-indigo-200 rounded-full px-3 py-1.5">
+                        <Ionicons name="school" size={14} color="#4F46E5" />
+                        <Text className="text-indigo-700 font-semibold text-xs ml-1">
+                          {getMe.learnerProfile.level}
                         </Text>
                       </View>
-                      <View className="bg-black/20 rounded-full px-3 py-1.5">
-                        <Text className="text-black font-semibold text-xs">
-                           {getMe.coinBalance || 0} Coins
+
+                      {/* Coins */}
+                      <View className="flex-row items-center bg-amber-50 border border-amber-200 rounded-full px-3 py-1.5">
+                        <Ionicons
+                          name="logo-bitcoin"
+                          size={14}
+                          color="#D97706"
+                        />
+                        <Text className="text-amber-700 font-semibold text-xs ml-1">
+                          {getMe.coinBalance ?? 0} Coins
                         </Text>
                       </View>
                     </View>
@@ -109,10 +133,10 @@ const ProfileScreen = () => {
         {/* Learning Section - Only show for Learner role */}
         {getMe?.role === "LEARNER" && (
           <View className="px-4" style={{ marginTop: -20 }}>
-            <View 
+            <View
               className="bg-white rounded-2xl p-4"
               style={{
-                shadowColor: '#000',
+                shadowColor: "#000",
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.1,
                 shadowRadius: 12,
@@ -122,57 +146,75 @@ const ProfileScreen = () => {
               <Text className="text-base font-bold text-gray-900 mb-4">
                 {texts.myActivity}
               </Text>
-              
+
               <View style={{ gap: 12 }}>
                 {/* Audio Review */}
-                <TouchableOpacity 
-                  onPress={() => navigation.navigate('AudioReview' as never)}
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("AudioReview" as never)}
                   activeOpacity={0.7}
                   style={{
-                    backgroundColor: '#F3E8FF',
+                    backgroundColor: "#F3E8FF",
                     borderRadius: 16,
                     padding: 16,
-                    flexDirection: 'row',
-                    alignItems: 'center',
+                    flexDirection: "row",
+                    alignItems: "center",
                     borderWidth: 1,
-                    borderColor: '#E9D5FF',
+                    borderColor: "#E9D5FF",
                   }}
                 >
                   <View className="w-12 h-12 bg-purple-100 rounded-xl items-center justify-center">
                     <Ionicons name="mic" size={24} color="#7C3AED" />
                   </View>
                   <View className="flex-1 ml-4">
-                    <Text className="text-purple-700 font-bold text-base">{texts.audioReview}</Text>
-                    <Text className="text-purple-500 text-xs mt-0.5">{texts.audioReviewDesc}</Text>
+                    <Text className="text-purple-700 font-bold text-base">
+                      {texts.audioReview}
+                    </Text>
+                    <Text className="text-purple-500 text-xs mt-0.5">
+                      {texts.audioReviewDesc}
+                    </Text>
                   </View>
                   <View className="w-8 h-8 bg-purple-200 rounded-full items-center justify-center">
-                    <Ionicons name="chevron-forward" size={18} color="#7C3AED" />
+                    <Ionicons
+                      name="chevron-forward"
+                      size={18}
+                      color="#7C3AED"
+                    />
                   </View>
                 </TouchableOpacity>
 
                 {/* Recording */}
-                <TouchableOpacity 
-                  onPress={() => navigation.navigate('LearnerRecordFolderPage' as never)}
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate("LearnerRecordFolderPage" as never)
+                  }
                   activeOpacity={0.7}
                   style={{
-                    backgroundColor: '#DBEAFE',
+                    backgroundColor: "#DBEAFE",
                     borderRadius: 16,
                     padding: 16,
-                    flexDirection: 'row',
-                    alignItems: 'center',
+                    flexDirection: "row",
+                    alignItems: "center",
                     borderWidth: 1,
-                    borderColor: '#BFDBFE',
+                    borderColor: "#BFDBFE",
                   }}
                 >
                   <View className="w-12 h-12 bg-blue-100 rounded-xl items-center justify-center">
                     <Ionicons name="recording" size={24} color="#3B82F6" />
                   </View>
                   <View className="flex-1 ml-4">
-                    <Text className="text-blue-700 font-bold text-base">{texts.myRecordings}</Text>
-                    <Text className="text-blue-500 text-xs mt-0.5">{texts.recordingsDesc}</Text>
+                    <Text className="text-blue-700 font-bold text-base">
+                      {texts.myRecordings}
+                    </Text>
+                    <Text className="text-blue-500 text-xs mt-0.5">
+                      {texts.recordingsDesc}
+                    </Text>
                   </View>
                   <View className="w-8 h-8 bg-blue-200 rounded-full items-center justify-center">
-                    <Ionicons name="chevron-forward" size={18} color="#3B82F6" />
+                    <Ionicons
+                      name="chevron-forward"
+                      size={18}
+                      color="#3B82F6"
+                    />
                   </View>
                 </TouchableOpacity>
               </View>
@@ -185,17 +227,17 @@ const ProfileScreen = () => {
           <Text className="text-base font-bold text-gray-900 mb-4">
             {texts.account}
           </Text>
-          <View 
+          <View
             className="bg-white rounded-2xl overflow-hidden"
             style={{
-              shadowColor: '#000',
+              shadowColor: "#000",
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.06,
               shadowRadius: 8,
               elevation: 3,
             }}
           >
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => {
                 if (getMe?.role === "REVIEWER") {
                   const parent = navigation.getParent();
@@ -220,8 +262,12 @@ const ProfileScreen = () => {
                 <Ionicons name="person" size={22} color="#7C3AED" />
               </View>
               <View className="flex-1 ml-4">
-                <Text className="text-gray-900 font-bold text-base">{texts.personalInfo}</Text>
-                <Text className="text-xs text-gray-500 mt-1">{texts.editProfile}</Text>
+                <Text className="text-gray-900 font-bold text-base">
+                  {texts.personalInfo}
+                </Text>
+                <Text className="text-xs text-gray-500 mt-1">
+                  {texts.editProfile}
+                </Text>
               </View>
               <View className="w-8 h-8 bg-gray-100 rounded-full items-center justify-center">
                 <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
@@ -232,7 +278,7 @@ const ProfileScreen = () => {
 
         {/* Logout Button */}
         <View className="px-4 mt-6 mb-4">
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={handleLogout}
             disabled={logoutMutation.isPending}
             activeOpacity={0.8}
@@ -250,7 +296,11 @@ const ProfileScreen = () => {
               ) : (
                 <>
                   <View className="w-10 h-10  rounded-full items-center justify-center mr-3">
-                    <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+                    <Ionicons
+                      name="log-out-outline"
+                      size={20}
+                      color="#EF4444"
+                    />
                   </View>
                   <Text className="text-red-600 font-bold text-base">
                     {texts.logout}
@@ -260,8 +310,6 @@ const ProfileScreen = () => {
             </View>
           </TouchableOpacity>
         </View>
-
-       
       </ScrollView>
     </SafeAreaView>
   );
