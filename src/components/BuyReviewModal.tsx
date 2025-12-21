@@ -116,13 +116,13 @@ const BuyReviewModal = ({
       transparent={true}
       onRequestClose={onClose}
     >
-      <View className="flex-1 bg-black/50 justify-end">
+      <View className="flex-1 bg-black/50 justify-end ">
         <View 
           className="bg-white rounded-t-3xl"
-          style={{ maxHeight: '90%', minHeight: '50%' }}
+          style={{ maxHeight: '90%', minHeight: '80%' }}
         >
           {/* Header */}
-          <View className="px-4 pt-4 pb-3 border-b border-gray-200">
+          <View className="px-5 pt-6 pb-4 border-b border-gray-200">
             <View className="flex-row items-center justify-between mb-2">
               <Text className="text-xl font-bold text-gray-900">
                 Mua đánh giá phát âm
@@ -139,7 +139,7 @@ const BuyReviewModal = ({
           <ScrollView 
             className="flex-1"
             showsVerticalScrollIndicator={true}
-            contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
+            contentContainerStyle={{ padding: 20, paddingBottom: 140 }}
             bounces={true}
           >
             {/* Action Type Selection */}
@@ -340,10 +340,10 @@ const BuyReviewModal = ({
           {/* Action Buttons */}
           {!isLoadingPackages && reviewPackages.length > 0 && (
             <View 
-              className="px-4 py-4 bg-white border-t border-gray-200 flex-row" 
+              className="px-5 py-5 bg-white border-t border-gray-200 flex-row" 
               style={{ 
                 gap: 12,
-                paddingBottom: 20,
+                paddingBottom: 32,
                 shadowColor: '#000',
                 shadowOffset: { width: 0, height: -2 },
                 shadowOpacity: 0.1,
