@@ -42,6 +42,9 @@ type PendingReview = {
   type: string;
   aiFeedback: string;
   numberOfReview: number;
+  transcribedText?: string;
+  expectedReviewerCoin?: number;
+  aiScore?: number;
 };
 
 const PENDING_PAGE_SIZE = 5;
@@ -169,12 +172,17 @@ export default function ReviewerReviewScreen() {
         id: item.id,
         question: item.questionText,
         audioUrl: item.audioUrl,
-        submittedAt: dayjs(item.submittedAt).format("DD/MM/YYYY"),
+        submittedAt: dayjs(item.submittedAt).format("DD/MM/YYYY HH:mm:ss"),
         learnerFullName: item.learnerFullName,
         type: item.type,
         aiFeedback: item.aiFeedback,
-        numberOfReview:
-          numberOfReviewUpdates[item.id] ?? item.numberOfReview ?? 0,
+        numberOfReview: Math.max(
+          0,
+          numberOfReviewUpdates[item.id] ?? item.numberOfReview ?? 0
+        ),
+        transcribedText: item.transcribedText,
+        expectedReviewerCoin: item.expectedReviewerCoin,
+        aiScore: item.aiScore,
       };
     });
   }, [pendingReviewsData, numberOfReviewUpdates]);
@@ -245,33 +253,111 @@ export default function ReviewerReviewScreen() {
     setIsSubmittingReview(false);
   }, []);
 
-  const handleReviewCompleted = useCallback(
-    (review: ReviewCompleted) => {
-      if (!review.learnerAnswerId) return;
-      if (review.remaining === 0) {
-        setReviewedAnswers((prev) =>
-          prev.includes(review.learnerAnswerId)
-            ? prev
-            : [...prev, review.learnerAnswerId]
-        );
-      } else {
-        setNumberOfReviewUpdates((prev) => ({
-          ...prev,
-          [review.learnerAnswerId]: review.remaining,
-        }));
-      }
-    },
-    []
-  );
+ // Setup SignalR listener for reviewCompleted events
+ useEffect(() => {
+  // Only setup handler when connection is established
+  if (!isConnected) {
+    return;
+  }
 
-  useEffect(() => {
-    if (!isConnected) {
+  const handleReviewCompleted = (review: ReviewCompleted) => {
+    console.log('🔔 SignalR: Review completed event received', review);
+    
+    // Get both IDs from the event
+    const learnerAnswerId = review.learnerAnswerId;
+    const recordId = review.recordId;
+    
+    if (!learnerAnswerId && !recordId) {
+      console.warn('⚠️ SignalR: Review completed event missing both learnerAnswerId and recordId');
       return;
     }
 
-    signalRService.setReviewCompletedHandler(handleReviewCompleted);
-    return () => signalRService.setReviewCompletedHandler(null);
-  }, [isConnected, handleReviewCompleted]);
+    // Normalize IDs for comparison (convert to lowercase string)
+    const normalizeId = (id: string | null) => id ? String(id).toLowerCase().trim() : null;
+    const normalizedLearnerAnswerId = normalizeId(learnerAnswerId);
+    const normalizedRecordId = normalizeId(recordId);
+
+    // Find the actual review ID in pending reviews data
+    // This handles the case where backend sends one ID but review uses the other
+    let actualReviewId: string | null = null;
+    
+    if (pendingReviewsData?.data?.items) {
+      console.log('🔍 Searching in pending reviews, total items:', pendingReviewsData.data.items.length);
+      
+      // Try to find review by either ID (case-insensitive comparison)
+      const foundReview = pendingReviewsData.data.items.find(
+        (item) => {
+          const normalizedItemId = normalizeId(item.id);
+          return (
+            (normalizedLearnerAnswerId && normalizedItemId === normalizedLearnerAnswerId) ||
+            (normalizedRecordId && normalizedItemId === normalizedRecordId)
+          );
+        }
+      );
+      
+      if (foundReview) {
+        actualReviewId = foundReview.id;
+        console.log('✅ Found review in pending list:', actualReviewId, 'Current numberOfReview:', foundReview.numberOfReview);
+      } else {
+        console.warn('⚠️ Review not found in pending list. LearnerAnswerId:', learnerAnswerId, 'RecordId:', recordId);
+        console.log('Available IDs:', pendingReviewsData.data.items.map(item => item.id).slice(0, 5));
+      }
+    }
+    
+    // Fallback to the ID from event if not found in pending reviews
+    if (!actualReviewId) {
+      actualReviewId = learnerAnswerId || recordId;
+      console.log('📝 Using fallback ID:', actualReviewId);
+    }
+
+    // Early return if we still don't have a valid ID
+    if (!actualReviewId) {
+      console.warn('⚠️ Cannot update: no valid review ID found');
+      return;
+    }
+
+    console.log('📊 Updating review remaining:', {
+      actualReviewId,
+      remaining: review.remaining,
+      currentState: actualReviewId ? numberOfReviewUpdates[actualReviewId] : undefined
+    });
+
+    // Case 1: If remaining = 0, remove from all reviewers' lists
+    if (review.remaining === 0) {
+      console.log('🗑️ Removing review (remaining = 0):', actualReviewId);
+      setReviewedAnswers((prev) => {
+        if (prev.includes(actualReviewId!)) {
+          return prev;
+        }
+        return [...prev, actualReviewId!];
+      });
+    } 
+    // Case 2: If remaining > 0, only update numberOfReview for other reviewers
+    else {
+      // Ensure remaining is not negative
+      const safeRemaining = Math.max(0, review.remaining);
+      console.log('🔄 Updating numberOfReview:', actualReviewId, '→', safeRemaining);
+      setNumberOfReviewUpdates((prev) => {
+        const updated = {
+          ...prev,
+          [actualReviewId!]: safeRemaining,
+        };
+        console.log('✅ Updated numberOfReviewUpdates:', updated);
+        return updated;
+      });
+    }
+  };
+
+  // Register handler
+  signalRService.setReviewCompletedHandler(handleReviewCompleted);
+
+  // Cleanup when component unmounts or connection changes
+  return () => {
+    signalRService.setReviewCompletedHandler(null);
+  };
+}, [isConnected, pendingReviewsData]);
+
+
 
   const handleSubmitReview = useCallback(async () => {
     if (!selectedReview) return;
@@ -399,39 +485,75 @@ export default function ReviewerReviewScreen() {
 
   const renderPendingItem = ({ item }: { item: PendingReview }) => (
     <TouchableOpacity
-      className="bg-white rounded-2xl p-4 mb-4 border border-slate-100 shadow-sm"
+      className="p-5 rounded-xl border-2 border-gray-200 bg-white mb-4 shadow-sm"
       activeOpacity={0.9}
       onPress={() => handleOpenReviewModal(item)}
     >
-      <View className="flex-row items-center justify-between mb-3">
-        <View>
-          <Text className="text-base font-semibold text-slate-900">
-            {item.learnerFullName}
-          </Text>
-          <Text className="text-xs text-slate-500 mt-0.5">
-            Gửi ngày {item.submittedAt}
-          </Text>
+      <View className="flex-1">
+        {/* Question & Expected Reward */}
+        <View className="mb-3">
+          <View className="flex-row items-start mb-2">
+            <Ionicons name="document-text" size={16} color="#2563EB" style={{ marginTop: 2, marginRight: 8 }} />
+            <View className="flex-1 flex-row items-center justify-between">
+              <View className="flex-1">
+                <Text className="text-sm font-semibold text-gray-900 mr-2">
+                  Question:
+                </Text>
+                <Text className="text-sm text-gray-700 leading-relaxed">
+                  {item.question}
+                </Text>
+              </View>
+              {item.expectedReviewerCoin && item.expectedReviewerCoin > 0 && (
+                <View className="flex-row items-center bg-yellow-100 px-2 py-1 rounded-full ml-2">
+                  <Ionicons name="logo-bitcoin" size={12} color="#92400E" />
+                  <Text className="text-xs font-semibold text-yellow-800 ml-1">
+                    Expected Reward: {item.expectedReviewerCoin}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
         </View>
-        <View className="flex-row items-center">
-          <Ionicons name="people" size={16} color="#64748B" />
-          <Text className="text-xs text-slate-500 ml-1">
-            {item.numberOfReview} reviewer
-          </Text>
+
+        {/* Transcribed Text */}
+        
+          <View className="mb-3">
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-start flex-1">
+                <Ionicons name="chatbubble" size={14} color="#16A34A" style={{ marginTop: 2, marginRight: 8 }} />
+                <View className="flex-1 flex-row items-start">
+                  <Text className="text-xs font-medium text-gray-600 mr-2">
+                    Transcribed:
+                  </Text>
+                  {item.transcribedText && (
+                    <Text className="text-xs text-gray-600 italic flex-1">
+                      {item.transcribedText}
+                    </Text>
+                  )}
+                </View>
+              </View>
+              <Text className="text-sm font-medium text-blue-600 ml-3">
+                Nhấn để đánh giá
+              </Text>
+            </View>
+          </View>
+        
+        
+        {/* Meta Info */}
+        <View className="flex-row items-center justify-between pt-2">
+          <View className="flex-row items-center">
+            <Ionicons name="calendar" size={14} color="#64748B" />
+            <Text className="text-xs text-gray-500 ml-2">
+              {item.submittedAt}
+            </Text>
+          </View>
+          <View className="flex-row items-center bg-blue-100 px-2 py-1 rounded-full">
+            <Ionicons name="time-outline" size={12} color="#1E40AF" />
+            <Text className="text-xs font-semibold text-blue-700 ml-1">
+              Reviews remaining: {item.numberOfReview || 0}
+            </Text>
+          </View>
         </View>
-      </View>
-      <Text className="text-sm text-slate-700 mb-3" numberOfLines={3}>
-        {item.question}
-      </Text>
-      <View className="flex-row items-center justify-between">
-        <View className="flex-row items-center">
-          <Ionicons name="mic" size={16} color="#2563EB" />
-          <Text className="text-xs text-slate-500 ml-2">
-            {item.type === "Record" ? "Thu âm" : "Câu trả lời"}
-          </Text>
-        </View>
-        <Text className="text-sm font-medium text-blue-600">
-          Nhấn để đánh giá
-        </Text>
       </View>
     </TouchableOpacity>
   );

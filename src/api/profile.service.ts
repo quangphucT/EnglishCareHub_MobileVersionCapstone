@@ -9,7 +9,7 @@ export interface EditLearnerProfileResponse {
   export interface EditLearnerProfileRequest {
     fullName: string;
     phoneNumber: string;
-      avatarUrl?: string; // ✅ BẮT BUỘC thêm dòng này
+    avatarUrl?: string; // ✅ BẮT BUỘC thêm dòng này
   
   }
   export const editLearnerProfileService = async (payload: EditLearnerProfileRequest): Promise<EditLearnerProfileResponse> => {
@@ -20,3 +20,29 @@ export interface EditLearnerProfileResponse {
       throw new Error(error.response?.data?.message || 'Edit learner profile thất bại');
     }
   };
+
+  export interface ProgressAnalyticsResponse {
+    isSucess: boolean;
+    data: ProgressAnalytics;
+    businessCode: string;
+    message: string;
+  }
+  
+  export interface ProgressAnalytics {
+    progressAnalyticsId: string;
+    dateRecorded: string;
+    speakingTime: number;
+    sessionsCompleted: number;
+    pronunciationScoreAvg: number;
+    learnerProfileId: string;
+  }
+  
+  export const getMyProgressAnalyticsService =
+    async (): Promise<ProgressAnalyticsResponse> => {
+      try {
+        const response = await httpClient.get<ProgressAnalyticsResponse>('ProgressAnalytics/my');
+        return response.data;
+      } catch (error: any) {
+        throw new Error(error.response?.data?.message || 'Lấy dữ liệu tiến trình thất bại');
+      }
+    };
