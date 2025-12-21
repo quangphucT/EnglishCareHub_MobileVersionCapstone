@@ -769,13 +769,80 @@ export default function ReviewerReviewScreen() {
     };
   }, []);
 
+  const stats = [
+    {
+      label: "Pending Reviews",
+      value: pendingReviewsData?.data?.totalItems ?? 0,
+      icon: "time-outline" as const,
+      color: "#2563EB",
+    },
+    {
+      label: "Completed",
+      value: statsData?.data?.totalReviews ?? 0,
+      icon: "checkmark-done-outline" as const,
+      color: "#16A34A",
+    },
+    {
+      label: "Average Score",
+      value: (statsData?.data?.averageRating ?? 0).toFixed(1),
+      icon: "star-outline" as const,
+      color: "#F59E0B",
+    },
+  ];
+
   return (
     <SafeAreaView className="flex-1 bg-slate-50">
+      <View className="px-5 pt-5 pb-3 bg-slate-50 border-b border-slate-200">
+        <View className="flex-row items-center justify-between mb-4">
+          <View>
+            <Text className="text-xl font-semibold text-slate-900">
+              Review Management
+            </Text>
+            <Text className="text-sm text-slate-500 mt-1">
+              Track and score learner responses
+            </Text>
+          </View>
+        </View>
+        <View className="flex-row -mx-1 mb-4">
+          {stats.map((stat) => (
+            <View key={stat.label} className="flex-1 mx-1">
+              <View className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+                <View className="w-10 h-10 rounded-full items-center justify-center mb-3" style={{ backgroundColor: `${stat.color}1A` }}>
+                  <Ionicons name={stat.icon} size={18} color={stat.color} />
+                </View>
+                <Text className="text-2xl font-bold text-slate-900">
+                  {stat.value}
+                </Text>
+                <Text className="text-xs text-slate-500 mt-1">
+                  {stat.label}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </View>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          className="flex-row items-center justify-between bg-blue-50 rounded-2xl px-4 py-3 mb-2"
+          onPress={() => setShowFeedbackModal(true)}
+        >
+          <View>
+            <Text className="text-sm font-semibold text-blue-900">
+              View Learner Feedback
+            </Text>
+            <Text className="text-xs text-blue-700 mt-1">
+              Total {feedbackPagination.totalItems} feedback
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#1D4ED8" />
+        </TouchableOpacity>
+        <Text className="text-base font-semibold text-slate-900 mb-2">
+          Pending Reviews
+        </Text>
+      </View>
       <FlatList
         data={availableReviews}
         keyExtractor={(item) => item.id}
         renderItem={renderPendingItem}
-        ListHeaderComponent={renderListHeader}
         ListFooterComponent={renderListFooter}
         ListEmptyComponent={() => (
           <View className="items-center justify-center py-24">
