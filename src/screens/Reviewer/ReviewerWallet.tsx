@@ -211,17 +211,12 @@ const ReviewerWalletScreen: React.FC = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50">
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 32 }}
-        className="flex-1 px-4"
-      >
-      <View className="mb-3">
-      <View className="flex-row items-center mb-2"> 
-        <Text className="text-2xl font-black text-slate-900">
-          My Wallet
-        </Text>
-      </View>
-    </View>
+      <View className="px-4 pt-4 pb-3 bg-slate-50 border-b border-slate-200">
+        <View className="flex-row items-center mb-2"> 
+          <Text className="text-2xl font-black text-slate-900">
+            My Wallet
+          </Text>
+        </View>
         <View className="mt-4 flex-row gap-3">
           <View className="flex-1 bg-white rounded-3xl p-4 border border-purple-100 shadow-md">
             <View className="flex-row justify-between items-center mb-3">
@@ -251,14 +246,14 @@ const ReviewerWalletScreen: React.FC = () => {
             <Text className="text-xs text-slate-500 mt-1">
               {totals.currentBalanceCoin.toLocaleString("vi-VN")} coin
             </Text>
-            {statsData?.data?.coinBalance ? (
-              <Text className="text-xs text-emerald-600 mt-2">
-                + {statsData.data.coinBalance.toLocaleString("vi-VN")} coin this week
-              </Text>
-            ) : null}
+            
           </View>
         </View>
-
+      </View>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 32 }}
+        className="flex-1 px-4"
+      >
         <View className="mt-6 bg-white rounded-3xl p-5 border border-slate-100 shadow-md">
           <View className="flex-row items-center justify-between mb-4">
             <View>

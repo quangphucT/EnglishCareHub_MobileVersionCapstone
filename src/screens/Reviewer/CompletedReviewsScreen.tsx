@@ -249,19 +249,18 @@ const CompletedReviewsScreen: React.FC = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50">
+      <View className="px-4 pt-4 pb-3 bg-slate-50 border-b border-slate-200">
+        <Text className="text-2xl font-bold text-slate-900">
+          Completed Reviews
+        </Text>
+        <Text className="text-sm text-slate-500 mt-1">
+          Track your reviewed items and send tips to learners
+        </Text>
+      </View>
       <ScrollView
         className="flex-1 px-4"
         contentContainerStyle={{ paddingBottom: 32 }}
       >
-        <View className="pt-4">
-          <Text className="text-2xl font-bold text-slate-900">
-            Completed Reviews
-          </Text>
-          <Text className="text-sm text-slate-500 mt-1">
-            Track your reviewed items and send tips to learners
-          </Text>
-        </View>
-
         {isLoading ? (
           <View className="py-16 items-center">
             <ActivityIndicator size="large" color="#2563EB" />
