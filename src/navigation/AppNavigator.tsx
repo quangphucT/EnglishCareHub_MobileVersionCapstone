@@ -27,7 +27,7 @@ export const useAuthRefresh = () => {
 };
 
 export default function AppNavigator() {
-  const navigationRef = useNavigationContainerRef<ParamListBase>();
+  const navigationRef = useNavigationContainerRef();
   const pendingRouteRef = useRef<string | null>(null);
   // const loadLearnerDataFromStorage = useLearnerStore((state) => state.loadLearnerDataFromStorage);
   const [authState, setAuthState] = useState<AuthState>({
