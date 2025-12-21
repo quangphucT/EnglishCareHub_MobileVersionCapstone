@@ -270,20 +270,47 @@ const LearnerProfile = () => {
                 </TouchableOpacity>
               </View>
             </View>
-            <View className="border-t border-slate-200 px-6 py-4">
-              <View className="flex-row gap-4">
-                <View className="flex-1 flex-row items-center gap-3">
-                  <Ionicons name="mail" size={20} color="#6366F1" />
-                  <Text className="text-slate-700">{userData?.email}</Text>
-                </View>
-                <View className="flex-1 flex-row items-center gap-3">
-                  <Ionicons name="call" size={20} color="#6366F1" />
-                  <Text className="text-slate-700">
-                    {userData?.phoneNumber || "Chưa cập nhật"}
-                  </Text>
-                </View>
-              </View>
-            </View>
+         <View className="border-t border-slate-200 px-6 py-4 gap-3">
+
+  {/* Email */}
+  <View className="flex-row items-center gap-4 bg-slate-50 rounded-xl px-4 py-3">
+    <View className="w-9 h-9 rounded-full bg-indigo-100 items-center justify-center">
+      <Ionicons name="mail" size={18} color="#4F46E5" />
+    </View>
+
+    <View className="flex-1">
+      <Text className="text-xs text-slate-500">Email</Text>
+      <Text
+        className="text-slate-800 font-medium"
+        numberOfLines={1}
+      >
+        {userData?.email}
+      </Text>
+    </View>
+  </View>
+
+  {/* Phone */}
+  <View className="flex-row items-center gap-4 bg-slate-50 rounded-xl px-4 py-3">
+    <View className="w-9 h-9 rounded-full bg-indigo-100 items-center justify-center">
+      <Ionicons name="call" size={18} color="#4F46E5" />
+    </View>
+
+    <View className="flex-1">
+      <Text className="text-xs text-slate-500">Số điện thoại</Text>
+      <Text
+        className={`font-medium ${
+          userData?.phoneNumber
+            ? "text-slate-800"
+            : "text-slate-400 italic"
+        }`}
+      >
+        {userData?.phoneNumber || "Chưa cập nhật"}
+      </Text>
+    </View>
+  </View>
+
+</View>
+
           </View>
 
           {/* PROGRESS HEADER */}
