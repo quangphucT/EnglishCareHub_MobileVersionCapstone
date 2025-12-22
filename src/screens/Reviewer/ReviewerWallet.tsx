@@ -369,12 +369,22 @@ const ReviewerWalletScreen: React.FC = () => {
         transparent
         onRequestClose={closeModal}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          className="flex-1"
-        >
-          <View className="flex-1 bg-black/40 justify-center px-4">
-            <View className="bg-white rounded-3xl p-6">
+        <View className="flex-1 bg-black/40">
+          <TouchableOpacity 
+            activeOpacity={1}
+            onPress={closeModal}
+            style={{ flex: 1 }}
+          />
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "padding"}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+          >
+            <View className="bg-white rounded-t-3xl p-6" style={{ paddingBottom: Platform.OS === 'ios' ? 34 : 24 }}>
+              {/* Drag Handle */}
+              <View className="items-center mb-4">
+                <View style={{ width: 40, height: 4, backgroundColor: '#D1D5DB', borderRadius: 2 }} />
+              </View>
+              
               <View className="flex-row justify-between items-center mb-4">
                 <View>
                   <Text className="text-lg font-semibold text-slate-900">
@@ -392,7 +402,7 @@ const ReviewerWalletScreen: React.FC = () => {
                 </TouchableOpacity>
               </View>
 
-              <View className="space-y-4">
+              <View style={{ gap: 16 }}>
                 <View>
                   <Text className="text-sm font-medium text-slate-700 mb-1">
                     Coin Amount
@@ -436,23 +446,19 @@ const ReviewerWalletScreen: React.FC = () => {
                 activeOpacity={0.9}
                 onPress={handleSubmitWithdraw}
                 disabled={withdrawMutation.isPending}
-                className={`mt-6 rounded-2xl py-3 items-center ${
-                  withdrawMutation.isPending
-                    ? "bg-slate-200"
-                    : "bg-gradient-to-r from-blue-600 to-purple-600"
-                }`}
+                className="mt-6 rounded-2xl py-4 items-center bg-blue-600"
               >
                 {withdrawMutation.isPending ? (
-                  <ActivityIndicator color="#0f172a" />
+                  <ActivityIndicator color="white" />
                 ) : (
-                  <Text className="text-black font-semibold text-base border border-slate-200 rounded-2xl px-4 py-2 hover:bg-slate-200 transition-colors duration-200 active:bg-slate-200">
+                  <Text className="text-white font-semibold text-base">
                     Confirm Withdrawal
                   </Text>
                 )}
               </TouchableOpacity>
             </View>
-          </View>
-        </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </View>
       </Modal>
     </SafeAreaView>
   );

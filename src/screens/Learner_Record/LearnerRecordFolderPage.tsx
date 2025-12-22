@@ -56,23 +56,23 @@ const LearnerRecordFolderPage = () => {
   const [recordToEdit, setRecordToEdit] = useState<Record | null>(null);
   const [showEditContentDialog, setShowEditContentDialog] = useState(false)
   const { mutateAsync: updateRecordContent, isPending: isUpdatingRecordContent } = useLearnerRecordUpdateContent();
-  const handleUpdateRecordContent = async () => {
-    if (!recordToEdit || !editingContent.trim()) return;
-    try {
-      await updateRecordContent({ 
-        recordId: recordToEdit.recordId, 
-        content: editingContent.trim() 
-      });
-      setEditingContent("");
-      setRecordToEdit(null);
-      setShowEditContentDialog(false);
-      Alert.alert("Cập nhật nội dung thành công");
-    } catch (error: any) {
-      // Error handled by hook
-      Alert.alert(error.message || "Cập nhật nội dung record thất bại");
-      console.error(error);
-    }
-  };
+  // const handleUpdateRecordContent = async () => {
+  //   if (!recordToEdit || !editingContent.trim()) return;
+  //   try {
+  //     await updateRecordContent({ 
+  //       recordId: recordToEdit.recordId, 
+  //       content: editingContent.trim() 
+  //     });
+  //     setEditingContent("");
+  //     setRecordToEdit(null);
+  //     setShowEditContentDialog(false);
+  //     Alert.alert("Cập nhật nội dung thành công");
+  //   } catch (error: any) {
+  //     // Error handled by hook
+  //     Alert.alert(error.message || "Cập nhật nội dung record thất bại");
+  //     console.error(error);
+  //   }
+  // };
   // Handle response structure
   const folders = (() => {
     if (!foldersData) return [];

@@ -435,7 +435,7 @@ const BuyReviewModal = ({
                         color: (!selectedPackage || !canBuy) ? '#9CA3AF' : '#FFFFFF',
                       }}
                     >
-                      {actionType === 'buy' ? 'Mua đánh giá' : 'Mua đánh giá record'}
+                      {actionType === 'buy' ? 'Mua đánh giá' : 'Mua đánh giá'}
                     </Text>
                   </>
                 )}

@@ -103,8 +103,8 @@ export const useLearnerRecordDelete = () => {
 
 export const useLearnerRecordUpdateContent = () => {
   const queryClient = useQueryClient();
-  return useMutation<ReviewRecordResponse, Error, { recordId: string; content: string }>({
-    mutationFn: ({ recordId, content }) => LearnerRecordUpdateContentService(recordId, content),
+  return useMutation<ReviewRecordResponse, Error, { recordContentId: string; content: string }>({
+    mutationFn: ({ recordContentId, content }) => LearnerRecordUpdateContentService(recordContentId, content),
     onSuccess: (data) => {
       Alert.alert(data.message || "Cập nhật nội dung record thành công");
       queryClient.invalidateQueries({ queryKey: ["learnerRecords"] });

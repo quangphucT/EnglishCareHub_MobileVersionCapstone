@@ -75,6 +75,7 @@ const LearnerRecordPage = () => {
   const selectedRecords = (() => {
     if (!recordsData) return [];
     if (Array.isArray(recordsData.data)) {
+      console.log("Records data:", JSON.stringify(recordsData.data, null, 2));
       return recordsData.data;
     }
     if (recordsData.data && typeof recordsData.data === 'object' && 'recordId' in recordsData.data) {
@@ -101,7 +102,7 @@ const LearnerRecordPage = () => {
     }
   };
  console.log("Feedback record:", feedbackRecord)
-  const handleDeleteRecord = async (recordId: string) => {
+  const handleDeleteRecord = async (recordContentId: string) => {
     Alert.alert(
       'Xác nhận xóa',
       'Bạn có chắc chắn muốn xóa record này?',
@@ -115,7 +116,7 @@ const LearnerRecordPage = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await deleteRecord(recordId);
+              await deleteRecord(recordContentId);
             } catch (error) {
               // Error handled by hook
             }
@@ -135,7 +136,7 @@ const LearnerRecordPage = () => {
 
     try {
       await updateRecordContent({
-        recordId: editingRecord.recordId,
+        recordContentId: editingRecord.recordContentId,
         content: editingContent.trim(),
       });
       setEditingRecord(null);
@@ -304,7 +305,9 @@ const LearnerRecordPage = () => {
           </View>
         </View>
 
-        <Text className="text-xs text-gray-500">Tạo lúc: {formatDate(item.createdAt)}</Text>
+        <Text className="text-xs text-gray-500">
+          Học lần cuối: {item.createdAt ? formatDate(item.createdAt) : 'Chưa học lần nào'}
+        </Text>
       </View>
     );
   };
@@ -991,7 +994,7 @@ const LearnerRecordPage = () => {
                     onPress={() => {
                       setShowActionMenu(false);
                       if (selectedRecord) {
-                        handleDeleteRecord(selectedRecord.recordId);
+                        handleDeleteRecord(selectedRecord.recordContentId);
                       }
                       setSelectedRecord(null);
                     }}
