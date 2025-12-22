@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -28,8 +28,20 @@ const BuyReviewModal = ({
   const [selectedPackage, setSelectedPackage] = useState<ReviewFeePackage | null>(null);
   
   // Auto-detect action type based on available props
-  const defaultActionType = recordId ? 'buyRecord' : 'buy';
-  const [actionType, setActionType] = useState<'buy' | 'buyRecord'>(defaultActionType);
+  const [actionType, setActionType] = useState<'buy' | 'buyRecord'>('buyRecord');
+
+  // Update actionType when props change or modal opens
+  useEffect(() => {
+    if (visible) {
+      // Ưu tiên recordId nếu có, ngược lại dùng learnerAnswerId
+      if (recordId) {
+        setActionType('buyRecord');
+      } else if (learnerAnswerId) {
+        setActionType('buy');
+      }
+      setSelectedPackage(null);
+    }
+  }, [visible, recordId, learnerAnswerId]);
 
   // Get review fee packages
   const { data: packagesData, isLoading: isLoadingPackages } = useReviewFeePackages();
@@ -142,93 +154,113 @@ const BuyReviewModal = ({
             contentContainerStyle={{ padding: 20, paddingBottom: 140 }}
             bounces={true}
           >
-            {/* Action Type Selection */}
-            <View className="flex-row mb-4 bg-gray-100 rounded-xl p-1" style={{ gap: 8 }}>
-              <TouchableOpacity
-                onPress={() => {
-                  setActionType('buy');
-                  setSelectedPackage(null);
-                }}
-                disabled={isProcessing || !learnerAnswerId}
-                style={{
-                  flex: 1,
-                  paddingVertical: 12,
-                  paddingHorizontal: 12,
-                  borderRadius: 10,
-                  backgroundColor: actionType === 'buy' ? '#7C3AED' : 'transparent',
-                  opacity: !learnerAnswerId ? 0.5 : 1,
-                }}
-              >
-                <View className="flex-row items-center justify-center">
-                  <Ionicons 
-                    name="star" 
-                    size={18} 
-                    color={actionType === 'buy' ? '#FFFFFF' : '#6B7280'} 
-                  />
-                  <Text 
-                    style={{ 
-                      marginLeft: 6,
-                      fontSize: 14,
-                      fontWeight: '600',
-                      color: actionType === 'buy' ? '#FFFFFF' : '#6B7280',
-                    }}
-                  >
-                    Mua đánh giá mới
-                  </Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => {
-                  setActionType('buyRecord');
-                  setSelectedPackage(null);
-                }}
-                disabled={isProcessing || !recordId}
-                style={{
-                  flex: 1,
-                  paddingVertical: 12,
-                  paddingHorizontal: 12,
-                  borderRadius: 10,
-                  backgroundColor: actionType === 'buyRecord' ? '#7C3AED' : 'transparent',
-                  opacity: !recordId ? 0.5 : 1,
-                }}
-              >
-                <View className="flex-row items-center justify-center">
-                  <Ionicons 
-                    name="checkmark-circle" 
-                    size={18} 
-                    color={actionType === 'buyRecord' ? '#FFFFFF' : '#6B7280'} 
-                  />
-                  <Text 
-                    style={{ 
-                      marginLeft: 6,
-                      fontSize: 14,
-                      fontWeight: '600',
-                      color: actionType === 'buyRecord' ? '#FFFFFF' : '#6B7280',
-                    }}
-                  >
-                    Mua đánh giá record
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-
-            {/* Warning message if current action type is not available */}
-            {!canBuy && (
-              <View className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4">
-                <View className="flex-row items-start" style={{ gap: 12 }}>
-                  <Ionicons name="warning" size={20} color="#D97706" />
-                  <View style={{ flex: 1 }}>
-                    <Text className="text-sm font-semibold text-yellow-800 mb-1">
-                      Lưu ý:
-                    </Text>
-                    <Text className="text-sm text-yellow-700">
-                      {actionType === 'buy'
-                        ? 'Bạn cần có thông tin câu trả lời để mua đánh giá mới.'
-                        : 'Bạn cần có thông tin record để mua đánh giá record.'}
+            {/* Action Type Selection - Only show if both options are available */}
+            {learnerAnswerId && recordId && (
+              <View className="flex-row mb-4 bg-gray-100 rounded-xl p-1" style={{ gap: 8 }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setActionType('buy');
+                    setSelectedPackage(null);
+                  }}
+                  disabled={isProcessing || !learnerAnswerId}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    paddingHorizontal: 12,
+                    borderRadius: 10,
+                    backgroundColor: actionType === 'buy' ? '#7C3AED' : 'transparent',
+                    opacity: !learnerAnswerId ? 0.5 : 1,
+                  }}
+                >
+                  <View className="flex-row items-center justify-center">
+                    <Ionicons 
+                      name="star" 
+                      size={18} 
+                      color={actionType === 'buy' ? '#FFFFFF' : '#6B7280'} 
+                    />
+                    <Text 
+                      style={{ 
+                        marginLeft: 6,
+                        fontSize: 14,
+                        fontWeight: '600',
+                        color: actionType === 'buy' ? '#FFFFFF' : '#6B7280',
+                      }}
+                    >
+                      Mua đánh giá mới
                     </Text>
                   </View>
-                </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => {
+                    setActionType('buyRecord');
+                    setSelectedPackage(null);
+                  }}
+                  disabled={isProcessing || !recordId}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    paddingHorizontal: 12,
+                    borderRadius: 10,
+                    backgroundColor: actionType === 'buyRecord' ? '#7C3AED' : 'transparent',
+                    opacity: !recordId ? 0.5 : 1,
+                  }}
+                >
+                  <View className="flex-row items-center justify-center">
+                    <Ionicons 
+                      name="checkmark-circle" 
+                      size={18} 
+                      color={actionType === 'buyRecord' ? '#FFFFFF' : '#6B7280'} 
+                    />
+                    <Text 
+                      style={{ 
+                        marginLeft: 6,
+                        fontSize: 14,
+                        fontWeight: '600',
+                        color: actionType === 'buyRecord' ? '#FFFFFF' : '#6B7280',
+                      }}
+                    >
+                      Mua đánh giá record
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Show info banner when only one option is available */}
+            {!learnerAnswerId && recordId && (
+              <View 
+                style={{ 
+                  backgroundColor: '#F3E8FF', 
+                  borderRadius: 12, 
+                  padding: 12, 
+                  marginBottom: 16,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+              >
+                <Ionicons name="mic" size={20} color="#7C3AED" />
+                <Text style={{ marginLeft: 8, fontSize: 14, color: '#6B21A8', fontWeight: '500' }}>
+                  Mua đánh giá cho bản ghi âm của bạn
+                </Text>
+              </View>
+            )}
+
+            {!recordId && learnerAnswerId && (
+              <View 
+                style={{ 
+                  backgroundColor: '#FEF3C7', 
+                  borderRadius: 12, 
+                  padding: 12, 
+                  marginBottom: 16,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+              >
+                <Ionicons name="star" size={20} color="#D97706" />
+                <Text style={{ marginLeft: 8, fontSize: 14, color: '#92400E', fontWeight: '500' }}>
+                  Mua đánh giá cho câu trả lời của bạn
+                </Text>
               </View>
             )}
 

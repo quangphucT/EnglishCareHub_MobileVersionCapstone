@@ -521,16 +521,39 @@ const getFolderStatusStyle = (status: Status | string | undefined) => {
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          className="flex-1"
+          style={{ flex: 1 }}
         >
-          <View className="flex-1 bg-black/50 justify-end">
-            <View className="bg-white rounded-t-3xl px-4 pt-6 pb-8">
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => {
+              setShowRenameDialog(false);
+              setFolderToRename(null);
+              setRenamingFolderName('');
+            }}
+            style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'flex-end' }}
+          >
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={(e) => e.stopPropagation()}
+              style={{ backgroundColor: 'white', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 16, paddingTop: 24, paddingBottom: 32 }}
+            >
               <View className="mb-6">
-                <Text className="text-xl font-bold text-gray-900 mb-1">Đổi tên thư mục</Text>
-                <Text className="text-sm text-gray-500">Nhập tên mới cho thư mục</Text>
+                <View className="flex-row items-center justify-between mb-2">
+                  <Text className="text-xl font-bold text-gray-900">Đổi tên thư mục</Text>
+                  <TouchableOpacity onPress={() => {
+                    setShowRenameDialog(false);
+                    setFolderToRename(null);
+                    setRenamingFolderName('');
+                  }}>
+                    <Ionicons name="close" size={28} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
+                <Text className="text-sm text-gray-600 mt-1">
+                  Nhập tên mới cho thư mục
+                </Text>
               </View>
 
-              <View className="mb-6">
+              <View className="mb-4">
                 <TextInput
                   value={renamingFolderName}
                   onChangeText={setRenamingFolderName}
@@ -540,24 +563,25 @@ const getFolderStatusStyle = (status: Status | string | undefined) => {
                   autoFocus
                   onSubmitEditing={handleRenameFolder}
                   returnKeyType="done"
+                  editable={!isRenamingFolder}
                 />
               </View>
 
-              <View className="flex-row justify-end gap-3">
+              <View className="flex-row gap-3">
                 <TouchableOpacity
                   onPress={() => {
                     setShowRenameDialog(false);
                     setFolderToRename(null);
                     setRenamingFolderName('');
                   }}
-                  className="px-6 py-3 bg-gray-100 rounded-xl"
+                  className="flex-1 py-3 bg-gray-100 rounded-xl items-center"
                 >
                   <Text className="text-gray-700 font-medium">Hủy</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={handleRenameFolder}
                   disabled={!renamingFolderName.trim() || isRenamingFolder}
-                  className={`px-6 py-3 rounded-xl flex-row items-center ${
+                  className={`flex-1 py-3 rounded-xl items-center flex-row justify-center ${
                     !renamingFolderName.trim() || isRenamingFolder
                       ? 'bg-gray-300'
                       : 'bg-blue-600'
@@ -577,8 +601,8 @@ const getFolderStatusStyle = (status: Status | string | undefined) => {
                   </Text>
                 </TouchableOpacity>
               </View>
-            </View>
-          </View>
+            </TouchableOpacity>
+          </TouchableOpacity>
         </KeyboardAvoidingView>
       </Modal>
 

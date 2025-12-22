@@ -30,7 +30,7 @@ const LearnerRecordQuestion = () => {
   const content = (route.params as any)?.content || '';
 
   // Queries
-  const { data: recordsDataResponse, isLoading: isLoadingRecords, isError: isErrorRecords, error: recordsError } = useLearnerRecords(folderId);
+  const { data: recordsDataResponse, isLoading: isLoadingRecords, isError: isErrorRecords, error: recordsError, refetch: refetchRecords } = useLearnerRecords(folderId);
 
   // Parse recordsData từ response
   const recordsList = useMemo<Record[]>(() => {
@@ -507,6 +507,9 @@ const LearnerRecordQuestion = () => {
                 },
               });
 
+              // Refetch records để lấy recordId mới nhất (cần thiết cho record đầu tiên)
+              await refetchRecords();
+
               setMainTitle('Đã lưu kết quả!');
             } catch (error) {
               console.error('Error updating record:', error);
@@ -547,7 +550,7 @@ const LearnerRecordQuestion = () => {
         Alert.alert('Lỗi', 'Không thể bắt đầu ghi âm. Vui lòng kiểm tra quyền truy cập microphone.');
       }
     }
-  }, [recording, currentContent, originalScriptHtml, AILanguage, apiMainPathSTS, STScoreAPIKey, currentRecordContentId, updateRecord, convertBlobToBase64]);
+  }, [recording, currentContent, originalScriptHtml, AILanguage, apiMainPathSTS, STScoreAPIKey, currentRecordContentId, updateRecord, convertBlobToBase64, refetchRecords]);
 
   // Initialize server
   const initializeServer = useCallback(async () => {
@@ -839,10 +842,10 @@ const LearnerRecordQuestion = () => {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" edges={['top', 'left', 'right']}>
+    <SafeAreaView className="flex-1 bg-gray-50" edges={['top', 'left', 'right']}>
       <View className="flex-1">
         {/* Header */}
-        <View className="bg-white/90 border-b border-gray-200 px-4 py-3">
+        <View className="bg-white border-b border-gray-200 px-4 py-3">
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center flex-1">
               <TouchableOpacity
@@ -952,7 +955,7 @@ const LearnerRecordQuestion = () => {
               <ScrollView className="max-h-64 mb-4" showsVerticalScrollIndicator={true}>
                 <View>
                   {/* Display text with colored letters */}
-                  <View className="mb-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-5 border border-blue-200">
+                  <View className="mb-4 rounded-2xl p-5 border border-blue-200" style={{ backgroundColor: '#EFF6FF' }}>
                     {originalScriptHtml && typeof originalScriptHtml === 'string' && originalScriptHtml.includes('<span') ? (
                       <View className="items-center">
                         {renderColoredText(originalScriptHtml)}
@@ -1057,45 +1060,255 @@ const LearnerRecordQuestion = () => {
         transparent={true}
         onRequestClose={() => setOpenAiFeedbackModal(false)}
       >
-        <View className="flex-1 bg-black/60 justify-end">
-          <View className="bg-white rounded-t-3xl" style={{ minHeight: '70%', maxHeight: '95%' }}>
-            <View className="px-4 pt-4 pb-2 border-b border-gray-200">
-              <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center">
-                  <View className="w-12 h-12 rounded-xl bg-purple-500 items-center justify-center mr-3">
-                    <Ionicons name="chatbubble" size={24} color="#FFFFFF" />
+        <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)' }}>
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => setOpenAiFeedbackModal(false)}
+            style={{ flex: 1 }}
+          />
+          <View
+            style={{
+              backgroundColor: 'white',
+              borderTopLeftRadius: 28,
+              borderTopRightRadius: 28,
+              maxHeight: '85%',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: -8 },
+              shadowOpacity: 0.15,
+              shadowRadius: 24,
+              elevation: 24,
+            }}
+          >
+            {/* Drag Handle */}
+            <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 8 }}>
+              <View
+                style={{
+                  width: 40,
+                  height: 4,
+                  backgroundColor: '#D1D5DB',
+                  borderRadius: 2,
+                }}
+              />
+            </View>
+
+            {/* Header */}
+            <View
+              style={{
+                paddingHorizontal: 20,
+                paddingTop: 8,
+                paddingBottom: 16,
+                borderBottomWidth: 1,
+                borderBottomColor: '#F3F4F6',
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                  <View
+                    style={{
+                      width: 44,
+                      height: 44,
+                      backgroundColor: '#F3E8FF',
+                      borderRadius: 12,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: 12,
+                    }}
+                  >
+                    <Ionicons name="sparkles" size={22} color="#9333EA" />
                   </View>
-                  <View>
-                    <Text className="text-xl font-bold text-gray-900">AI Feedback</Text>
-                    <Text className="text-sm text-gray-500">Phân tích phát âm chi tiết</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 20, fontWeight: '700', color: '#111827' }}>
+                      Phản hồi AI
+                    </Text>
+                    <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>
+                      Phân tích phát âm chi tiết
+                    </Text>
                   </View>
                 </View>
-                <TouchableOpacity onPress={() => setOpenAiFeedbackModal(false)}>
-                  <Ionicons name="close" size={24} color="#6B7280" />
+                <TouchableOpacity
+                  onPress={() => setOpenAiFeedbackModal(false)}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    backgroundColor: '#F3F4F6',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="close" size={20} color="#6B7280" />
                 </TouchableOpacity>
               </View>
             </View>
 
-            <ScrollView className="flex-1 px-4 pt-4" showsVerticalScrollIndicator={false}>
+            {/* Content with ScrollView */}
+            <ScrollView
+              style={{ flexGrow: 0 }}
+              showsVerticalScrollIndicator={true}
+              contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 16 }}
+              bounces={true}
+            >
+              {/* Score Card */}
+              {pronunciationAccuracy && (
+                <View
+                  style={{
+                    backgroundColor: '#ECFDF5',
+                    borderRadius: 16,
+                    padding: 16,
+                    marginBottom: 16,
+                    borderWidth: 1,
+                    borderColor: '#A7F3D0',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 48,
+                      height: 48,
+                      backgroundColor: '#D1FAE5',
+                      borderRadius: 24,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: 12,
+                    }}
+                  >
+                    <Ionicons name="star" size={24} color="#059669" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#059669', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      Điểm phát âm
+                    </Text>
+                    <Text style={{ fontSize: 28, fontWeight: '700', color: '#047857' }}>
+                      {pronunciationAccuracy}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Original Content Card */}
+              {currentContent && (
+                <View
+                  style={{
+                    backgroundColor: '#F9FAFB',
+                    borderRadius: 16,
+                    padding: 16,
+                    marginBottom: 16,
+                    borderWidth: 1,
+                    borderColor: '#E5E7EB',
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                    <Ionicons name="document-text" size={16} color="#6B7280" />
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#6B7280', marginLeft: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      Nội dung luyện tập
+                    </Text>
+                  </View>
+                  <Text style={{ fontSize: 15, color: '#374151', lineHeight: 22, fontStyle: 'italic' }}>
+                    "{currentContent}"
+                  </Text>
+                </View>
+              )}
+
+              {/* AI Feedback Card */}
               {aiFeedback ? (
-                <Text className="text-base text-gray-800 leading-6 mb-4">
-                  {aiFeedback}
-                </Text>
+                <View
+                  style={{
+                    backgroundColor: '#FAF5FF',
+                    borderRadius: 16,
+                    padding: 16,
+                    borderWidth: 1,
+                    borderColor: '#E9D5FF',
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                    <View
+                      style={{
+                        width: 32,
+                        height: 32,
+                        backgroundColor: '#F3E8FF',
+                        borderRadius: 8,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginRight: 10,
+                      }}
+                    >
+                      <Ionicons name="chatbubble-ellipses" size={16} color="#9333EA" />
+                    </View>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#7C3AED' }}>
+                      Nhận xét từ AI
+                    </Text>
+                  </View>
+                  <Text style={{ fontSize: 15, lineHeight: 24, color: '#374151' }}>
+                    {aiFeedback}
+                  </Text>
+                </View>
               ) : (
-                <Text className="text-sm text-gray-500 text-center py-8">
-                  Chưa có phản hồi AI
-                </Text>
+                <View
+                  style={{
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    paddingVertical: 40,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 72,
+                      height: 72,
+                      backgroundColor: '#F3F4F6',
+                      borderRadius: 36,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginBottom: 16,
+                    }}
+                  >
+                    <Ionicons name="chatbubble-outline" size={36} color="#9CA3AF" />
+                  </View>
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#6B7280', marginBottom: 4 }}>
+                    Chưa có phản hồi AI
+                  </Text>
+                  <Text style={{ fontSize: 14, color: '#9CA3AF', textAlign: 'center', paddingHorizontal: 32 }}>
+                    Phản hồi từ AI sẽ hiển thị ở đây sau khi bạn ghi âm
+                  </Text>
+                </View>
               )}
             </ScrollView>
 
-            {/* <View className="px-4 py-4 border-t border-gray-200">
+            {/* Footer */}
+            <View
+              style={{
+                paddingHorizontal: 20,
+                paddingTop: 16,
+                paddingBottom: 34,
+                borderTopWidth: 1,
+                borderTopColor: '#F3F4F6',
+                backgroundColor: '#FAFAFA',
+              }}
+            >
               <TouchableOpacity
                 onPress={() => setOpenAiFeedbackModal(false)}
-                className="py-3 bg-blue-600 rounded-xl items-center"
+                style={{
+                  backgroundColor: '#7C3AED',
+                  borderRadius: 14,
+                  paddingVertical: 14,
+                  alignItems: 'center',
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                  shadowColor: '#7C3AED',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 8,
+                  elevation: 6,
+                }}
+                activeOpacity={0.8}
               >
-                <Text className="text-white font-semibold">Đóng</Text>
+                <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+                <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }}>
+                  Đã hiểu
+                </Text>
               </TouchableOpacity>
-            </View> */}
+            </View>
           </View>
         </View>
       </Modal>

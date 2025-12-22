@@ -325,11 +325,13 @@ export default function PlacementTestScreen() {
       }
 
       const data = await res.json();
-      const acc = parseFloat(data.pronunciation_accuracy);
+      // Handle undefined/null values - default to 0 if not speaking
+      const rawAccuracy = data.pronunciation_accuracy ?? 0;
+      const acc = parseFloat(String(rawAccuracy)) || 0;
 
       // Store results
       const newAccuracy = [...pronunciationAccuracy];
-      newAccuracy[currentQuestionIndex] = `${data.pronunciation_accuracy}%`;
+      newAccuracy[currentQuestionIndex] = `${acc}%`;
       setPronunciationAccuracy(newAccuracy);
 
       const newScores = [...pronunciationScores];
@@ -337,13 +339,14 @@ export default function PlacementTestScreen() {
       setPronunciationScores(newScores);
 
       const newIpa = [...ipaTranscripts];
-      newIpa[currentQuestionIndex] = `/ ${data.ipa_transcript} /`;
+      // Handle undefined/empty ipa_transcript - show "/ /" if empty
+      const ipaValue = data.ipa_transcript?.trim() || "";
+      newIpa[currentQuestionIndex] = `/ ${ipaValue} /`;
       setIpaTranscripts(newIpa);
 
       const newRealIpa = [...realIpaTranscripts];
-      newRealIpa[currentQuestionIndex] = data.real_transcripts_ipa
-        ? `/ ${data.real_transcripts_ipa} /`
-        : "";
+      const realIpaValue = data.real_transcripts_ipa?.trim() || "";
+      newRealIpa[currentQuestionIndex] = realIpaValue ? `/ ${realIpaValue} /` : "/ /";
       setRealIpaTranscripts(newRealIpa);
 
       // Color code words
