@@ -221,7 +221,7 @@ export const reviewerTipAfterReviewService = async (
       if (!amountCoin || amountCoin <= 0) {
         throw new Error("Amount coin must be greater than 0");
       }
-        const response = await httpClient.post<any>("reviewer/tip", {
+        const response = await httpClient.post<any>("ReviewerReview/tip-after-review", {
             reviewId: reviewId,
             amountCoin: amountCoin,
             message: message

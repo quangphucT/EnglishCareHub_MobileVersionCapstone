@@ -67,8 +67,8 @@ export const useReviewerTipAfterReview = () => {
         onSuccess: (data) => {
             console.log(data.message || "Tip after review successful");
         },
-        onError: (error) => {
-            console.error(error.message || "Tip after review failed");
-        },
+        // onError: (error) => {
+        //     console.error(error.message || "Tip after review failed");
+        // },
     });
 }

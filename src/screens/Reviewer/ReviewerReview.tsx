@@ -836,7 +836,7 @@ export default function ReviewerReviewScreen() {
           onPress={() => setShowFeedbackModal(true)}
         >
           <View>
-            <Text className="text-sm font-semibold text-blue-900">
+            <Text className="text-sm font-semibold text-blue-900" numberOfLines={1}>
               View Learner Feedback
             </Text>
             <Text className="text-xs text-blue-700 mt-1">

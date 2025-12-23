@@ -62,7 +62,6 @@ const CompletedReviewsScreen: React.FC = () => {
   const tipMutation = useReviewerTipAfterReview();
   const audioPlayerRef = useRef<Sound | null>(null);
   const [playingReviewId, setPlayingReviewId] = useState<string | null>(null);
-
   // Refresh data when tab is focused
   useFocusEffect(
     useCallback(() => {
@@ -164,11 +163,14 @@ const CompletedReviewsScreen: React.FC = () => {
         amountCoin: amount,
         message: tipMessage.trim() || "Thank you for your work!",
       });
+      Alert.alert("Success", "Tip sent successfully!");
       closeTipModal();
-    } catch (mutationError) {
-      console.error("Tip error:", mutationError);
+      refetch();
+    } catch (mutationError: any) {
+    
+      Alert.alert("Error", mutationError?.message || "Failed to send tip. Please try again.");
     }
-  }, [closeTipModal, selectedReviewId, tipAmount, tipMessage, tipMutation]);
+  }, [closeTipModal, refetch, selectedReviewId, tipAmount, tipMessage, tipMutation]);
 
   const renderReviewCard = (review: ReviewCard) => {
     const statusKey =
@@ -190,11 +192,11 @@ const CompletedReviewsScreen: React.FC = () => {
               {review.question}
             </Text>
           </View>
-          <View className={`px-3 py-1 rounded-full ${statusStyle.bg}`}>
+          {/* <View className={`px-3 py-1 rounded-full ${statusStyle.bg}`}>
             <Text className={`text-xs font-semibold ${statusStyle.color}`}>
               {statusStyle.label}
             </Text>
-          </View>
+          </View> */}
         </View>
 
         <View className="flex-row items-center mt-3">
@@ -403,18 +405,21 @@ const CompletedReviewsScreen: React.FC = () => {
 
             <TouchableOpacity
               activeOpacity={0.9}
-              onPress={handleSubmitTip}
+              onPress={() => {
+                console.log("Send Tip button pressed");
+                handleSubmitTip();
+              }}
               disabled={tipMutation.isPending}
-              className={`mt-6 rounded-2xl py-3 items-center ${
+              className={`mt-6 rounded-2xl py-4 items-center ${
                 tipMutation.isPending
                   ? "bg-slate-200"
-                  : "bg-gradient-to-r from-purple-600 to-blue-600"
+                  : "bg-purple-600"
               }`}
             >
               {tipMutation.isPending ? (
-                <ActivityIndicator color="#0f172a" />
+                <ActivityIndicator color="#ffffff" />
               ) : (
-                <Text className="text-black font-semibold text-base border border-slate-200 rounded-2xl px-4 py-2 hover:bg-slate-200 transition-colors duration-200 active:bg-slate-200">
+                <Text className="text-white font-semibold text-base">
                   Send Tip
                 </Text>
               )}
