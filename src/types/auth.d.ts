@@ -35,6 +35,7 @@ export interface ResendOTPResponse {
 interface LoginRequest {
   email: string;
   password: string;
+  role: 'LEARNER' | 'REVIEWER';
 }
 
 // Google login request

@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import dayjs from "dayjs";
 import {
   useReviewReviewWallet,
@@ -20,7 +21,7 @@ import {
 } from "../../hooks/reviewer/useReviewerReview";
 import { useReviewerCoinWithdraw } from "../../hooks/reviewer/useReviewerCoin";
 
-type TransactionStatus = "Withdraw" | "Reject" | "Pending";
+type TransactionStatus = "Withdraw" | "Reject" | "Pending" | "Approved" | "Success" | "Completed";
 
 type TransactionRow = {
   id: string;
@@ -36,7 +37,7 @@ type TransactionRow = {
 const PAGE_SIZE = 10;
 
 const statusConfig: Record<
-  TransactionStatus,
+  string,
   { bg: string; text: string; label: string }
 > = {
   Withdraw: {
@@ -44,7 +45,27 @@ const statusConfig: Record<
     text: "text-green-600",
     label: "Approved",
   },
+  Approved: {
+    bg: "bg-green-50 border border-green-200",
+    text: "text-green-600",
+    label: "Approved",
+  },
+  Success: {
+    bg: "bg-green-50 border border-green-200",
+    text: "text-green-600",
+    label: "Success",
+  },
+  Completed: {
+    bg: "bg-green-50 border border-green-200",
+    text: "text-green-600",
+    label: "Completed",
+  },
   Reject: {
+    bg: "bg-red-50 border border-red-200",
+    text: "text-red-600",
+    label: "Rejected",
+  },
+  Rejected: {
     bg: "bg-red-50 border border-red-200",
     text: "text-red-600",
     label: "Rejected",
@@ -56,6 +77,12 @@ const statusConfig: Record<
   },
 };
 
+const defaultStatusConfig = {
+  bg: "bg-slate-50 border border-slate-200",
+  text: "text-slate-600",
+  label: "Unknown",
+};
+
 const ReviewerWalletScreen: React.FC = () => {
   const [pageNumber, setPageNumber] = useState(1);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -65,8 +92,16 @@ const ReviewerWalletScreen: React.FC = () => {
 
   const { data: walletData, isLoading, error, refetch } =
     useReviewReviewWallet(pageNumber, PAGE_SIZE);
-  const { data: statsData } = useReviewReviewStatistics();
+  const { data: statsData, refetch: refetchStats } = useReviewReviewStatistics();
   const withdrawMutation = useReviewerCoinWithdraw();
+
+  // Refresh data when tab is focused
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+      refetchStats();
+    }, [refetch, refetchStats])
+  );
 
   const totals = useMemo(() => {
     if (!walletData?.isSucess || !walletData.data) {
@@ -133,7 +168,7 @@ const ReviewerWalletScreen: React.FC = () => {
       return;
     }
 
-    try {
+  
       await withdrawMutation.mutateAsync({
         coin: coinValue,
         bankName: bankName.trim(),
@@ -141,10 +176,7 @@ const ReviewerWalletScreen: React.FC = () => {
       });
       closeModal();
       refetch();
-    } catch (mutationError) {
-      // mutation hook already shows alert
-      console.error("Withdraw error:", mutationError);
-    }
+  
   }, [
     accountNumber,
     bankName,
@@ -155,7 +187,7 @@ const ReviewerWalletScreen: React.FC = () => {
   ]);
 
   const renderTransaction = (tx: TransactionRow) => {
-    const config = statusConfig[tx.status];
+    const config = statusConfig[tx.status] || defaultStatusConfig;
     return (
       <View
         key={tx.id}

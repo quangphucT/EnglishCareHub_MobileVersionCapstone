@@ -8,12 +8,16 @@ import {
   Image,
   Alert,
   ActivityIndicator,
+  ImageSourcePropType,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useRegister } from "../../hooks/useAuth";
 import { ErrorMessage } from "../../components/common/ErrorMessage";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from 'expo-linear-gradient';
+
+const aespLogo: ImageSourcePropType = require("../../assets/images/imageLanding2.jpg");
 
 export default function RegisterScreen() {
   const [fullName, setFullName] = useState("");
@@ -104,70 +108,135 @@ export default function RegisterScreen() {
       <View className="flex-1 bg-[#fff]">
       <ScrollView
         ref={scrollViewRef}
-        contentContainerStyle={{ flexGrow: 1,paddingBottom: 200 }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 350 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets={true}
       >
         {/* Top illustration area */}
-        <View
-          className="h-[230px] justify-center items-center px-6"
-          style={{ backgroundColor: '#fff', paddingTop: 50 }}
+        <LinearGradient
+          colors={['#7C3AED', '#8B5CF6', '#A78BFA']}
+          className="h-[180px] justify-center items-center px-6"
+          style={{ 
+            paddingTop: 20,
+            borderBottomLeftRadius: 40,
+            borderBottomRightRadius: 40,
+          }}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
         >
+          {/* Decorative circles */}
+          <View 
+            className="absolute bg-white/10 rounded-full"
+            style={{ width: 150, height: 150, top: -50, right: -30 }}
+          />
+          <View 
+            className="absolute bg-white/10 rounded-full"
+            style={{ width: 100, height: 100, bottom: 20, left: -40 }}
+          />
+          
           <View className="items-center">
-            <Text className="text-4xl font-bold text-purple-600 mb-2">EnglishCareHub</Text>
-            <Text className="text-gray-600">Đăng ký tài khoản mới</Text>
+            <Image 
+              source={aespLogo} 
+              style={{
+                width: 180,
+                height: 180,
+              }}
+              resizeMode="contain"
+            />
           </View>
-        </View>
+        </LinearGradient>
 
         {/* Register Form */}
         <View 
-          className="flex-1 bg-[#fff]"
+          className="flex-1 bg-white rounded-t-3xl -mt-6"
           
         >
           <View className="px-6 pt-8">
-           
-      
 
             {/* Header */}
             <View className="mb-6">
-              <Text className="text-gray-900 text-[15px] mb-1">
-                Xin chào!
+              <Text className="text-2xl font-bold text-gray-800 mb-1">
+                Tạo tài khoản
               </Text>
-              <Text className="text-4xl font-extrabold text-gray-800">
-                Đăng ký
+              <Text className="text-gray-500 text-sm">
+                Điền thông tin để đăng ký
               </Text>
             </View>
           </View>
 
           {/* Form Container */}
-          <View className="space-y-4 pl-5 pr-5 pt-4">
+          <View className="space-y-4 pl-5 pr-5 pt-2">
+               {/* Role Selection */}
+            <View className="mb-5">
+              <Text className="text-gray-600 text-sm mb-2 font-medium">Chọn vai trò của bạn</Text>
+              <View className="flex-row rounded-xl p-1 border border-gray-200 bg-gray-50">
+                {/* Learner Role */}
+                <TouchableOpacity
+                  onPress={() => setRole("LEARNER")}
+                  className={`flex-1 rounded-lg py-3 ${role === "LEARNER" ? "bg-purple-500" : ""}`}
+                >
+                  <View className="items-center flex-row justify-center">
+                    <Ionicons
+                      name="school-outline"
+                      size={18}
+                      color={role === "LEARNER" ? "#FFFFFF" : "#9CA3AF"}
+                    />
+                    <Text
+                      className={`ml-2 text-sm ${role === "LEARNER" ? "font-bold text-white" : "font-normal text-gray-500"}`}
+                    >
+                      Học viên
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                {/* Reviewer Role */}
+                <TouchableOpacity
+                  onPress={() => setRole("REVIEWER")}
+                  className={`flex-1 rounded-lg py-3 ${role === "REVIEWER" ? "bg-purple-500" : ""}`}
+                >
+                  <View className="items-center flex-row justify-center">
+                    <Ionicons
+                      name="checkmark-circle-outline"
+                      size={18}
+                      color={role === "REVIEWER" ? "#FFFFFF" : "#9CA3AF"}
+                    />
+                    <Text
+                      className={`ml-2 text-sm ${role === "REVIEWER" ? "font-bold text-white" : "font-normal text-gray-500"}`}
+                    >
+                      Người đánh giá
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </View>
             {/* Full Name Input */}
-            <View className="mb-4">
-              <Text className="text-gray-600 text-[16px] mb-2">Họ và tên</Text>
-              <View className="border-2 border-gray-800 rounded-xl px-4 py-4">
+            <View className="mb-3">
+              <Text className="text-gray-600 text-sm mb-1.5 font-medium">Họ và tên</Text>
+              <View className="flex-row items-center border-2 border-gray-200 rounded-xl px-4 py-3">
+                <Ionicons name="person-outline" size={20} color="#9CA3AF" />
                 <TextInput
-                  className="text-gray-700 text-[18px]"
+                  className="flex-1 ml-3 text-gray-700 text-base"
                   placeholder="Nguyễn Văn A"
                   placeholderTextColor="#9CA3AF"
                   value={fullName}
                   onChangeText={setFullName}
                   autoCapitalize="words"
-                
                 />
               </View>
             </View>
 
             {/* Phone Number Input */}
-            <View className="mb-4">
-              <Text className="text-gray-600 text-[16px] mb-2">Số điện thoại</Text>
+            <View className="mb-3">
+              <Text className="text-gray-600 text-sm mb-1.5 font-medium">Số điện thoại</Text>
               <View 
-                className={`border-2 rounded-xl px-4 py-4 ${
-                  phoneError ? "border-red-400" : "border-gray-800"
+                className={`flex-row items-center border-2 rounded-xl px-4 py-3 ${
+                  phoneError ? "border-red-400" : "border-gray-200"
                 }`}
               >
+                <Ionicons name="call-outline" size={20} color="#9CA3AF" />
                 <TextInput
-                  className="text-gray-700 text-[18px]"
+                  className="flex-1 ml-3 text-gray-700 text-base"
                   placeholder="0912345678"
                   placeholderTextColor="#9CA3AF"
                   value={phoneNumber}
@@ -182,15 +251,16 @@ export default function RegisterScreen() {
             </View>
 
             {/* Email Input */}
-            <View className="mb-4">
-              <Text className="text-gray-600 text-[16px] mb-2">Email</Text>
+            <View className="mb-3">
+              <Text className="text-gray-600 text-sm mb-1.5 font-medium">Email</Text>
               <View 
-                className={`border-2 rounded-xl px-4 py-4 ${
-                  emailError ? "border-red-400" : "border-gray-800"
+                className={`flex-row items-center border-2 rounded-xl px-4 py-3 ${
+                  emailError ? "border-red-400" : "border-gray-200"
                 }`}
               >
+                <Ionicons name="mail-outline" size={20} color="#9CA3AF" />
                 <TextInput
-                  className="text-gray-700 text-[18px]"
+                  className="flex-1 ml-3 text-gray-700 text-base"
                   placeholder="example@gmail.com"
                   placeholderTextColor="#9CA3AF"
                   value={email}
@@ -217,15 +287,16 @@ export default function RegisterScreen() {
 
             {/* Password Input */}
             <View className="mb-4">
-              <Text className="text-gray-600 text-[16px] mb-2">Mật khẩu</Text>
+              <Text className="text-gray-600 text-sm mb-1.5 font-medium">Mật khẩu</Text>
               <View 
-                className={`border-2 rounded-xl px-4 py-4 flex-row items-center ${
-                  passwordError ? "border-red-400" : "border-gray-800"
+                className={`flex-row items-center border-2 rounded-xl px-4 py-3 ${
+                  passwordError ? "border-red-400" : "border-gray-200"
                 }`}
               >
+                <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" />
                 <TextInput
-                  className="flex-1 text-gray-700 text-[18px]"
-                  placeholder="•••••••••••"
+                  className="flex-1 ml-3 text-gray-700 text-base"
+                  placeholder="••••••••"
                   placeholderTextColor="#9CA3AF"
                   value={password}
                   onChangeText={(text) => {
@@ -236,7 +307,7 @@ export default function RegisterScreen() {
                       setTimeout(() => {
                         if (scrollViewRef.current) {
                           scrollViewRef.current.scrollTo({
-                            y: 300,
+                            y: 450,
                             animated: true,
                           });
                         }
@@ -246,90 +317,40 @@ export default function RegisterScreen() {
                   autoCapitalize="none"
                 />
                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                  <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" />
+                  <Ionicons 
+                    name={showPassword ? "eye-outline" : "eye-off-outline"} 
+                    size={20} 
+                    color="#9CA3AF" 
+                  />
                 </TouchableOpacity>
               </View>
               <ErrorMessage error={passwordError} type="error" />
             </View>
 
-            {/* Role Selection */}
-            <View className="mb-6">
-              <Text className="text-gray-600 text-[16px] mb-3">Chọn vai trò của bạn</Text>
-              <View className="flex-row gap-3">
-                {/* Learner Role */}
-                <TouchableOpacity
-                  onPress={() => setRole("LEARNER")}
-                  className={`flex-1 rounded-xl p-4 border-2 ${
-                    role === "LEARNER"
-                      ? "border-purple-500 bg-purple-50"
-                      : "border-gray-400 bg-gray-50"
-                  }`}
-                >
-                  <View className="items-center">
-                    <Ionicons
-                      name="school-outline"
-                      size={24}
-                      color={role === "LEARNER" ? "#8B5CF6" : "#9CA3AF"}
-                    />
-                    <Text
-                      className={`font-semibold text-center mt-2 ${
-                        role === "LEARNER" ? "text-purple-600" : "text-gray-600"
-                      }`}
-                    >
-                      Học viên
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-
-                {/* Reviewer Role */}
-                <TouchableOpacity
-                  onPress={() => setRole("REVIEWER")}
-                  className={`flex-1 rounded-xl p-4 border-2 ${
-                    role === "REVIEWER"
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-400 bg-gray-50"
-                  }`}
-                >
-                  <View className="items-center">
-                    <Ionicons
-                      name="checkmark-circle-outline"
-                      size={24}
-                      color={role === "REVIEWER" ? "#3B82F6" : "#9CA3AF"}
-                    />
-                    <Text
-                      className={`font-semibold text-center mt-2 ${
-                        role === "REVIEWER" ? "text-blue-600" : "text-gray-600"
-                      }`}
-                    >
-                      Người đánh giá
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            </View>
+         
 
             {/* Register Button */}
             <TouchableOpacity
               onPress={handleRegister}
               disabled={registerMutation.isPending}
-              className={`rounded-[15px] py-6 items-center mb-2`}
-              style={{ backgroundColor: registerMutation.isPending ? '#3a3a5a' : "#1a1a2e" }}
+              className="rounded-xl py-4 items-center mb-4 bg-purple-500"
+              style={{ opacity: registerMutation.isPending ? 0.8 : 1 }}
             >
               {registerMutation.isPending ? (
-                <ActivityIndicator size="small" color="#FACC15" />
+                <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Text className="text-yellow-400 text-[20px] font-semibold">Đăng ký</Text>
+                <Text className="text-white text-lg font-bold" numberOfLines={1}>Đăng ký</Text>
               )}
             </TouchableOpacity>
 
           
             {/* Login Link */}
             <View className="flex-row justify-center mb-8">
-              <Text className="text-gray-600 text-[18px]">
+              <Text className="text-gray-500 text-sm">
                 Bạn đã có tài khoản?{" "}
               </Text>
               <TouchableOpacity onPress={() => navigation.goBack()}>
-                <Text className="text-red-500 text-[18px] font-semibold">
+                <Text className="text-purple-600 font-semibold text-sm">
                   Đăng nhập
                 </Text>
               </TouchableOpacity>

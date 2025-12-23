@@ -29,13 +29,14 @@ export const authService = {
   },
 
   /**
-   * Login with phone number and password
+   * Login with email and password
    */
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
     try {
       const response = await httpClient.post<LoginResponse>('Auth/login', {
         email: credentials.email,
         password: credentials.password,
+        role: credentials.role,
       });
       return response.data;
     } catch (error: any) {

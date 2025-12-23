@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import dayjs from "dayjs";
 import Sound from "react-native-sound";
 import {
@@ -61,6 +62,13 @@ const CompletedReviewsScreen: React.FC = () => {
   const tipMutation = useReviewerTipAfterReview();
   const audioPlayerRef = useRef<Sound | null>(null);
   const [playingReviewId, setPlayingReviewId] = useState<string | null>(null);
+
+  // Refresh data when tab is focused
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
 
   useEffect(() => {
     Sound.setCategory("Playback", true);

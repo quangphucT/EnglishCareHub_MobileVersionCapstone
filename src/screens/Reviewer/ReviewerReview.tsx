@@ -19,6 +19,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import Sound from "react-native-sound";
 import { Audio } from "expo-av";
 import dayjs from "dayjs";
@@ -74,8 +75,17 @@ export default function ReviewerReviewScreen() {
     data: pendingReviewsData,
     isLoading: isPendingLoading,
     error: pendingError,
+    refetch: refetchPending,
   } = useReviewReviewPending(pendingPageNumber, PENDING_PAGE_SIZE);
-  const { data: statsData } = useReviewReviewStatistics();
+  const { data: statsData, refetch: refetchStats } = useReviewReviewStatistics();
+
+  // Refresh data when tab is focused
+  useFocusEffect(
+    useCallback(() => {
+      refetchPending();
+      refetchStats();
+    }, [refetchPending, refetchStats])
+  );
   const {
     data: feedbackData,
     isLoading: isFeedbackLoading,

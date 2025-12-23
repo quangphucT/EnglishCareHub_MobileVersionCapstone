@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   Text,
   View,
@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLogout } from "../../hooks/useAuth";
 import { useAuthRefresh } from "../../navigation/AppNavigator";
@@ -18,7 +18,14 @@ const ProfileScreen = () => {
   const navigation = useNavigation<any>();
   const logoutMutation = useLogout();
   const { refreshAuth } = useAuthRefresh();
-  const { data: getMe, isLoading } = useGetMeQuery();
+  const { data: getMe, isLoading, refetch } = useGetMeQuery();
+
+  // Refresh data when tab is focused
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
 
   const isReviewer = getMe?.role === "REVIEWER";
 
