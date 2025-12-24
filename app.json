@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "englishcarehub",
+    "name": "AESP",
     "owner": "itdevqphuc",
-    "scheme": "englishcarehub",
-    "slug": "englishcarehub",
+    "scheme": "aesp",
+    "slug": "aesp",
     "version": "1.0.1",
     "orientation": "portrait",
-    "icon": "",
+    "icon": "./src/assets/images/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "",
+      "image": "./src/assets/images/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -28,7 +28,7 @@
       "versionCode": 2,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "foregroundImage": "",
+        "foregroundImage": "./src/assets/images/icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
@@ -42,7 +42,7 @@
       "package": "com.itdevqphuc.englishcarehub"
     },
     "web": {
-      "favicon": ""
+      "favicon": "./src/assets/images/icon.png"
     },
     "plugins": [
       "@react-native-google-signin/google-signin",

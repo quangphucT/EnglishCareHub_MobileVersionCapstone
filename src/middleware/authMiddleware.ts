@@ -4,6 +4,7 @@ import { LoginRequest, LoginResponse, User } from "../types/auth";
 import { decodeJWT } from "../utils/jwtDecoder";
 import { authService } from "../api/auth.service";
 import { queryClient } from "../config/queryClient";
+import { useLearnerStore } from "../store/learnerStore";
 
 export interface AuthState {
   isAuthenticated: boolean;
@@ -194,6 +195,9 @@ export class AuthMiddleware {
     try {
       // Clear all React Query cache
       queryClient.clear();
+      
+      // Clear learner data from Zustand store
+      useLearnerStore.getState().clearLearnerData();
       
       await Promise.all([
         SecureStore.deleteItemAsync("access_token"),

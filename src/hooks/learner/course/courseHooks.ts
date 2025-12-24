@@ -198,13 +198,13 @@ export const useEnrollCourseNotFree = () => {
         [{ text: "OK" }]
       );
     },
-    onError: (error) => {
-      Alert.alert(
-        "Lỗi",
-        error.message || "Tham gia khóa học thất bại. Vui lòng kiểm tra số dư Coin.",
-        [{ text: "OK" }]
-      );
-    },
+    // onError: (error) => {
+    //   Alert.alert(
+    //     "Lỗi",
+    //     error.message || "Tham gia khóa học thất bại. Vui lòng kiểm tra số dư Coin.",
+    //     [{ text: "OK" }]
+    //   );
+    // },
   });
 };
 
