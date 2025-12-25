@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,9 @@ import {
   Modal,
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -31,7 +34,27 @@ const LearnerProfile = () => {
   const [openEdit, setOpenEdit] = useState(false);
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [phoneError, setPhoneError] = useState("");
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const modalScrollRef = useRef<ScrollView>(null);
+
+  // Listen for keyboard events
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setIsKeyboardVisible(true)
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setIsKeyboardVisible(false)
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (userData) {
@@ -61,8 +84,34 @@ const LearnerProfile = () => {
   const openEditModal = () => {
     setFullName(userData?.fullName || "");
     setPhoneNumber(userData?.phoneNumber || "");
+    setPhoneError("");
     setSelectedImageUri(null);
     setOpenEdit(true);
+  };
+
+  const validatePhoneNumber = (phone: string) => {
+    if (!phone || phone.trim().length === 0) {
+      setPhoneError("");
+      return true;
+    }
+    const cleanedPhone = phone.replace(/[\s\-\(\)]/g, "");
+    if (!/^(\+84|0)?[0-9]{9,10}$/.test(cleanedPhone)) {
+      setPhoneError("Số điện thoại không hợp lệ (VD: 0912345678)");
+      return false;
+    }
+    setPhoneError("");
+    return true;
+  };
+
+  const handlePhoneChange = (text: string) => {
+    // Only allow numbers, +, spaces, dashes, parentheses
+    const filtered = text.replace(/[^0-9+\s\-\(\)]/g, "");
+    setPhoneNumber(filtered);
+    validatePhoneNumber(filtered);
+  };
+
+  const scrollToInput = (yOffset: number) => {
+    modalScrollRef.current?.scrollTo({ y: yOffset, animated: true });
   };
 
   const handlePickImage = async () => {
@@ -407,8 +456,19 @@ const LearnerProfile = () => {
         transparent={true}
         onRequestClose={() => setOpenEdit(false)}
       >
-        <View className="flex-1 bg-black/50 justify-end">
-          <View className="bg-white rounded-t-3xl max-h-[90%]">
+        <View className="flex-1 bg-black/50" style={{ justifyContent: 'flex-end' }}>
+          <TouchableOpacity 
+            activeOpacity={1}
+            onPress={() => {
+              Keyboard.dismiss();
+              setOpenEdit(false);
+            }}
+            style={{ flex: 1 }}
+          />
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === "ios" ? "padding" : "padding"}
+          >
+            <View className="bg-white rounded-t-3xl" style={{ minHeight: '80%' }}>
             <View className="flex-row items-center justify-between p-6 border-b border-gray-200">
               <Text className="text-xl font-semibold text-gray-900">
                 Chỉnh sửa hồ sơ
@@ -418,7 +478,12 @@ const LearnerProfile = () => {
               </TouchableOpacity>
             </View>
 
-            <ScrollView className="p-6" showsVerticalScrollIndicator={false}>
+            <ScrollView 
+              ref={modalScrollRef}
+              className="p-6" 
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
               <View className="space-y-4">
                 {/* Avatar Upload */}
                 <View>
@@ -470,6 +535,7 @@ const LearnerProfile = () => {
                     onChangeText={setFullName}
                     placeholder="Nhập họ tên"
                     className="border border-gray-300 rounded-xl px-4 py-3 bg-white"
+                    onFocus={() => scrollToInput(200)}
                   />
                 </View>
 
@@ -480,11 +546,19 @@ const LearnerProfile = () => {
                   </Text>
                   <TextInput
                     value={phoneNumber}
-                    onChangeText={setPhoneNumber}
-                    placeholder="Nhập số điện thoại"
+                    onChangeText={handlePhoneChange}
+                    placeholder="VD: 0912345678"
                     keyboardType="phone-pad"
-                    className="border border-gray-300 rounded-xl px-4 py-3 bg-white"
+                    maxLength={15}
+                    className={`border rounded-xl px-4 py-3 bg-white ${
+                      phoneError ? "border-red-400" : "border-gray-300"
+                    }`}
+                    onFocus={() => scrollToInput(280)}
+                    onBlur={() => validatePhoneNumber(phoneNumber)}
                   />
+                  {phoneError ? (
+                    <Text className="text-red-500 text-xs mt-1">{phoneError}</Text>
+                  ) : null}
                 </View>
               </View>
             </ScrollView>
@@ -501,7 +575,11 @@ const LearnerProfile = () => {
               <TouchableOpacity
                 onPress={handleSubmitEdit}
                 disabled={
-                  updateProfileMutation.isPending || isUploadingAvatar
+                  updateProfileMutation.isPending || 
+                  isUploadingAvatar || 
+                  !phoneNumber.trim() ||
+                  !!phoneError ||
+                  !fullName.trim()
                 }
                 className="rounded-xl overflow-hidden"
                 activeOpacity={0.8}
@@ -513,7 +591,11 @@ const LearnerProfile = () => {
                   className="px-6 py-3"
                   style={{
                     opacity:
-                      updateProfileMutation.isPending || isUploadingAvatar
+                      updateProfileMutation.isPending || 
+                      isUploadingAvatar || 
+                      !phoneNumber.trim() ||
+                      !!phoneError ||
+                      !fullName.trim()
                         ? 0.6
                         : 1,
                   }}
@@ -527,6 +609,7 @@ const LearnerProfile = () => {
               </TouchableOpacity>
             </View>
           </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
     </SafeAreaView>
