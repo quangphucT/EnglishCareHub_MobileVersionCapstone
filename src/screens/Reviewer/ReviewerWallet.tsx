@@ -21,7 +21,7 @@ import {
 } from "../../hooks/reviewer/useReviewerReview";
 import { useReviewerCoinWithdraw } from "../../hooks/reviewer/useReviewerCoin";
 
-type TransactionStatus = "Withdraw" | "Reject" | "Pending" | "Approved" | "Success" | "Completed";
+type TransactionStatus = "Withdraw" | "Reject" | "Rejected" | "Pending" | "Approved" | "Success" | "Completed";
 
 type TransactionRow = {
   id: string;
@@ -230,10 +230,19 @@ const ReviewerWalletScreen: React.FC = () => {
           </Text>
         </View>
 
-        {tx.description && tx.status === "Reject" ? (
-          <View className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl">
-            <Text className="text-xs text-red-700 font-semibold">
-              Reason: {tx.description}
+        {tx.description ? (
+          <View className={`mt-3 p-3 rounded-xl ${
+            tx.status === "Reject" || tx.status === "Rejected"
+              ? "bg-red-50 border border-red-200"
+              : "bg-slate-50 border border-slate-200"
+          }`}>
+            <Text className={`text-xs font-medium ${
+              tx.status === "Reject" || tx.status === "Rejected"
+                ? "text-red-700"
+                : "text-slate-600"
+            }`}>
+              {tx.status === "Reject" || tx.status === "Rejected" ? "Reason: " : "Note: "}
+              {tx.description}
             </Text>
           </View>
         ) : null}
