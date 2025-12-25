@@ -341,6 +341,7 @@ const ReviewerProfileScreen: React.FC<ReviewerProfileScreenProps> = ({
                   onChangeText={setFullName}
                   placeholder="Nhập họ tên"
                   className="border border-slate-200 rounded-2xl px-4 py-3 text-base"
+                   
                 />
               </View>
               <View>

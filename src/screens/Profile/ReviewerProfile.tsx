@@ -11,12 +11,13 @@ import {
   Alert,
   Platform,
   KeyboardAvoidingView,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useQueryClient } from "@tanstack/react-query";
-import { LinearGradient } from "expo-linear-gradient";
 import { useGetMeQuery } from "../../hooks/useGetMe";
 import {
   useReviewerProfileGet,
@@ -34,6 +35,9 @@ const ReviewerProfile = () => {
   });
   const [imageFiles, setImageFiles] = useState<{ uri: string; name: string; type: string }[]>([]);
   const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
+  
+  const editScrollViewRef = useRef<ScrollView>(null);
+  const certScrollViewRef = useRef<ScrollView>(null);
 
   const { data: meData } = useGetMeQuery();
   const { data: reviewerProfileData } = useReviewerProfileGet(
@@ -358,12 +362,7 @@ const ReviewerProfile = () => {
           </View>
         {/* Header Profile Section - Compact */}
         <View className="bg-white rounded-2xl overflow-hidden shadow-md mb-2">
-          <LinearGradient
-            colors={["#EFF6FF", "#FFFFFF", "#F5F3FF"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            className="p-3"
-          >
+          <View className="p-3 bg-white">
             <View className="flex-col gap-2">
               {/* Avatar & Basic Info - Compact */}
               <View className="flex-row items-center gap-3">
@@ -379,11 +378,8 @@ const ReviewerProfile = () => {
                       }}
                     />
                   ) : (
-                    <LinearGradient
-                      colors={["#9333EA", "#2563EB"]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      className="w-16 h-16 rounded-full items-center justify-center border-2 border-white"
+                    <View
+                      className="w-16 h-16 rounded-full items-center justify-center border-2 border-white bg-indigo-500"
                       style={{
                         width: 64,
                         height: 64,
@@ -393,7 +389,7 @@ const ReviewerProfile = () => {
                       <Text className="text-white text-xl font-bold">
                         {mentorData.name.charAt(0).toUpperCase()}
                       </Text>
-                    </LinearGradient>
+                    </View>
                   )}
                   <View
                     className="absolute -bottom-0.5 -right-0.5 bg-green-500 w-4 h-4 rounded-full items-center justify-center"
@@ -455,25 +451,20 @@ const ReviewerProfile = () => {
               {/* Action Button - Compact */}
               <TouchableOpacity
                 onPress={() => setIsEditing(!isEditing)}
-                className="rounded-xl overflow-hidden mt-2"
+                className="rounded-xl overflow-hidden mt-2 bg-indigo-500"
                 activeOpacity={0.8}
               >
-                <LinearGradient
-                  colors={["#2563EB", "#9333EA"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  className="px-4 py-2 items-center justify-center"
-                >
+                <View className="px-4 py-2 items-center justify-center">
                   <View className="flex-row items-center gap-2">
                     <Ionicons name="create-outline" size={16} color="white" />
                     <Text className="text-white font-semibold text-xs">
                       Edit
                     </Text>
                   </View>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
             </View>
-          </LinearGradient>
+          </View>
         </View>
 
         {/* Contact Info Section */}
@@ -522,33 +513,23 @@ const ReviewerProfile = () => {
             </Text>
             <View className="flex-row gap-2">
               <View className="flex-1 rounded-lg overflow-hidden">
-                <LinearGradient
-                  colors={["#3B82F6", "#6366F1"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  className="p-3"
-                >
+                <View className="p-3 bg-blue-500">
                   <Ionicons name="trophy" size={18} color="white" />
                   <Text className="text-white text-[10px] mt-1">Experience</Text>
                   <Text className="text-white text-base font-bold">
                     {mentorData.yearsExperience} years
                   </Text>
-                </LinearGradient>
+                </View>
               </View>
 
               <View className="flex-1 rounded-lg overflow-hidden">
-                <LinearGradient
-                  colors={["#9333EA", "#EC4899"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  className="p-3"
-                >
+                <View className="p-3 bg-purple-500">
                   <Ionicons name="star" size={18} color="white" />
                   <Text className="text-white text-[10px] mt-1">Rating</Text>
                   <Text className="text-white text-base font-bold">
                     {mentorData.rating.toFixed(1)}/5
                   </Text>
-                </LinearGradient>
+                </View>
               </View>
             </View>
           </View>
@@ -568,19 +549,14 @@ const ReviewerProfile = () => {
               </View>
               <TouchableOpacity
                 onPress={() => setIsAddingCert(true)}
-                className="rounded-lg overflow-hidden"
+                className="rounded-lg overflow-hidden bg-indigo-500"
                 activeOpacity={0.8}
               >
-                <LinearGradient
-                  colors={["#2563EB", "#9333EA"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  className="px-3 py-1.5"
-                >
+                <View className="px-3 py-1.5">
                   <Text className="text-white font-semibold text-[10px]">
                     + Add
                   </Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
             </View>
 
@@ -638,11 +614,12 @@ const ReviewerProfile = () => {
         onRequestClose={handleCancel}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          behavior="padding"
           className="flex-1"
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : -200}
         >
           <View className="flex-1 bg-black/50 justify-end">
-            <View className="bg-white rounded-t-3xl max-h-[90%]">
+            <View className="bg-white rounded-t-3xl" style={{ maxHeight: '85%' }}>
               <View className="flex-row items-center justify-between p-6 border-b border-gray-200">
                 <Text className="text-xl font-semibold text-gray-900">
                   Edit Profile
@@ -653,9 +630,11 @@ const ReviewerProfile = () => {
               </View>
 
               <ScrollView 
+                ref={editScrollViewRef}
                 className="p-6" 
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ paddingBottom: 120 }}
               >
                 <View className="space-y-6">
                   <View className="space-y-4">
@@ -675,6 +654,11 @@ const ReviewerProfile = () => {
                           }
                           className="border border-gray-300 rounded-xl px-4 py-3 bg-white"
                           placeholder="Enter full name"
+                          onFocus={() => {
+                            setTimeout(() => {
+                              editScrollViewRef.current?.scrollTo({ y: 0, animated: true });
+                            }, 150);
+                          }}
                         />
                       </View>
 
@@ -690,6 +674,11 @@ const ReviewerProfile = () => {
                           className="border border-gray-300 rounded-xl px-4 py-3 bg-white"
                           placeholder="Enter years of experience..."
                           keyboardType="numeric"
+                          onFocus={() => {
+                            setTimeout(() => {
+                              editScrollViewRef.current?.scrollTo({ y: 250, animated: true });
+                            }, 150);
+                          }}
                         />
                       </View>
 
@@ -705,6 +694,11 @@ const ReviewerProfile = () => {
                           className="border border-gray-300 rounded-xl px-4 py-3 bg-white"
                           placeholder="Enter phone number..."
                           keyboardType="phone-pad"
+                          onFocus={() => {
+                            setTimeout(() => {
+                              editScrollViewRef.current?.scrollTo({ y: 350, animated: true });
+                            }, 150);
+                          }}
                         />
                       </View>
                     </View>
@@ -723,16 +717,11 @@ const ReviewerProfile = () => {
                 <TouchableOpacity
                   onPress={handleSave}
                   disabled={isPending}
-                  className="rounded-xl overflow-hidden"
+                  className="rounded-xl overflow-hidden bg-indigo-500"
                   activeOpacity={0.8}
+                  style={{ opacity: isPending ? 0.6 : 1 }}
                 >
-                  <LinearGradient
-                    colors={["#2563EB", "#9333EA"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    className="px-6 py-3"
-                    style={{ opacity: isPending ? 0.6 : 1 }}
-                  >
+                  <View className="px-6 py-3">
                     {isPending ? (
                       <ActivityIndicator size="small" color="white" />
                     ) : (
@@ -743,7 +732,7 @@ const ReviewerProfile = () => {
                         </Text>
                       </View>
                     )}
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
               </View>
             </View>
@@ -759,11 +748,12 @@ const ReviewerProfile = () => {
         onRequestClose={handleCancelCert}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          behavior="padding"
           className="flex-1"
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : -200}
         >
           <View className="flex-1 bg-black/50 justify-end">
-            <View className="bg-white rounded-t-3xl max-h-[90%]">
+            <View className="bg-white rounded-t-3xl" style={{ maxHeight: '85%' }}>
               <View className="flex-row items-center justify-between p-6 border-b border-gray-200">
                 <View className="flex-row items-center gap-3">
                   <View className="p-2 bg-indigo-500 rounded-xl">
@@ -782,6 +772,7 @@ const ReviewerProfile = () => {
               </View>
 
               <ScrollView
+                ref={certScrollViewRef}
                 className="p-6"
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
@@ -799,6 +790,11 @@ const ReviewerProfile = () => {
                       }
                       className="border border-gray-300 rounded-xl px-4 py-3 bg-white"
                       placeholder="Enter certificate name..."
+                      onFocus={() => {
+                        setTimeout(() => {
+                          certScrollViewRef.current?.scrollTo({ y: 0, animated: true });
+                        }, 150);
+                      }}
                     />
                   </View>
 
@@ -874,23 +870,18 @@ const ReviewerProfile = () => {
                     imageFiles.length === 0 ||
                     isCertUploadPending
                   }
-                  className="rounded-xl overflow-hidden"
+                  className="rounded-xl overflow-hidden bg-indigo-500"
                   activeOpacity={0.8}
+                  style={{
+                    opacity:
+                      !certFormData.name ||
+                      imageFiles.length === 0 ||
+                      isCertUploadPending
+                        ? 0.5
+                        : 1,
+                  }}
                 >
-                  <LinearGradient
-                    colors={["#2563EB", "#9333EA"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    className="px-6 py-2 flex-row items-center gap-2"
-                    style={{
-                      opacity:
-                        !certFormData.name ||
-                        imageFiles.length === 0 ||
-                        isCertUploadPending
-                          ? 0.5
-                          : 1,
-                    }}
-                  >
+                  <View className="px-6 py-2 flex-row items-center gap-2">
                     {isCertUploadPending ? (
                       <ActivityIndicator size="small" color="white" />
                     ) : (
@@ -901,7 +892,7 @@ const ReviewerProfile = () => {
                         </Text>
                       </>
                     )}
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
               </View>
             </View>
