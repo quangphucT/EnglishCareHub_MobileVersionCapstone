@@ -397,7 +397,7 @@ const UploadingCertificate = ({ navigation }: UploadingCertificateProps) => {
                   Drag & Drop or Tap to Select Files
                 </Text>
                 <Text className="text-xs text-gray-400 mt-2 text-center px-4">
-                  Supports images and PDF. You can select multiple files at once.
+                  Supports images. You can select multiple files at once.
                 </Text>
               </TouchableOpacity>
             </View>
