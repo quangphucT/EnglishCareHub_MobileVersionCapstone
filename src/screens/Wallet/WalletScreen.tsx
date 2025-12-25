@@ -236,31 +236,45 @@ const WalletScreen = () => {
         onRequestClose={() => setShowPackagesModal(false)}
       >
         <View className="flex-1 bg-black/50 justify-end">
-          <View className="bg-white rounded-t-3xl max-h-[85%]">
+          <View className="bg-white rounded-t-3xl max-h-[85%]" style={{ paddingBottom: insets.bottom + 16 }}>
             {/* Modal Header */}
-            <View className="flex-row items-center justify-between px-6 py-4 border-b border-gray-200">
-              <View>
-                <Text className="text-xl font-bold text-gray-900">Chọn gói Coin</Text>
+            <View className="px-5 pt-5 pb-4 border-b border-gray-100">
+              <View className="flex-row items-start justify-between">
+                <View className="flex-row items-center flex-1">
+                  <View className="w-10 h-10 bg-yellow-100 rounded-full items-center justify-center mr-3">
+                    <Ionicons name="wallet" size={20} color="#F59E0B" />
+                  </View>
+                  <View className="flex-1 pr-4">
+                    <Text className="text-lg font-bold text-gray-900">Nạp Coin</Text>
+                    <Text className="text-sm text-gray-500 mt-0.5">
+                      Chọn gói coin phù hợp để nạp vào tài khoản
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity 
+                  onPress={() => setShowPackagesModal(false)}
+                  className="p-1"
+                >
+                  <Ionicons name="close" size={24} color="#9CA3AF" />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity onPress={() => setShowPackagesModal(false)}>
-                <Ionicons name="close-circle" size={32} color="#9CA3AF" />
-              </TouchableOpacity>
             </View>
 
             {/* Packages List */}
-            <ScrollView className="px-4 py-4" showsVerticalScrollIndicator={false}>
+            <ScrollView className="px-5 py-4" showsVerticalScrollIndicator={false}>
               {isLoadingPackages ? (
                 <View className="py-12 items-center">
-                  <ActivityIndicator size="large" color="#2563EB" />
+                  <ActivityIndicator size="large" color="#F59E0B" />
                   <Text className="text-gray-500 mt-4">Đang tải gói coin...</Text>
                 </View>
               ) : (
-                <View className="gap-4 pb-6">
+                <View className="gap-3">
                   {coinPackages.map((pkg) => {
                     const hasBonus = pkg.bonusPercent > 0;
                     const isLoading = loadingPackageId === pkg.servicePackageId;
                     const bonusCoin = hasBonus ? Math.floor((pkg.numberOfCoin * pkg.bonusPercent) / 100) : 0;
                     const totalCoin = pkg.numberOfCoin + bonusCoin;
+                    const pricePerCoin = Math.round(pkg.price / totalCoin);
 
                     return (
                       <TouchableOpacity
@@ -268,87 +282,67 @@ const WalletScreen = () => {
                         onPress={() => handleBuyCoin(pkg.servicePackageId)}
                         disabled={isLoading || isBuying}
                         activeOpacity={0.7}
-                        className="rounded-2xl overflow-hidden border-2"
+                        className={`bg-white rounded-2xl border-2 p-4 ${
+                          hasBonus ? 'border-yellow-400' : 'border-gray-200'
+                        }`}
                         style={{
-                          backgroundColor: 'white',
-                          borderColor: hasBonus ? '#F59E0B' : '#E5E7EB',
                           shadowColor: '#000',
-                          shadowOffset: { width: 0, height: 2 },
-                          shadowOpacity: 0.1,
-                          shadowRadius: 8,
-                          elevation: 3,
+                          shadowOffset: { width: 0, height: 1 },
+                          shadowOpacity: 0.05,
+                          shadowRadius: 4,
+                          elevation: 2,
                         }}
                       >
                         {/* Bonus Badge */}
                         {hasBonus && (
-                          <View className="bg-amber-500 px-3 py-1 absolute top-0 left-0 z-10 rounded-br-xl">
-                            <Text className="text-white text-xs font-bold">+{pkg.bonusPercent}% BONUS</Text>
+                          <View className="absolute -top-2 -right-2 bg-red-500 px-2 py-0.5 rounded-full z-10">
+                            <Text className="text-white text-xs font-bold">HOT</Text>
                           </View>
                         )}
 
-                        <View className="p-4" style={{ paddingTop: hasBonus ? 32 : 16 }}>
-                          {/* Header Row */}
-                          <View className="flex-row items-start justify-between mb-3">
-                            <View className="flex-1">
-                              <Text className="text-lg font-bold text-gray-900">{pkg.name}</Text>
-                              <Text className="text-sm text-gray-500 mt-1" numberOfLines={2}>
-                                {pkg.description}
-                              </Text>
-                            </View>
+                        <View className="flex-row items-center">
+                          {/* Icon */}
+                          <View className={`w-12 h-12 rounded-full items-center justify-center mr-4 ${
+                            hasBonus ? 'bg-yellow-100' : 'bg-gray-100'
+                          }`}>
+                            <Ionicons 
+                              name="logo-bitcoin" 
+                              size={24} 
+                              color={hasBonus ? '#F59E0B' : '#6B7280'} 
+                            />
                           </View>
 
-                          {/* Coin Display */}
-                          <View className="bg-yellow-50 rounded-xl p-3 mb-3">
-                            <View className="flex-row items-center justify-center">
-                              <View className="w-10 h-10 bg-yellow-400 rounded-full items-center justify-center mr-3">
-                                <Ionicons name="logo-bitcoin" size={22} color="white" />
-                              </View>
-                              <View className="items-center">
-                                {hasBonus ? (
-                                  <>
-                                    <Text className="text-3xl font-black text-yellow-600">
-                                      {totalCoin.toLocaleString()}
-                                    </Text>
-                                    <View className="flex-row items-center gap-1">
-                                      <Text className="text-xs text-gray-500 line-through">
-                                        {pkg.numberOfCoin.toLocaleString()}
-                                      </Text>
-                                      <Text className="text-xs font-bold text-green-600">
-                                        +{bonusCoin.toLocaleString()} Coin
-                                      </Text>
-                                    </View>
-                                  </>
-                                ) : (
-                                  <Text className="text-3xl font-black text-yellow-600">
-                                    {pkg.numberOfCoin.toLocaleString()}
+                          {/* Info */}
+                          <View className="flex-1">
+                            <View className="flex-row items-center">
+                              <Text className="text-base font-bold text-gray-900">
+                                {totalCoin.toLocaleString()} Coin
+                              </Text>
+                              {hasBonus && (
+                                <View className="bg-green-100 px-2 py-0.5 rounded-full ml-2">
+                                  <Text className="text-green-600 text-xs font-semibold">
+                                    +{pkg.bonusPercent}%
                                   </Text>
-                                )}
-                                <Text className="text-base text-yellow-700 font-medium">Coin</Text>
-                              </View>
-                            </View>
-                          </View>
-
-                          {/* Price & Button Row */}
-                          <View className="flex-row items-center justify-between">
-                            <View>
-                              <Text className="text-xs text-gray-500">Giá</Text>
-                              <Text className="text-xl font-bold text-gray-900">
-                                {pkg.price.toLocaleString()}
-                                <Text className="text-sm font-normal text-gray-500"> đ</Text>
-                              </Text>
-                            </View>
-
-                            <View 
-                              className={`px-6 py-2.5 rounded-full ${
-                                isLoading ? 'bg-gray-300' : hasBonus ? 'bg-amber-500' : 'bg-blue-600'
-                              }`}
-                            >
-                              {isLoading ? (
-                                <ActivityIndicator size="small" color="white" />
-                              ) : (
-                                <Text className="text-white font-semibold">Mua ngay</Text>
+                                </View>
                               )}
                             </View>
+                            <Text className="text-sm text-gray-500 mt-0.5">
+                              {pricePerCoin.toLocaleString()}đ / Coin
+                            </Text>
+                          </View>
+
+                          {/* Price */}
+                          <View className="items-end">
+                            {isLoading ? (
+                              <ActivityIndicator size="small" color="#F59E0B" />
+                            ) : (
+                              <>
+                                <Text className="text-xs text-gray-400">Tổng giá:</Text>
+                                <Text className="text-lg font-bold text-green-600">
+                                  {pkg.price.toLocaleString()} đ
+                                </Text>
+                              </>
+                            )}
                           </View>
                         </View>
                       </TouchableOpacity>
@@ -356,6 +350,34 @@ const WalletScreen = () => {
                   })}
                 </View>
               )}
+
+              {/* Note Section */}
+              <View className="mt-5 bg-blue-50 rounded-xl p-4 border border-blue-100">
+                <View className="flex-row items-center mb-2">
+                  <Ionicons name="information-circle" size={18} color="#3B82F6" />
+                  <Text className="text-sm font-semibold text-blue-700 ml-2">Lưu ý:</Text>
+                </View>
+                <View className="gap-1.5">
+                  <View className="flex-row items-start">
+                    <Text className="text-blue-600 mr-2">•</Text>
+                    <Text className="text-sm text-blue-600 flex-1">
+                      Coin sẽ được cộng vào tài khoản sau khi thanh toán thành công
+                    </Text>
+                  </View>
+                  <View className="flex-row items-start">
+                    <Text className="text-blue-600 mr-2">•</Text>
+                    <Text className="text-sm text-blue-600 flex-1">
+                      Thanh toán qua QR Code ngân hàng, hỗ trợ mọi ngân hàng
+                    </Text>
+                  </View>
+                  <View className="flex-row items-start">
+                    <Text className="text-blue-600 mr-2">•</Text>
+                    <Text className="text-sm text-blue-600 flex-1">
+                      Coin có thể dùng để mở khoá khoá học và các tính năng Premium
+                    </Text>
+                  </View>
+                </View>
+              </View>
             </ScrollView>
           </View>
         </View>

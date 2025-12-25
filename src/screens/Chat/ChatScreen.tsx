@@ -402,6 +402,7 @@ const ChatScreen = () => {
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const { data: userData } = useGetMeQuery();
+  console.log("UserDataaaa:", userData?.userId);
   const { data: packagesData, isLoading: isLoadingPackages, error: packagesError } = useGetAIPackages();
   const chargeCoinMutation = useChargeCoinForConversation();
 
@@ -411,7 +412,6 @@ const ChatScreen = () => {
   const [livekitToken, setLivekitToken] = useState<string>('');
   const [livekitUrl, setLivekitUrl] = useState<string>('');
   const [timeRemaining, setTimeRemaining] = useState(0);
-  const [userName, setUserName] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const conversationMessagesRef = useRef<TranscriptionMessage[]>([]);
@@ -521,14 +521,14 @@ const ChatScreen = () => {
   };
 
   // Get LiveKit token from endpoint
-  const getToken = useCallback(async (name: string): Promise<{ token: string; url: string } | null> => {
+  const getToken = useCallback(async (userId: string): Promise<{ token: string; url: string } | null> => {
     try {
       const tokenUrl = process.env.EXPO_PUBLIC_LIVEKIT_TOKEN_URL;
       if (!tokenUrl) {
         throw new Error('LiveKit token URL not configured');
       }
 
-      const response = await fetch(`${tokenUrl}?name=${encodeURIComponent(name)}`);
+      const response = await fetch(`${tokenUrl}?name=${encodeURIComponent(userId)}`);
       const bodyText = await response.text();
 
       if (!response.ok) {
@@ -559,8 +559,8 @@ const ChatScreen = () => {
       return;
     }
 
-    if (!userName.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng nhập tên của bạn');
+    if (!userData?.userId) {
+      Alert.alert('Lỗi', 'Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.');
       return;
     }
 
@@ -594,7 +594,7 @@ const ChatScreen = () => {
     
     try {
       // Step 1: Get LiveKit token first
-      const tokenData = await getToken(userName);
+      const tokenData = await getToken(userData.userId);
       
       if (!tokenData) {
         // getToken đã hiển thị Alert
@@ -789,19 +789,6 @@ const ChatScreen = () => {
                 </TouchableOpacity>
               </View>
 
-              {/* User Name Input */}
-              <View className="mb-4">
-                <Text className="text-gray-700 font-medium mb-2">
-                  Tên của bạn
-                </Text>
-                <TextInput
-                  className="border border-gray-300 rounded-xl px-4 py-3 text-gray-900"
-                  placeholder="Nhập tên của bạn"
-                  value={userName}
-                  onChangeText={setUserName}
-                />
-              </View>
-
               {/* Package List */}
               {isLoadingPackages ? (
                 <View className="items-center py-8">
@@ -886,14 +873,13 @@ const ChatScreen = () => {
               {/* Confirm Button */}
               <TouchableOpacity
                 className={`rounded-xl py-4 items-center mb-4 ${
-                  selectedPackage && userName.trim()
+                  selectedPackage
                     ? 'bg-purple-600'
                     : 'bg-gray-300'
                 }`}
                 onPress={handleStartConversation}
                 disabled={
                   !selectedPackage ||
-                  !userName.trim() ||
                   chargeCoinMutation.isPending ||
                   isConnecting
                 }

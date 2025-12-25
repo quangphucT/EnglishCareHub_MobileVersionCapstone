@@ -134,8 +134,8 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
           } else {
             if (!data.isPlacementTestDone) {
               navigation?.navigate?.("PlacementTest");
-            } else if (!data.isGoalSet) {
-              navigation?.navigate?.("LearningPath");
+            // } else if (!data.isGoalSet) {
+            //   navigation?.navigate?.("LearningPath");
             } else {
               navigation?.navigate?.("MainApp");
             }
