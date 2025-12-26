@@ -14,6 +14,7 @@ import {
   VerifyOTPResponse,
 } from "../types/auth";
 import httpClient from "./httpClient";
+import { decodeJWT } from "../utils/jwtDecoder";
 
 export const authService = {
   // Register new account
@@ -38,7 +39,15 @@ export const authService = {
         password: credentials.password,
         role: credentials.role,
       });
-      return response.data;
+      
+      // Decode token to get reviewer info
+      const decodedToken = decodeJWT(response.data.accessToken);
+      
+      return {
+        ...response.data,
+        isReviewerActive: decodedToken?.IsReviewerActive === true,
+        reviewerStatus: decodedToken?.ReviewerStatus || undefined,
+      };
     } catch (error: any) {
        throw new Error(error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
     }

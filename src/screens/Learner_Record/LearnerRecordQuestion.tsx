@@ -993,18 +993,18 @@ const LearnerRecordQuestion = () => {
                 <View className="flex-row items-center justify-between mt-4">
                   <TouchableOpacity
                     onPress={handlePreviousQuestion}
-                    disabled={uiBlocked || currentQuestionIndex === 0}
+                    disabled={uiBlocked || recording || currentQuestionIndex === 0}
                     className="w-12 h-12 rounded-full bg-gray-600 items-center justify-center"
-                    style={{ opacity: uiBlocked || currentQuestionIndex === 0 ? 0.5 : 1 }}
+                    style={{ opacity: uiBlocked || recording || currentQuestionIndex === 0 ? 0.5 : 1 }}
                   >
                     <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     onPress={handleNextQuestion}
-                    disabled={uiBlocked || currentQuestionIndex >= recordsList.length - 1}
+                    disabled={uiBlocked || recording || currentQuestionIndex >= recordsList.length - 1}
                     className="w-12 h-12 rounded-full bg-gray-600 items-center justify-center"
-                    style={{ opacity: uiBlocked || currentQuestionIndex >= recordsList.length - 1 ? 0.5 : 1 }}
+                    style={{ opacity: uiBlocked || recording || currentQuestionIndex >= recordsList.length - 1 ? 0.5 : 1 }}
                   >
                     <Ionicons name="chevron-forward" size={24} color="#FFFFFF" />
                   </TouchableOpacity>

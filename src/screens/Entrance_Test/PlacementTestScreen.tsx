@@ -18,6 +18,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Audio } from "expo-av";
+import { useQueryClient } from "@tanstack/react-query";
 import {useGetPlacementTest,useSubmitTestAssessment} from "../../hooks/learner/placementTest/placementTestHooks";
 import { useAuthRefresh } from "../../navigation/AppNavigator";
 import { useLogout } from "../../hooks/useAuth";
@@ -47,6 +48,7 @@ const SESSION_TIMEOUT = 2 * 60 * 60 * 1000; // 2 giờ
 export default function PlacementTestScreen() {
   const { refreshAuth } = useAuthRefresh();
   const logoutMutation = useLogout();
+  const queryClient = useQueryClient();
   const { data: testData, isLoading } = useGetPlacementTest();
   const { data: getMe } = useGetMeQuery();
   const { mutate: submitPlacementTest } = useSubmitTestAssessment();
@@ -558,6 +560,13 @@ export default function PlacementTestScreen() {
 
   const handleNavigateDashboard = async () => {
     try {
+      // Invalidate tất cả các query cache liên quan đến user profile và level
+      // để đảm bảo dữ liệu mới nhất được lấy từ server
+      queryClient.invalidateQueries({ queryKey: ["getMe"] });
+      queryClient.invalidateQueries({ queryKey: ["levelsAndlearnerCourseIds"] });
+      queryClient.invalidateQueries({ queryKey: ["getCoursesBasedOnLevelLearner"] });
+      queryClient.invalidateQueries({ queryKey: ["userProfile"] });
+      
       await new Promise(resolve => setTimeout(resolve, 2000));
       await refreshAuth();
   
@@ -1015,25 +1024,27 @@ export default function PlacementTestScreen() {
           <View className="px-6 py-5">
             <TouchableOpacity
               className={`py-4 rounded-full ${
-                recorded[currentQuestionIndex] && !isProcessingAudio
+                recorded[currentQuestionIndex] && !isProcessingAudio && recordingStatus !== "recording"
                   ? "bg-gray-200"
                   : "bg-gray-200"
               }`}
               onPress={handleNext}
-              disabled={!recorded[currentQuestionIndex] || isProcessingAudio}
+              disabled={!recorded[currentQuestionIndex] || isProcessingAudio || recordingStatus === "recording"}
             >
               <Text
                 className={`text-center text-base font-bold ${
-                  recorded[currentQuestionIndex] && !isProcessingAudio
+                  recorded[currentQuestionIndex] && !isProcessingAudio && recordingStatus !== "recording"
                     ? "text-black"
                     : "text-gray-400"
                 }`}
               >
-                {isProcessingAudio
-                  ? "Đang xử lý..."
-                  : currentQuestionIndex < totalQuestions - 1
-                    ? "Tiếp tục →"
-                    : "✓ Hoàn thành bài thi"}
+                {recordingStatus === "recording"
+                  ? "Đang ghi âm..."
+                  : isProcessingAudio
+                    ? "Đang xử lý..."
+                    : currentQuestionIndex < totalQuestions - 1
+                      ? "Tiếp tục →"
+                      : "✓ Hoàn thành bài thi"}
               </Text>
             </TouchableOpacity>
           </View>

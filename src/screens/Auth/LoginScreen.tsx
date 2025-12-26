@@ -83,6 +83,16 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
   ) => {
     const normalizedStatus = rawStatus?.trim().toLowerCase();
 
+    // Check if reviewer is banned
+    if (isReviewerActive === false && normalizedStatus === "banned") {
+      Alert.alert(
+        'Tài khoản bị khóa',
+        'Tài khoản reviewer của bạn đã bị khóa. Vui lòng liên hệ hỗ trợ.',
+        [{ text: 'OK' }]
+      );
+      return; // Stay on login screen
+    }
+
     if (normalizedStatus === "pending") {
       if (isReviewerActive === false) {
         navigation?.navigate?.("EntranceInformation");
@@ -128,8 +138,8 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
         onSuccess: (data) => {
           if (activeTab === 'reviewer') {
             handleReviewerNavigation(
-              data.isPlacementTestDone,
-              data.role
+              data.isReviewerActive,
+              data.reviewerStatus
             );
           } else {
             if (!data.isPlacementTestDone) {

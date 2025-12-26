@@ -1167,29 +1167,21 @@ const ExerciseScreen = () => {
         </Text>
 
         <View className="flex-row items-center justify-between">
-          {/* Previous Button */}
-          <TouchableOpacity
-            onPress={handlePreviousQuestion}
-            disabled={currentQuestionIndex === 0}
-            className={`flex-row items-center px-4 py-3 rounded-xl border ${
-              currentQuestionIndex === 0
-                ? "border-gray-200 bg-gray-100"
-                : "border-blue-500 bg-white"
-            }`}
+          {/* Previous Button - Disabled */}
+          <View
+            className="flex-row items-center px-4 py-3 rounded-xl border border-gray-200 bg-gray-100 opacity-50"
           >
             <Ionicons
               name="arrow-back"
               size={16}
-              color={currentQuestionIndex === 0 ? "#9CA3AF" : "#3B82F6"}
+              color="#9CA3AF"
             />
             <Text
-              className={`ml-1 font-semibold text-sm ${
-                currentQuestionIndex === 0 ? "text-gray-400" : "text-blue-600"
-              }`}
+              className="ml-1 font-semibold text-sm text-gray-400"
             >
               Trước
             </Text>
-          </TouchableOpacity>
+          </View>
 
           {/* Recording Button - Center */}
           <TouchableOpacity
@@ -1217,7 +1209,11 @@ const ExerciseScreen = () => {
           {currentQuestionIndex === totalQuestions - 1 ? (
             <TouchableOpacity
               onPress={() => navigation.goBack()}
-              className="flex-row items-center px-4 py-3 rounded-xl bg-green-600"
+              disabled={isRecording || isProcessingAudio}
+              className={`flex-row items-center px-4 py-3 rounded-xl ${
+                isRecording || isProcessingAudio ? "bg-gray-400" : "bg-green-600"
+              }`}
+              style={{ opacity: isRecording || isProcessingAudio ? 0.5 : 1 }}
             >
               <Ionicons name="home" size={18} color="white" />
               <Text className="ml-1 text-white font-semibold text-sm">
@@ -1227,11 +1223,11 @@ const ExerciseScreen = () => {
           ) : (
             <TouchableOpacity
               onPress={handleNextQuestion}
-              disabled={isProcessingAudio}
+              disabled={isProcessingAudio || isRecording}
               className={`flex-row items-center px-4 py-3 rounded-xl ${
-                isProcessingAudio ? "bg-gray-400" : "bg-blue-600"
+                isProcessingAudio || isRecording ? "bg-gray-400" : "bg-blue-600"
               }`}
-              style={{ opacity: isProcessingAudio ? 0.5 : 1 }}
+              style={{ opacity: isProcessingAudio || isRecording ? 0.5 : 1 }}
             >
               <Text className="font-semibold text-sm text-white">Tiếp</Text>
               <Ionicons

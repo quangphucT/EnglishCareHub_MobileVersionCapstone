@@ -60,6 +60,8 @@ interface LoginResponse {
   role: string;
   isPlacementTestDone: boolean;
   isGoalSet: boolean;
+  isReviewerActive?: boolean;
+  reviewerStatus?: string;
 }
 // forgot password
 interface ForgotPasswordResponse {

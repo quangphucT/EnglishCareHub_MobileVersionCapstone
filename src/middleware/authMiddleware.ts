@@ -5,6 +5,7 @@ import { decodeJWT } from "../utils/jwtDecoder";
 import { authService } from "../api/auth.service";
 import { queryClient } from "../config/queryClient";
 import { useLearnerStore } from "../store/learnerStore";
+import { Alert } from "react-native";
 
 export interface AuthState {
   isAuthenticated: boolean;
@@ -117,7 +118,15 @@ export class AuthMiddleware {
   }
 
   private getReviewerInitialRoute(user: User | null): string {
-    // Nếu IsReviewerActive = false -> Upload Certificate
+    // Nếu IsReviewerActive = false VÀ reviewerStatus = "Banned" -> Logout và về Login
+    if (!user?.IsReviewerActive && user?.reviewerStatus === "Banned") {
+      // Reviewer bị ban, không cho vào app
+     
+      this.handleLogout(); // Clear tokens
+      return "Login";
+    }
+
+    // Nếu IsReviewerActive = false (chưa upload certificate) -> Upload Certificate
     if (!user?.IsReviewerActive) {
       return "UploadingCertificate";
     }

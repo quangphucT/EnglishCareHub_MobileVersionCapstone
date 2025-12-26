@@ -1,13 +1,22 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { View, Text } from 'react-native';
+import { View, Text, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import ReviewerMainScreen from '../screens/Reviewer/ReviewerMainScreen';
 import ProfileScreen from '../screens/Profile/ProfileScreen';
 import ReviewerReviewScreen from '../screens/Reviewer/ReviewerReview';
 import ReviewerWalletScreen from '../screens/Reviewer/ReviewerWallet';
 import CompletedReviewsScreen from '../screens/Reviewer/CompletedReviewsScreen';
+import { startTokenRefresher, stopTokenRefresher } from '../api/httpClient';
+
+// Type for root stack navigation
+type RootStackParamList = {
+  Login: undefined;
+  ReviewerTabs: undefined;
+};
 
 // Placeholder screens - you can create separate ones for reviewer
 const PendingReviewsScreen = () => (
@@ -57,6 +66,38 @@ export type ReviewerTabsParamList = {
 const Tab = createBottomTabNavigator<ReviewerTabsParamList>();
 
 const ReviewerTabs = () => {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
+  useEffect(() => {
+    // Start token refresher when reviewer enters the app
+    // Check every 45 seconds if reviewer is banned
+    startTokenRefresher(() => {
+      // Callback when reviewer is banned
+      Alert.alert(
+        'Tài khoản bị khóa',
+        'Tài khoản reviewer của bạn đã bị khóa. Vui lòng liên hệ hỗ trợ.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Navigate to Login screen and reset navigation stack
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
+            },
+          },
+        ],
+        { cancelable: false }
+      );
+    });
+
+    // Cleanup: stop token refresher when component unmounts
+    return () => {
+      stopTokenRefresher();
+    };
+  }, [navigation]);
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['bottom']}>
       <Tab.Navigator
